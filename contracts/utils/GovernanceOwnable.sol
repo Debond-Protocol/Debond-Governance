@@ -19,12 +19,12 @@ contract GovernanceOwnable is IActivable {
         _;
     }
 
-    modifier isActive() {
+    modifier _onlyIsActive() {
         require(isActive, "Contract Is Not Active");
         _;
     }
 
-    function setIsActive(bool _isActive) external virtual onlyGovernance {
+    function setIsActive(bool _isActive) external onlyGovernance {
         isActive = _isActive;
     }
 }
