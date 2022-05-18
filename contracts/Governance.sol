@@ -89,6 +89,7 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard {
         uint256 _dbitRewards,
         address _contractAddress,
         bytes32 _proposalHash,
+        ProposalApproval _approvalMode,
         uint256[] memory _dbitDistributedPerDay
     ) external onlyDebondOperator {
         require(Address.isContract(_contractAddress), "Gov: Proposal contract not valid");
@@ -101,6 +102,7 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard {
         proposal[_class][_nonce].endTime = _endTime;
         proposal[_class][_nonce].dbitRewards = _dbitRewards;
         proposal[_class][_nonce].contractAddress = _contractAddress;
+        proposal[_class][_nonce].approvalMode = _approvalMode;
         proposal[_class][_nonce].proposalHash = _proposalHash;
         proposal[_class][_nonce].status = ProposalStatus.Approved;
         proposal[_class][_nonce].dbitDistributedPerDay = _dbitDistributedPerDay;
@@ -118,7 +120,7 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard {
     function revokeProposal(
         uint128 _class,
         uint128 _nonce
-    ) external onlyDebondOperator onlyActiveProposal(_class, _nonce) {
+    ) external onlyDebondOperator onlyActiveOrPausedProposal(_class, _nonce) {
         proposal[_class][_nonce].status = ProposalStatus.Revoked;
 
         emit proposalRevoked(_class, _nonce);
@@ -146,10 +148,19 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard {
     function unpauseProposal(
         uint128 _class,
         uint128 _nonce
-    ) external onlyDebondOperator onlyActiveProposal(_class, _nonce) {
+    ) external onlyDebondOperator onlyPausedProposal(_class, _nonce) {
         proposal[_class][_nonce].status = ProposalStatus.Approved;
 
-        emit proposalPaused(_class, _nonce);
+        emit proposalUnpaused(_class, _nonce);
+    }
+
+    function endProposal(
+        uint128 _class,
+        uint128 _nonce
+    ) external onlyDebondOperator onlyActiveProposal(_class, _nonce) {
+        proposal[_class][_nonce].status = ProposalStatus.Ended;
+
+        emit proposalEnded(_class, _nonce);
     }
 
     /**
@@ -282,7 +293,28 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard {
         unstaked = true;
     }
 
-        /**
+
+    function mintAllocationToken(
+        address _to,
+        uint256 _amountDBIT,
+        uint256 _amountDGOV
+    ) public returns(bool) {
+        IERC20 Idbit = IERC20(DBIT);
+        uint256 _totalSupply = IERC20(DBIT).totalSupply();
+        AllocatedToken memory _allocatedToken = allocatedToken[_to];
+        uint256 amountToCheck = ((_totalSupply - dbitTotalAllocationDistributed) / 1e6 * 
+                                _allocatedToken.dbitAllocationPPM) / 1 ether;
+
+        require(
+            _allocatedToken.allocatedDBIT + _amountDBIT <= amountToCheck
+        );
+
+        Idbit.
+
+    }
+    
+
+    /**
     * @dev return a proposal
     * @param _class proposal class
     * @param _nonce proposal nonce

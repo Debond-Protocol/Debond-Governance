@@ -10,7 +10,7 @@ const GovStorage = artifacts.require("GovStorage");
 const StakingDGOV = artifacts.require("StakingDGOV");
 const Governance = artifacts.require("Governance");
 
-contract("governance storage", async (accounts) => {
+contract("governance", async (accounts) => {
     let dbit;
     let dgov;
     let storage;
@@ -130,6 +130,7 @@ contract("governance storage", async (accounts) => {
             10,
             storage.address,
             proposalHash,
+            0,
             [30, 10, 10]
         );
 
@@ -159,6 +160,7 @@ contract("governance storage", async (accounts) => {
             20,
             storage.address,
             proposalHash1,
+            0,
             [30, 10, 10]
         );
 
@@ -176,6 +178,7 @@ contract("governance storage", async (accounts) => {
             10,
             storage.address,
             proposalHash2,
+            0,
             [20, 10, 5]
         );
 
@@ -396,6 +399,7 @@ contract("governance storage", async (accounts) => {
             10,
             storage.address,
             proposalHash,
+            0,
             [30, 10, 10, 70]
         );
 

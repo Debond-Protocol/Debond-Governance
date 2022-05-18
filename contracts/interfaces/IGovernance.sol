@@ -50,14 +50,30 @@ interface IGovernance {
     );
 
     /**
-    * @dev emitted when a new proposal is paused
+    * @dev emitted when a proposal is paused
     */
     event proposalPaused(
         uint128 _class,
         uint128 _nonce
     );
 
-        /**
+    /**
+    * @dev emitted when a proposal is unpaused
+    */
+    event proposalUnpaused(
+        uint128 _class,
+        uint128 _nonce
+    );
+
+    /**
+    * @dev emitted when a proposal is ended
+    */
+    event proposalEnded(
+        uint128 _class,
+        uint128 _nonce
+    );
+
+    /**
     * @dev emitted when a user vote
     */
     event userVoted(
@@ -80,16 +96,16 @@ interface IGovernance {
 
     /**
     * @dev register a proposal
-    */
+    *
     function registerProposal(
         uint128 _class,
         address _owner,
         uint256 _endTime,
         uint256 _dbitRewards,
         address _contractAddress,
-        bytes32 _proposalHash,
         uint256[] memory _dbitDistributedPerDay
     ) external;
+    */
 
     /**
     * @dev revoke a proposal

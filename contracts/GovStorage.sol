@@ -27,6 +27,7 @@ contract GovStorage {
         uint256 dbitRewards;
         uint256[] dbitDistributedPerDay;
         uint256[] totalVoteTokensPerDay;
+        ProposalApproval approvalMode;
         bytes32 proposalHash;
         ProposalStatus status;
     }
@@ -45,6 +46,13 @@ contract GovStorage {
         uint128 nonce;
     }
 
+    struct AllocatedToken {
+        uint256 allocatedDGOV;
+        uint256 allocatedDBIT;
+        uint256 dbitAllocationPPM;
+        uint256 dgovAllocationPPM;
+    }
+
     address public debondOperator;  // entities with Veto access for the proposal
     address public DBIT;
     address public dGoV;
@@ -61,12 +69,17 @@ contract GovStorage {
     uint256 private stakingDgoVDuration;
     uint256 private _lockTime;
 
-    mapping(address => uint256) internal voteTokenBalance;
-    mapping(uint128 => mapping(uint128 => Proposal)) proposal;
+    uint256 constant dbitTotalAllocationDistributed = 85e3;
+    uint256 constant dgovTotalAllocationDistributed = 8e4;
+
     mapping(bytes32 => Vote) votes;
     mapping(uint128 => ProposalClass) proposalClass;
+    mapping(address => AllocatedToken) allocatedToken;
+    mapping(address => uint256) internal voteTokenBalance;
+    mapping(uint128 => mapping(uint128 => Proposal)) proposal;
 
     enum ProposalStatus {Approved, Paused, Revoked, Ended}
+    enum ProposalApproval {Both, ShouldApprove, CanVeto}
     enum VoteChoice {For, Against, Abstain}
 
     modifier onlyGov {
@@ -92,6 +105,27 @@ contract GovStorage {
             "Gov: proposal not found"
         );
         require(_proposal.status == ProposalStatus.Approved);
+        _;
+    }
+
+    modifier onlyActiveOrPausedProposal(uint128 _class, uint128 _nonce) {
+        Proposal memory _proposal = proposal[_class][_nonce];
+        require(
+            (
+                _proposal.endTime >= block.timestamp &&
+                _proposal.status == ProposalStatus.Approved
+            ) || _proposal.status == ProposalStatus.Paused,
+            "Gov: not active or paused"
+        );
+        _;
+    }
+
+    modifier onlyPausedProposal(uint128 _class, uint128 _nonce) {
+        Proposal memory _proposal = proposal[_class][_nonce];
+        require(
+            _proposal.status == ProposalStatus.Paused,
+            "Gov: proposal not paused"
+        );
         _;
     }
 
