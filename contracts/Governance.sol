@@ -22,8 +22,9 @@ import "./interfaces/IVoteToken.sol";
 import "./interfaces/IStakingDGOV.sol";
 import "./interfaces/IGovernance.sol";
 import "./test/DBIT.sol";
+import "./Pausable.sol";
 
-contract Governance is GovStorage, IGovernance, ReentrancyGuard {
+contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
     
     constructor(
         address _dbit,
