@@ -47,8 +47,8 @@ contract GovStorage {
     }
 
     struct AllocatedToken {
-        uint256 allocatedDGOV;
-        uint256 allocatedDBIT;
+        uint256 allocatedDGOVMinted;
+        uint256 allocatedDBITMinted;
         uint256 dbitAllocationPPM;
         uint256 dgovAllocationPPM;
     }
@@ -69,8 +69,8 @@ contract GovStorage {
     uint256 private stakingDgoVDuration;
     uint256 private _lockTime;
 
-    uint256 constant dbitTotalAllocationDistributed = 85e3;
-    uint256 constant dgovTotalAllocationDistributed = 8e4;
+    uint256 public dbitTotalAllocationDistributed = 85e3;
+    uint256 public dgovTotalAllocationDistributed = 8e4;
 
     mapping(bytes32 => Vote) votes;
     mapping(uint128 => ProposalClass) proposalClass;

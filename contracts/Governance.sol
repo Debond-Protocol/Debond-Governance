@@ -21,6 +21,7 @@ import "./GovStorage.sol";
 import "./interfaces/IVoteToken.sol";
 import "./interfaces/IStakingDGOV.sol";
 import "./interfaces/IGovernance.sol";
+import "./test/DBIT.sol";
 
 contract Governance is GovStorage, IGovernance, ReentrancyGuard {
     
@@ -293,24 +294,54 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard {
         unstaked = true;
     }
 
-
-    function mintAllocationToken(
+    /**
+    * @dev mint allocated DBIT to a given address
+    * @param _to the address to mint DBIT to
+    * @param _amountDBIT the amount of DBIT to mint
+    */
+    function mintAllocatedDBIT(
         address _to,
-        uint256 _amountDBIT,
-        uint256 _amountDGOV
+        uint256 _amountDBIT
     ) public returns(bool) {
-        IERC20 Idbit = IERC20(DBIT);
-        uint256 _totalSupply = IERC20(DBIT).totalSupply();
+        uint256 _totalSupply = IDebondToken(DBIT).totalSupply();
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
         uint256 amountToCheck = ((_totalSupply - dbitTotalAllocationDistributed) / 1e6 * 
                                 _allocatedToken.dbitAllocationPPM) / 1 ether;
 
         require(
-            _allocatedToken.allocatedDBIT + _amountDBIT <= amountToCheck
+            _allocatedToken.allocatedDBITMinted + _amountDBIT <= amountToCheck
         );
 
-        Idbit.
+        IDebondToken(DBIT).mintAllocatedSupply(_to, _amountDBIT);
+        allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
+        dbitTotalAllocationDistributed += _amountDBIT;
 
+        return true;
+    }
+
+    /**
+    * @dev mint allocated DGOV to a given address
+    * @param _to the address to mint DGOV to
+    * @param _amountDGOV the amount of DGOV to mint
+    */
+    function mintAllocatedDGOV(
+        address _to,
+        uint256 _amountDGOV
+    ) public returns(bool) {
+        uint256 _totalSupply = IDebondToken(dGoV).totalSupply();
+        AllocatedToken memory _allocatedToken = allocatedToken[_to];
+        uint256 amountToCheck = ((_totalSupply - dgovTotalAllocationDistributed) / 1e6 * 
+                                _allocatedToken.dgovAllocationPPM) / 1 ether;
+
+        require(
+            _allocatedToken.allocatedDGOVMinted + _amountDGOV <= amountToCheck
+        );
+
+        IDebondToken(dGoV).mintAllocatedSupply(_to, _amountDGOV);
+        allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
+        dgovTotalAllocationDistributed += _amountDGOV;
+
+        return true;
     }
     
 
