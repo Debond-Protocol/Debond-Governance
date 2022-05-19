@@ -54,8 +54,8 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
     uint256 public _airdroppedSupply;
     bool isActive;
     
-    address _bankAddress;
-    address _governanceAddress;
+    address bankAddress;
+    address governanceAddress;
     address _exchangeAddress;
     address _airdropAddress;
 
@@ -68,7 +68,9 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
     /** currently setting only the main token parameters , and once the other contracts are deployed then use setContractAddress to set up these contracts.
     */
 
-    constructor() ERC20("Debond Index Token", "DBIT") {}
+    constructor() ERC20("Debond Index Token", "DBIT") {
+
+    }
 
     function totalSupply()
         public
@@ -101,8 +103,8 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
         return _collateralisedSupply;
     }
 
-    function IsActive(bool status) public    returns(bool)
-    {   require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+    function IsActive(bool status) public    returns(bool) {   
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         isActive = status;
         return true;
     }
@@ -132,7 +134,7 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
         address _to,
         uint256 _amount
     ) public  override returns (bool) {
-        require(msg.sender == _exchangeAddress || msg.sender == _bankAddress );
+        require(msg.sender == _exchangeAddress || msg.sender == bankAddress );
 
         require(_checkIfItsLockedSupply(_from, _amount), "insufficient supply");
 
@@ -147,7 +149,7 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
         virtual
         override
     {
-        require(msg.sender == _bankAddress);
+        require(msg.sender == bankAddress, "only Bank");
         _mint(_to, _amount);
         _collateralisedSupply += _amount;
         collateralisedBalance[_to] += _amount;
@@ -157,7 +159,7 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
         external
         override
     {
-        require(msg.sender == _governanceAddress);
+        require(msg.sender == governanceAddress, "only Gov");
         _mint(_to, _amount);
         _allocatedSupply += _amount;
         allocatedBalance[_to] += _amount;
@@ -167,16 +169,16 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
         external
         override
     {
-        require(msg.sender == _governanceAddress);
+        require(msg.sender == governanceAddress, "only Gov");
         _mint(_to, _amount);
         _airdroppedSupply += _amount;
         _airdroppedBalance[_to] += _amount;
     }
 
 
-    function setBankContract(address bank_address) public override returns (bool) {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        _bankAddress = bank_address;
+    function setBankContract(address _bankAddress) public override returns (bool) {
+        //require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "only DeBond");
+        bankAddress = _bankAddress;
         return (true);
     }
 
@@ -184,14 +186,14 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
         public
         returns (bool)
     {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "only DeBond");
         _exchangeAddress = exchange_address;
         return (true);
     }
 
 
     function setAirdropContract(address new_Airdrop) public returns (bool) {
-    require(msg.sender == _airdropAddress);
+    require(msg.sender == _airdropAddress, "only airdop contract");
     _airdropAddress = new_Airdrop;
     return (true);
 }
@@ -202,6 +204,12 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
             "DBIT: ACCESS DENIED "
         );
         _airdroppedSupply = new_supply;
+
+        return true;
+    }
+
+    function setGovernanceContract(address _governance) external {
+        governanceAddress = _governance;
     }
 
 }

@@ -32,6 +32,7 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         address _stakingContract,
         address _voteToken,
         address _debondOperator,
+        address _debondTeam,
         uint256 _dbitAmountForVote
     ) {
         DBIT = _dbit;
@@ -40,6 +41,13 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         stakingContract = _stakingContract;
         _dbitAmountForOneVote = _dbitAmountForVote;
         debondOperator = _debondOperator;
+        debondTeam = _debondTeam;
+
+        allocatedToken[debondTeam].dbitAllocationPPM = 4e4 * 1 ether;
+        allocatedToken[debondTeam].dgovAllocationPPM = 8e4 * 1 ether;
+
+        dbitTotalAllocationDistributed = 85e3 * 1 ether;
+        dgovTotalAllocationDistributed = 8e4 * 1 ether;
     }
 
     /**
@@ -306,11 +314,13 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
     ) public returns(bool) {
         uint256 _totalSupply = IDebondToken(DBIT).totalSupply();
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
-        uint256 amountToCheck = ((_totalSupply - dbitTotalAllocationDistributed) / 1e6 * 
-                                _allocatedToken.dbitAllocationPPM) / 1 ether;
-
+        
+        uint256 amountToCheck = ((_totalSupply - dbitTotalAllocationDistributed) * 
+                                (_allocatedToken.dbitAllocationPPM) / 1e6) / 1 ether;
+        
         require(
-            _allocatedToken.allocatedDBITMinted + _amountDBIT <= amountToCheck
+            _allocatedToken.allocatedDBITMinted + _amountDBIT <= amountToCheck,
+            "Gov: allocated DBIT"
         );
 
         IDebondToken(DBIT).mintAllocatedSupply(_to, _amountDBIT);

@@ -54,6 +54,7 @@ contract GovStorage {
     }
 
     address public debondOperator;  // entities with Veto access for the proposal
+    address public debondTeam;
     address public DBIT;
     address public dGoV;
     address public bank;
@@ -69,8 +70,8 @@ contract GovStorage {
     uint256 private stakingDgoVDuration;
     uint256 private _lockTime;
 
-    uint256 public dbitTotalAllocationDistributed = 85e3;
-    uint256 public dgovTotalAllocationDistributed = 8e4;
+    uint256 public dbitTotalAllocationDistributed;
+    uint256 public dgovTotalAllocationDistributed;
 
     mapping(bytes32 => Vote) votes;
     mapping(uint128 => ProposalClass) proposalClass;
