@@ -48,6 +48,25 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
 
         dbitTotalAllocationDistributed = 85e3 * 1 ether;
         dgovTotalAllocationDistributed = 8e4 * 1 ether;
+
+        dbitTotalAllocationPPM = 1e5 * 1 ether;
+        dgovTotalAllocationPPM = 1e5 * 1 ether;
+
+        // proposal class info
+        proposalClassInfo[0].timelock = 3;
+        proposalClassInfo[0].minimumApproval = 50;
+        proposalClassInfo[0].architectVeto = 1;
+        proposalClassInfo[0].maximumExecutionTime = 1;
+
+        proposalClassInfo[1].timelock = 3;
+        proposalClassInfo[1].minimumApproval = 50;
+        proposalClassInfo[1].architectVeto = 1;
+        proposalClassInfo[1].maximumExecutionTime = 1;
+
+        proposalClassInfo[2].timelock = 3;
+        proposalClassInfo[2].minimumApproval = 50;
+        proposalClassInfo[2].architectVeto = 0;
+        proposalClassInfo[2].maximumExecutionTime = 120;
     }
 
     /**
@@ -312,15 +331,13 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         address _to,
         uint256 _amountDBIT
     ) public returns(bool) {
-        uint256 _totalSupply = IDebondToken(DBIT).totalSupply();
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
-        
-        uint256 amountToCheck = ((_totalSupply - dbitTotalAllocationDistributed) * 
-                                (_allocatedToken.dbitAllocationPPM) / 1e6) / 1 ether;
-        
+        uint256 _collaterizedSupply = IDebondToken(DBIT).collaterisedSupply();
+
         require(
-            _allocatedToken.allocatedDBITMinted + _amountDBIT <= amountToCheck,
-            "Gov: allocated DBIT"
+            IDebondToken(DBIT).allocatedBalance(_to) + _amountDBIT <=
+            _collaterizedSupply * _allocatedToken.dbitAllocationPPM / 1 ether,
+            "Gov: not enough supply"
         );
 
         IDebondToken(DBIT).mintAllocatedSupply(_to, _amountDBIT);
@@ -339,13 +356,13 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         address _to,
         uint256 _amountDGOV
     ) public returns(bool) {
-        uint256 _totalSupply = IDebondToken(dGoV).totalSupply();
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
-        uint256 amountToCheck = ((_totalSupply - dgovTotalAllocationDistributed) / 1e6 * 
-                                _allocatedToken.dgovAllocationPPM) / 1 ether;
+        uint256 _collaterizedSupply = IDebondToken(dGoV).collaterisedSupply();
 
         require(
-            _allocatedToken.allocatedDGOVMinted + _amountDGOV <= amountToCheck
+            IDebondToken(dGoV).allocatedBalance(_to) + _amountDGOV <=
+            _collaterizedSupply * _allocatedToken.dgovAllocationPPM / 1 ether,
+            "Gov: not enough supply"
         );
 
         IDebondToken(dGoV).mintAllocatedSupply(_to, _amountDGOV);
@@ -354,18 +371,59 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
 
         return true;
     }
+
+    /**
+    * @dev change the team allocation
+    * @param _proposalClass class of the proposal
+    * @param _proposalNonce cnonce of the proposal
+    * @param _to the address that should receive the allocation tokens
+    * @param _dbitPPM the new DBIT allocation
+    */
+    function changeTeamAllocation(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
+        address _to,
+        uint256 _dbitPPM
+    ) public returns(bool) {
+        require(_proposalClass <= 1, "Gov: class must be <= 1");
+    }
     
 
     /**
     * @dev return a proposal
     * @param _class proposal class
     * @param _nonce proposal nonce
+    * @param _proposal proposal for class `_class` and nonce `_nonce`
     */
     function getProposal(
         uint128 _class,
         uint128 _nonce
     ) external view returns(Proposal memory _proposal) {
         _proposal = proposal[_class][_nonce];
+    }
+
+    /**
+    * @dev return a proposal
+    * @param _class proposal class
+    * @param _classInfo aclss info of class `_class`
+    */
+    function getClassInfo(
+        uint128 _class
+    ) external view returns(ProposalClassInfo memory _classInfo) {
+        _classInfo = proposalClassInfo[_class];
+    }
+
+    /**
+    * @dev return a proposal
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    * @param _proposalInfo proposal info of class `_class` and `_nonce`
+    */
+    function getProposalInfo(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(ProposalClassInfo memory _proposalInfo) {
+        _proposalInfo = proposalVoting[_class][_nonce];
     }
 
     /**

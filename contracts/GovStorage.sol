@@ -46,6 +46,16 @@ contract GovStorage {
         uint128 nonce;
     }
 
+    struct ProposalClassInfo {
+        uint128[] nonces;
+        uint256 timelock;
+        uint256 minimumApproval;
+        uint256 approveVote;
+        uint256 architectVeto;
+        uint256 maximumExecutionTime;
+        uint256 executionInterval;
+    }
+
     struct AllocatedToken {
         uint256 allocatedDGOVMinted;
         uint256 allocatedDBITMinted;
@@ -70,6 +80,9 @@ contract GovStorage {
     uint256 private stakingDgoVDuration;
     uint256 private _lockTime;
 
+    uint256 dbitTotalAllocationPPM;
+    uint256 dgovTotalAllocationPPM;
+
     uint256 public dbitTotalAllocationDistributed;
     uint256 public dgovTotalAllocationDistributed;
 
@@ -78,6 +91,8 @@ contract GovStorage {
     mapping(address => AllocatedToken) allocatedToken;
     mapping(address => uint256) internal voteTokenBalance;
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
+    mapping(uint128 => ProposalClassInfo) proposalClassInfo;
+    mapping(uint128 => mapping(uint128 => ProposalClassInfo)) proposalVoting;
 
     enum ProposalStatus {Approved, Paused, Revoked, Ended}
     enum ProposalApproval {Both, ShouldApprove, CanVeto}

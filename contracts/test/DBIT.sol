@@ -22,16 +22,25 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 interface IDebondToken  {
     function totalSupply() external view returns (uint256);
 
+    function airdropedSupply() external view returns (uint256);
+
+    function allocatedSupply() external view returns (uint256);
+
+    function collaterisedSupply() external returns(uint256);
+
+    function collateralisedBalance(address _user) external view returns(uint256 balance);
+
+    function airdroppedBalance(address _user) external view returns(uint256 balance);
+
+    function allocatedBalance(address _user) external view returns(uint256 balance);
+
     function mintCollateralisedSupply(address _to, uint256 _amount) external ;
 
     function mintAllocatedSupply(address _to, uint256 _amount) external  ; 
 
     function mintAirdroppedSupply(address _to, uint256 _amount) external;
         
-    function setBankContract(address bank_addres)
-        external    
-        returns (bool);
-    function supplyCollateralised() external returns(uint256);
+    function setBankContract(address bank_addres) external returns (bool);
 
     function directTransfer(
         address _from,
@@ -42,7 +51,7 @@ interface IDebondToken  {
 }
 
 interface ICollateral {
-    function supplyCollateralised() external view returns (uint);
+    function collaterisedSupply() external view returns (uint);
 }
 
 
@@ -61,17 +70,18 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
 
     // checks locked supply.
     //@yu SOME VARIBLES IS NOT INTERNAL AND SOME IS
-    mapping(address => uint256) collateralisedBalance;
-    mapping(address => uint256) allocatedBalance;
-    mapping(address => uint256) _airdroppedBalance;
+    mapping(address => uint256) public _collateralisedBalance;
+    mapping(address => uint256) public _allocatedBalance;
+    mapping(address => uint256) public _airdroppedBalance;
 
     /** currently setting only the main token parameters , and once the other contracts are deployed then use setContractAddress to set up these contracts.
     */
 
-    constructor() ERC20("Debond Index Token", "DBIT") {
+    constructor() ERC20("Debond Index Token", "DBIT") {}
 
-    }
-
+    /**
+    * @dev return the total supply of DBIT
+    */
     function totalSupply()
         public
         view
@@ -85,6 +95,9 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
             _airdroppedSupply;
     }
 
+    /**
+    * @dev return the the total allocated supplly
+    */
     function allocatedSupply() public view returns (uint256) {
         return _allocatedSupply;
     }
@@ -94,7 +107,34 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
         return _airdroppedSupply;
     }
 
-    function supplyCollateralised()
+    /**
+    * @dev return the collateralized of a given account
+    * @param _user the user address
+    * @param balance collateralized balance of `_user`
+    */
+    function collateralisedBalance(address _user) public view returns(uint256 balance) {
+        balance = _collateralisedBalance[_user];
+    }
+
+    /**
+    * @dev return the airdrop of a given account
+    * @param _user the user address
+    * @param balance airdrop balance of `_user`
+    */
+    function airdroppedBalance(address _user) public view returns(uint256 balance) {
+        balance = _airdroppedBalance[_user];
+    }
+
+    /**
+    * @dev return the allocated of a given account
+    * @param _user the user address
+    * @param balance allocated balance of `_user`
+    */
+    function allocatedBalance(address _user) public view returns(uint256 balance) {
+        balance = _allocatedBalance[_user];
+    }
+
+    function collaterisedSupply()
         external
         view
         override(ICollateral, IDebondToken)
@@ -152,7 +192,7 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
         require(msg.sender == bankAddress, "only Bank");
         _mint(_to, _amount);
         _collateralisedSupply += _amount;
-        collateralisedBalance[_to] += _amount;
+        _collateralisedBalance[_to] += _amount;
     }
 
     function mintAllocatedSupply(address _to, uint256 _amount)
@@ -162,7 +202,7 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
         require(msg.sender == governanceAddress, "only Gov");
         _mint(_to, _amount);
         _allocatedSupply += _amount;
-        allocatedBalance[_to] += _amount;
+        _allocatedBalance[_to] += _amount;
     }
 
     function mintAirdroppedSupply(address _to, uint256 _amount)
