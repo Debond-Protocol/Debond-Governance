@@ -17,7 +17,6 @@ pragma solidity ^0.8.0;
 contract GovStorage {
     struct Proposal {
         address owner;
-        address contractAddress;
         uint256 startTime;
         uint256 endTime;
         uint256 forVotes;
@@ -25,6 +24,9 @@ contract GovStorage {
         uint256 numberOfVoters;
         uint256 minimumNumberOfVotes;
         uint256 dbitRewards;
+        uint256 minimumExecutionTime;
+        uint256 maximumExecutionTime;
+        address contractAddress;
         uint256[] dbitDistributedPerDay;
         uint256[] totalVoteTokensPerDay;
         ProposalApproval approvalMode;
@@ -50,15 +52,15 @@ contract GovStorage {
         uint128[] nonces;
         uint256 timelock;
         uint256 minimumApproval;
-        uint256 approveVote;
+        uint256 minimumVote;
         uint256 architectVeto;
         uint256 maximumExecutionTime;
-        uint256 executionInterval;
+        uint256 minimumExecutionInterval;
     }
 
     struct AllocatedToken {
-        uint256 allocatedDGOVMinted;
         uint256 allocatedDBITMinted;
+        uint256 allocatedDGOVMinted;
         uint256 dbitAllocationPPM;
         uint256 dgovAllocationPPM;
     }
@@ -80,9 +82,10 @@ contract GovStorage {
     uint256 private stakingDgoVDuration;
     uint256 private _lockTime;
 
-    uint256 dbitTotalAllocationPPM;
-    uint256 dgovTotalAllocationPPM;
-
+    uint256 public dbitBudgetPPM;
+    uint256 public dgovBudgetPPM;
+    uint256 public dbitAllocationDistibutedPPM;
+    uint256 public dgovAllocationDistibutedPPM;
     uint256 public dbitTotalAllocationDistributed;
     uint256 public dgovTotalAllocationDistributed;
 
@@ -92,7 +95,6 @@ contract GovStorage {
     mapping(address => uint256) internal voteTokenBalance;
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
     mapping(uint128 => ProposalClassInfo) proposalClassInfo;
-    mapping(uint128 => mapping(uint128 => ProposalClassInfo)) proposalVoting;
 
     enum ProposalStatus {Approved, Paused, Revoked, Ended}
     enum ProposalApproval {Both, ShouldApprove, CanVeto}

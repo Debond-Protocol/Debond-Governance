@@ -49,8 +49,8 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         dbitTotalAllocationDistributed = 85e3 * 1 ether;
         dgovTotalAllocationDistributed = 8e4 * 1 ether;
 
-        dbitTotalAllocationPPM = 1e5 * 1 ether;
-        dgovTotalAllocationPPM = 1e5 * 1 ether;
+        dbitBudgetPPM = 1e5 * 1 ether;
+        dgovBudgetPPM = 1e5 * 1 ether;
 
         // proposal class info
         proposalClassInfo[0].timelock = 3;
@@ -377,15 +377,13 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
     * @param _proposalClass class of the proposal
     * @param _proposalNonce cnonce of the proposal
     * @param _to the address that should receive the allocation tokens
-    * @param _dbit_ppm new DBIT allocation PPM for `_to`
     * @param _dbitPPM the new DBIT allocation
     */
     function changeTeamAllocationDBIT(
         uint128 _proposalClass,
         uint128 _proposalNonce,
         address _to,
-        uint256 _dbit_ppm,
-        uint256 _dbitPPM
+        uint256 _newDbitPPM
     ) public returns(bool) {
         require(_proposalClass <= 1, "Gov: class must be <= 1");
         require(
@@ -394,22 +392,25 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         );
         require(
             msg.sender == proposal[_proposalClass][_proposalNonce].contractAddress,
-            "Govb: not proposal owner"
+            "Gov: not proposal owner"
         );
 
-        ProposalClassInfo memory _proposalVoting =
-            proposalVoting[_proposalClass][_proposalNonce];
+        uint256  maximumExecutionTime = proposal[_proposalClass][_proposalNonce].maximumExecutionTime;
+        proposal[_proposalClass][_proposalNonce].maximumExecutionTime = maximumExecutionTime - 1;
 
-        proposalVoting[_proposalClass][_proposalNonce].maximumExecutionTime =
-            _proposalVoting.maximumExecutionTime - 1;
+        uint256 allocDistributedPPM = dbitAllocationDistibutedPPM;
 
         // NEEEEEEED TO BE COMPLETED, MISSING EXPLANATION FROM YU
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
         require(
-            dbitTotalAllocationPPM - _allocatedToken.allocatedDBITMinted + _dbit_ppm <= 1
-
+            allocDistributedPPM - _allocatedToken.allocatedDBITMinted + _newDbitPPM <= dbitBudgetPPM,
+            "Gov: too much"
         );
 
+        allocatedToken[_to].allocatedDBITMinted = _newDbitPPM;
+        //dbitAllocationDistibutedPPM = allocDistributedPPM -
+
+        return true;
     }
     
 
@@ -433,23 +434,24 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         uint128 _class,
         uint128 _nonce
     ) public view returns(bool) {
+        Proposal memory _proposal = proposal[_class][_nonce];
         ProposalClassInfo memory _proposalClassInfo = proposalClassInfo[_class];
-        ProposalClassInfo memory _proposalVoting = proposalVoting[_class][_nonce];
+
+        uint256 timelock = _proposal.endTime - _proposal.startTime;
 
         require(
-            _proposalClassInfo.timelock + _proposalVoting.timelock < block.timestamp,
+            _proposalClassInfo.timelock + timelock < block.timestamp,
             "Gov: wait"
         );
 
-        // NEEEEEEED TO CHECK THE FORMULA WITH YU
-        uint256 approvalVotePercentage = _proposalVoting.approveVote * 100 / _proposalVoting.approveVote;
+        uint256 approvalVotePercentage = (_proposal.forVotes * 1e6) / (_proposal.forVotes + _proposal.againstVotes);
         require(
             approvalVotePercentage >= _proposalClassInfo.minimumApproval,
             "Gov: minimum not reach"
         );
 
         require(
-            _proposalVoting.architectVeto <= _proposalClassInfo.architectVeto,
+            uint256(_proposal.approvalMode) <= _proposalClassInfo.architectVeto,
             "Gov: Architect"
         );
 
@@ -466,19 +468,6 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         uint128 _class
     ) external view returns(ProposalClassInfo memory _classInfo) {
         _classInfo = proposalClassInfo[_class];
-    }
-
-    /**
-    * @dev return a proposal
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    * @param _proposalInfo proposal info of class `_class` and `_nonce`
-    */
-    function getProposalInfo(
-        uint128 _class,
-        uint128 _nonce
-    ) external view returns(ProposalClassInfo memory _proposalInfo) {
-        _proposalInfo = proposalVoting[_class][_nonce];
     }
 
     /**
