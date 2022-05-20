@@ -13,8 +13,19 @@ pragma solidity ^0.8.0;
     See the License for the specific language governing permissions and
     limitations under the License.
 */
+import "@openzeppelin/contracts/utils/AccessControl.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "./utils/GovernanceOwnable.sol";
+import "./interfaces/IGovStorage.sol";
+import "./interfaces/IGovernance.sol";
+contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
 
-contract GovStorage {
+    // TODO: only governance will have  the R/W but others can Read only.
+    constructor(address governanceAddress) {
+      //  getRole(DEFAULT_ADMIN_ROLE, governanceAddress);
+
+      governance = governanceAddress;
+    }
     struct Proposal {
         address owner;
         address contractAddress;
@@ -31,6 +42,7 @@ contract GovStorage {
         bytes32 proposalHash;
         ProposalStatus status;
     }
+   
 
     struct Vote {
         uint128 class;
@@ -80,8 +92,8 @@ contract GovStorage {
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
 
     enum ProposalStatus {Approved, Paused, Revoked, Ended}
-    enum ProposalApproval {Both, ShouldApprove, CanVeto}
     enum VoteChoice {For, Against, Abstain}
+    enum ProposalApproval { Both, ShouldApprove, CanVeto}
 
     modifier onlyGov {
         require(msg.sender == governance, "Gov: not governance");
@@ -134,4 +146,75 @@ contract GovStorage {
         require(proposalHash == proposal[classId][proposalId].proposalHash, "proposal executed is not mentioned corresponding to proposal");
         _;
     }  
+
+
+    /**its used for setting  new governance contract  ,  */
+    function setCurrentGovernance(address newGovernanceAddress,  uint proposalId , uint proposalClass) hasRole(DEFAULT_ADMIN_ROLE, msg.sender) returns(bool) {
+    //    setGovernanceAddress(newGovernanceAddress);
+    require(this.getProposalDetails(proposalId , proposalClass).status  == ProposalStatus.Approved, "setGovernance:accessDenied");
+
+    governance = newGovernanceAddress;
+
+    }
+    function getProposalDetails(
+            uint128 _class,
+            uint128 _nonce
+        ) external view returns(Proposal memory _proposal) {
+            _proposal = proposal[_class][_nonce];
+    }
+
+
+    function  setProposalStatus(uint128 _class , uint128 _nonce, ProposalStatus newStatus) external {
+                require(msg.sender == governance, " current governance can access");
+    proposal[_class][_nonce].status = ProposalStatus.newStatus;
+    } 
+
+
+
+   
+    function registerProposal(
+        uint128 _class,
+        address _owner, 
+        uint256 _endTime,
+        uint256 _dbitRewards,
+        address _contractAddress,
+        bytes32 _proposalHash,
+        ProposalApproval _approvalMode,
+        uint256[] memory _dbitDistributedPerDay
+    ) external onlyApprovedGovernance {
+        require(msg.sender == governance, " current governance can access");
+        require(Address.isContract(_contractAddress), "Gov: Proposal contract not valid");
+
+        uint128 _nonce = _generateNewNonce(_class);
+
+        proposal[_class][_nonce].owner = _owner;
+        proposal[_class][_nonce].startTime = block.timestamp;
+        require(block.timestamp < _endTime, "Gov: incorrect end time");
+        proposal[_class][_nonce].endTime = _endTime;
+        proposal[_class][_nonce].dbitRewards = _dbitRewards;
+        proposal[_class][_nonce].contractAddress = _contractAddress;
+        proposal[_class][_nonce].approvalMode = _approvalMode;
+        proposal[_class][_nonce].proposalHash = _proposalHash;
+        proposal[_class][_nonce].status = ProposalStatus.Approved;
+        proposal[_class][_nonce].dbitDistributedPerDay = _dbitDistributedPerDay;
+
+
+    }
+
+    /**
+     */
+    function setAllocatedToken(address _for , uint _allocatedDGOVMinted , uint _allocatedDBITMinted , uint _dbitAllocationPPM , uint _dgovAllocationPPM ) external {
+        require(msg.sender == governance, " current governance can access");
+        allocatedToken[_for].allocatedDGOVMinted = _allocatedDGOVMinted; 
+        allocatedToken[_for].allocatedDBITMinted = _allocatedDBITMinted;
+        allocatedToken[_for].dbitAllocationPPM = _dbitAllocationPPM;
+        allocatedToken[_for].dgovAllocationPPM = _dgovAllocationPPM;
+    }
+
+
+    
+
+
+
+
 }

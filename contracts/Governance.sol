@@ -19,13 +19,37 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./GovStorage.sol";
 import "./interfaces/IVoteToken.sol";
+import "./interfaces/IGovStorage.sol";
 import "./interfaces/IStakingDGOV.sol";
 import "./interfaces/IGovernance.sol";
 import "./test/DBIT.sol";
 import "./Pausable.sol";
 
-contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
+import "./interfaces/IGovStorage.sol";
+
+
+import "Debond-token/contracts/interfaces/IDBIT.sol";
+
+import "Debond-token/contracts/interfaces/IdGOV.sol";
+//import "Debond-token/contracts/Airdrop/"
+import "Debond-Exchange/contracts/interfaces/IExchange.sol";
+
+import "Debond-Bank/contracts/interfaces/IData.sol";
+
+
+//import  "@openzeppelin/"
+
+contract Governance is  IGovernance, ReentrancyGuard, Pausable {
     
+
+    //  for govStorage access.
+    IGovStorage govStorage;
+    IData data
+
+    //enums 
+    enum ProposalApprovalStatus(uint _class , uint nonce , IGovStorage.ProposalStatus Status);
+
+
     constructor(
         address _dbit,
         address _dGoV,
@@ -33,7 +57,9 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         address _voteToken,
         address _debondOperator,
         address _debondTeam,
-        uint256 _dbitAmountForVote
+        uint256 _dbitAmountForVote,
+        address _governanceStorage,
+        address dataAddress
     ) {
         DBIT = _dbit;
         dGoV = _dGoV;
@@ -42,6 +68,9 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         _dbitAmountForOneVote = _dbitAmountForVote;
         debondOperator = _debondOperator;
         debondTeam = _debondTeam;
+        govStorage = IGovStorage(govStorage); 
+        data = IData(dataAddress);
+
 
         allocatedToken[debondTeam].dbitAllocationPPM = 4e4 * 1 ether;
         allocatedToken[debondTeam].dgovAllocationPPM = 8e4 * 1 ether;
@@ -50,7 +79,7 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         dgovTotalAllocationDistributed = 8e4 * 1 ether;
     }
 
-    /**
+    /** TODO: will go to ProposalFactory contract.
     * @dev sets the amount of DBIT to get for one vote token
     * @param _dbitAmount DBIT amount
     */
@@ -58,35 +87,29 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         _dbitAmountForOneVote = _dbitAmount;
     }
 
-    /**
-    * @dev set the governance contract address
-    * @param _governanceAddress new governance contract address
-    */
-    function setGovernanceAddress(address _governanceAddress) external {
-        require(_governanceAddress != governance, "Gov: same Gov. address");
+    // /** TODO: set by governance ownable and GovStorage
+    // * @dev set the governance contract address
+    // * @param _governanceAddress new governance contract address
+    // */
+    // function setGovernanceAddress(address _governanceAddress) external {
+    //     require(_governanceAddress != governance, "Gov: same Gov. address");
 
-        governance = _governanceAddress;
-    }
+    //     governance = _governanceAddress;
+    // }
 
-    /**
+    /** 
     * @dev set the Debond operator contract address
     * @param _debondOperator new Debond operator address
     */
-    function setDebonOperator(address _debondOperator) external {
+    function setDebonOperator(address _debondOperator) nonReentrant external {
+        require(msg.sender == debondOperator, "only present owner can change the access ");
         require(_debondOperator != debondOperator, "Gov: same Gov. address");
 
         debondOperator = _debondOperator;
     }
 
-    /**
-    * @dev returns the amount of DBIT to get for one vote token
-    * @param dbitAmount DBIT amount
-    */
-    function getDBITAmountForOneVote() public view returns(uint256 dbitAmount) {
-        dbitAmount = _dbitAmountForOneVote;
-    }
-
-    /**
+ 
+    /** TODO: inheriting the interface from govStorage.
     * @dev creates a proposal
     * @param _class proposal class
     * @param _endTime prosal end time
@@ -102,41 +125,16 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         ProposalApproval _approvalMode,
         uint256[] memory _dbitDistributedPerDay
     ) external onlyDebondOperator {
-        require(Address.isContract(_contractAddress), "Gov: Proposal contract not valid");
-
-        uint128 _nonce = _generateNewNonce(_class);
-
-        proposal[_class][_nonce].owner = _owner;
-        proposal[_class][_nonce].startTime = block.timestamp;
-        require(block.timestamp < _endTime, "Gov: incorrect end time");
-        proposal[_class][_nonce].endTime = _endTime;
-        proposal[_class][_nonce].dbitRewards = _dbitRewards;
-        proposal[_class][_nonce].contractAddress = _contractAddress;
-        proposal[_class][_nonce].approvalMode = _approvalMode;
-        proposal[_class][_nonce].proposalHash = _proposalHash;
-        proposal[_class][_nonce].status = ProposalStatus.Approved;
-        proposal[_class][_nonce].dbitDistributedPerDay = _dbitDistributedPerDay;
+       govStorage.registerProposal(_class,_owner,_endTime,_dbitRewards, _contractAddress, _proposalHash, _approvalMode,_dbitDistributedPerDay);
 
         _zeroArray(_class, _nonce, _dbitDistributedPerDay);
 
         emit proposalRegistered(_class, _nonce, _endTime, _contractAddress);
     }
 
-    /**
-    * @dev revoke a proposal
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    */
-    function revokeProposal(
-        uint128 _class,
-        uint128 _nonce
-    ) external onlyDebondOperator onlyActiveOrPausedProposal(_class, _nonce) {
-        proposal[_class][_nonce].status = ProposalStatus.Revoked;
 
-        emit proposalRevoked(_class, _nonce);
-    }
 
-    /**
+    /** allows  the 
     * @dev pause a active proposal
     * @param _class proposal class
     * @param _nonce proposal nonce
@@ -145,13 +143,14 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         uint128 _class,
         uint128 _nonce
     ) external onlyDebondOperator onlyActiveProposal(_class, _nonce) {
-        proposal[_class][_nonce].status = ProposalStatus.Paused;
+        require(msg.sender == govStorage.getProposal(_class,_nonce).owner || msg.sender == govStorage.debondOperator, "only owner or the admin can pause proposal");
+        govStorage.setProposalStatus(_class , _nonce , govStorage.ProposalStatus.Approve) = ProposalStatus.Paused;
 
         emit proposalPaused(_class, _nonce);
     }
 
     /**
-    * @dev unpause a active proposal
+    * @dev unpause a active proposal (done by the operator ).
     * @param _class proposal class
     * @param _nonce proposal nonce
     */
@@ -163,18 +162,41 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
 
         emit proposalUnpaused(_class, _nonce);
     }
+    
 
-    function endProposal(
-        uint128 _class,
-        uint128 _nonce
-    ) external onlyDebondOperator onlyActiveProposal(_class, _nonce) {
-        proposal[_class][_nonce].status = ProposalStatus.Ended;
-
-        emit proposalEnded(_class, _nonce);
-    }
 
     /**
-    * @dev revoke a proposal
+    * @dev approve or disapprove the  proposal (used  by debondOperator if the given proposal has the ProposalApprove.CanVeto defined).
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    * @param builder choice.
+    */
+    function approvalProposal(
+        uint128 _class,
+        uint128 _nonce,
+        IGovStorage.ProposalStatus  Status // 
+    ) external  onlyActiveProposal(_class, _nonce) onlyDebondOperator {
+        if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.ProposalApproval.CanVeto)
+{
+        govStorage.setProposalStatus(_class,_nonce).status = Status;
+        emit ProposalApprovalStatus(_class, _nonce, Status);
+    
+}
+else (govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.ProposalApproval.ShouldApprove)
+{
+    govStorage.setProposalStatus(_class,_nonce).status = IGovStorage.ProposalStatus.Approved;
+        emit ProposalApprovalStatus(_class, _nonce, IGovStorage.ProposalStatus.Approved);
+
+}
+  
+    }
+
+
+
+
+
+    /**
+    * @dev  for allowing users use VOTE  tokens to given proposal.
     * @param _class proposal class
     * @param _nonce proposal nonce
     * @param _userVote The voter vote: For or Against
@@ -189,9 +211,12 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         uint256 _amountVoteTokens
     ) external onlyActiveProposal(_class, _nonce) nonReentrant() returns(bool voted) {
         // require the vote to be in progress
-        Proposal memory _proposal = proposal[_class][_nonce];
+        Proposal memory _proposal = govStorage.getProposalDetails(_class,_nonce);
+
         require(block.timestamp < _proposal.endTime, "Gov: voting is over");
+        
         // require the user has staked at least `_amountVoteTokens` dGoV tokens
+        
         IStakingDGOV _stakingContract = IStakingDGOV(stakingContract);
         uint256 _amountStaked = _stakingContract.getStakedDGOV(_voter);
         require(_amountVoteTokens <= _amountStaked, "Gov: you need to stack dGoV tokens");
@@ -631,4 +656,116 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
 
         nonce = proposalClass[_class].nonce;
     }
+}
+
+/// @title A Proposal factory : provides the API to execute the changes in the given proposal.
+/// @notice this will be setting 
+/// @dev Explain to a developer any extra details
+
+
+
+
+contract  ProposalFactory  is Governance, GovernanceOwnable {
+
+
+    
+
+    modifier onlyActiveOrPausedProposal(uint128 _class, uint128 _nonce) {
+        Proposal memory _proposal = govStorage.getProposalDetails(_class,_nonce);
+        require(
+            (
+                _proposal.endTime >= block.timestamp &&
+                _proposal.status == ProposalStatus.Approved
+            ) || _proposal.status == ProposalStatus.Paused,
+            "Gov: not active or paused"
+        );
+        _;
+    }
+  
+
+     /** 
+    * @dev revokes a proposal by another proposal of higher priority 
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    */
+
+  function revokeProposal(
+        uint128 _class,
+        uint128 _nonce,
+        uint128 revoking_class,
+        uint128 revoking_nonce,
+    ) external onlyDebondOperator onlyActiveOrPausedProposal(_class, _nonce) {
+      require(msg.sender == getProposal(proposal_class, proposal_nonce).contractAddress, "only proposal contract can execute");
+        require(getProposal(revoking_class, revoking_nonce).status  == ProposalStatus.Approved,"only approved proposal");
+        require(revoking_class > _class , "proposal with higher priority can revoke the give proposal");
+        govStorage.setProposalStatus(_class,_nonce).status = ProposalStatus.Revoked;
+        emit proposalRevoked(_class, _nonce);
+    }
+
+
+
+
+    /** TODO: will be set by the ProposalFactory . 
+    * @dev returns the amount of DBIT to get for one vote token
+    * @param dbitAmount DBIT amount
+    */
+    function getDBITAmountForOneVote(uint128 _class, uint128 _nonce) public view returns(uint256 dbitAmount) {
+         require(msg.sender == getProposal(proposal_class, proposal_nonce).contractAddress, "only proposal contract can execute");
+        require(getProposal(proposal_class, proposal_nonce).status  == ProposalStatus.Approved,"only approved proposal");
+        dbitAmount = _dbitAmountForOneVote;
+    }
+
+    /** adds another address to receive the allocation 
+     */
+    function addAllocationMember(address _for , uint _allocatedDGOVMinted , uint _allocatedDBITMinted , uint _dbitAllocationPPM , uint _dgovAllocationPPM, uint proposal_class, uint proposal_nonce) external {
+        require(msg.sender == getProposal(proposal_class, proposal_nonce).contractAddress, "only proposal contract can execute");
+        require(getProposal(proposal_class, proposal_nonce).status  == ProposalStatus.Approved,"only approved proposal");
+            govStorage.setAllocatedToken(for , _allocatedDGOVMinted, _allocatedDBITMinted, _dbitAllocationPPM , _dgovAllocationPPM);
+    }
+ 
+
+    /** for minting the allocation tokens for community member allocation
+     */
+
+
+    function mintDBITAllocation(address _to , uint256 _amount, uint proposal_class, uint proposal_nonce ) external {
+        require(msg.sender == getProposal(proposal_class, proposal_nonce).contractAddress, "only proposal contract can execute");
+        require(getProposal(proposal_class, proposal_nonce).status  == ProposalStatus.Approved,"only approved proposal");
+        require()
+         IDBIT(DBIT).mintAllocatedSupply(_to,_amount);
+    }
+
+        function mintGOVAllocation(address _to , uint256 _amount, uint proposal_class, uint proposal_nonce ) external {
+        require(msg.sender == getProposal(proposal_class, proposal_nonce).contractAddress, "only proposal contract can execute");
+        require(getProposal(proposal_class, proposal_nonce).status  == ProposalStatus.Approved,"only approved proposal");
+         IdGOV(dGoV).mintAllocatedSupply(_to,_amount);
+    }
+
+    /**
+    adding bondClass . 
+     */
+    function addBondClass(uint newBondClass , uint proposal_class, uint proposal_nonce, string memory symbol , InterestRateType interestRateType , address tokenAddress , uint periodTimestamp)  external  {
+    require(msg.sender == getProposal(proposal_class, proposal_nonce).contractAddress, "only proposal contract can execute");
+    require(getProposal(proposal_class,proposal_nonce).status ==ProposalStatus.Approved, "only passed proposal should execute the function");
+     data.addClass(newBondClass,symbol,interestRateType,tokenAddress,periodTimestamp);
+    }
+
+
+    /**
+    @drikssy try  to check the implementation if its correct.
+     */
+    function pauseAll(uint proposal_class , uint proposal_nonce, bool setState) external 
+    {
+    require(msg.sender == getProposal(proposal_class, proposal_nonce).contractAddress, "only proposal contract can execute");
+    require(getProposal(proposal_class,proposal_nonce).status ==ProposalStatus.Approved, "only passed proposal should execute the function");
+        data.setActive(seetState);
+        IdGOV(dGOV).setActive(setState);
+        IDBIT(DBIT0).setActive(setState);
+        
+
+    }
+
+
+
+
 }
