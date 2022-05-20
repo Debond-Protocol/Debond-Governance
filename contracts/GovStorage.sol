@@ -24,8 +24,8 @@ contract GovStorage {
         uint256 numberOfVoters;
         uint256 minimumNumberOfVotes;
         uint256 dbitRewards;
-        uint256 minimumExecutionTime;
-        uint256 maximumExecutionTime;
+        uint256 executionNonce;
+        uint256 executionInterval;
         address contractAddress;
         uint256[] dbitDistributedPerDay;
         uint256[] totalVoteTokensPerDay;

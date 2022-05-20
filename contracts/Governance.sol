@@ -118,6 +118,8 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         uint256 _dbitRewards,
         address _contractAddress,
         bytes32 _proposalHash,
+        uint256 _executionNonce,
+        uint256 _executionInterval,
         ProposalApproval _approvalMode,
         uint256[] memory _dbitDistributedPerDay
     ) external onlyDebondOperator {
@@ -133,6 +135,8 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         proposal[_class][_nonce].contractAddress = _contractAddress;
         proposal[_class][_nonce].approvalMode = _approvalMode;
         proposal[_class][_nonce].proposalHash = _proposalHash;
+        proposal[_class][_nonce].executionNonce = _executionNonce;
+        proposal[_class][_nonce].executionInterval = _executionInterval;
         proposal[_class][_nonce].status = ProposalStatus.Approved;
         proposal[_class][_nonce].dbitDistributedPerDay = _dbitDistributedPerDay;
 
@@ -326,44 +330,32 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
     * @dev mint allocated DBIT to a given address
     * @param _to the address to mint DBIT to
     * @param _amountDBIT the amount of DBIT to mint
+    * @param _amountDGOV the amount of DGOV to mint
     */
-    function mintAllocatedDBIT(
+    function mintAllocatedToken(
         address _to,
-        uint256 _amountDBIT
+        uint256 _amountDBIT,
+        uint256 _amountDGOV
     ) public returns(bool) {
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
-        uint256 _collaterizedSupply = IDebondToken(DBIT).collaterisedSupply();
+
+        uint256 _dbitCollaterizedSupply = IDebondToken(DBIT).collaterisedSupply();
+        uint256 _dgovCollaterizedSupply = IDebondToken(dGoV).collaterisedSupply();
 
         require(
             IDebondToken(DBIT).allocatedBalance(_to) + _amountDBIT <=
-            _collaterizedSupply * _allocatedToken.dbitAllocationPPM / 1 ether,
+            _dbitCollaterizedSupply * _allocatedToken.dbitAllocationPPM / 1 ether,
+            "Gov: not enough supply"
+        );
+        require(
+            IDebondToken(dGoV).allocatedBalance(_to) + _amountDGOV <=
+            _dgovCollaterizedSupply * _allocatedToken.dgovAllocationPPM / 1 ether,
             "Gov: not enough supply"
         );
 
         IDebondToken(DBIT).mintAllocatedSupply(_to, _amountDBIT);
         allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
         dbitTotalAllocationDistributed += _amountDBIT;
-
-        return true;
-    }
-
-    /**
-    * @dev mint allocated DGOV to a given address
-    * @param _to the address to mint DGOV to
-    * @param _amountDGOV the amount of DGOV to mint
-    */
-    function mintAllocatedDGOV(
-        address _to,
-        uint256 _amountDGOV
-    ) public returns(bool) {
-        AllocatedToken memory _allocatedToken = allocatedToken[_to];
-        uint256 _collaterizedSupply = IDebondToken(dGoV).collaterisedSupply();
-
-        require(
-            IDebondToken(dGoV).allocatedBalance(_to) + _amountDGOV <=
-            _collaterizedSupply * _allocatedToken.dgovAllocationPPM / 1 ether,
-            "Gov: not enough supply"
-        );
 
         IDebondToken(dGoV).mintAllocatedSupply(_to, _amountDGOV);
         allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
@@ -380,7 +372,7 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
     * @param _newDbitPPM the new DBIT allocation
     * @param _newDgovPPM the new DGOV allocation
     */
-    function changeTeamAllocationDBIT(
+    function changeTeamAllocation(
         uint128 _proposalClass,
         uint128 _proposalNonce,
         address _to,
@@ -397,8 +389,8 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
             "Gov: not proposal owner"
         );
 
-        uint256  maximumExecutionTime = proposal[_proposalClass][_proposalNonce].maximumExecutionTime;
-        proposal[_proposalClass][_proposalNonce].maximumExecutionTime = maximumExecutionTime - 1;
+        uint256  maximumExecutionTime = proposal[_proposalClass][_proposalNonce].executionInterval;
+        proposal[_proposalClass][_proposalNonce].executionInterval = maximumExecutionTime - 1;
 
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
         uint256 dbitAllocDistributedPPM = dbitAllocationDistibutedPPM;
@@ -428,8 +420,9 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
     * @param _proposalClass class of the proposal
     * @param _proposalNonce cnonce of the proposal
     * @param _newDBITBudget new DBIT budget for community
+    * @param _newDGOVBudget new DGOV budget for community
     */
-    function changeCommunityFundSizeDBIT(
+    function changeCommunityFundSize(
         uint128 _proposalClass,
         uint128 _proposalNonce,
         uint256 _newDBITBudget,
@@ -445,8 +438,8 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
             "Gov: not proposal owner"
         );
 
-        uint256  maximumExecutionTime = proposal[_proposalClass][_proposalNonce].maximumExecutionTime;
-        proposal[_proposalClass][_proposalNonce].maximumExecutionTime = maximumExecutionTime - 1;
+        uint256  maximumExecutionTime = proposal[_proposalClass][_proposalNonce].executionInterval;
+        proposal[_proposalClass][_proposalNonce].executionInterval = maximumExecutionTime - 1;
 
         dbitBudgetPPM = _newDBITBudget;
         dgovBudgetPPM = _newDGOVBudget;
