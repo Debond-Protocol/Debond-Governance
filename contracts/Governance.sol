@@ -373,19 +373,21 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
     }
 
     /**
-    * @dev change the team allocation
+    * @dev change the team allocation - (DBIT, DGOV)
     * @param _proposalClass class of the proposal
     * @param _proposalNonce cnonce of the proposal
     * @param _to the address that should receive the allocation tokens
-    * @param _dbitPPM the new DBIT allocation
+    * @param _newDbitPPM the new DBIT allocation
+    * @param _newDgovPPM the new DGOV allocation
     */
     function changeTeamAllocationDBIT(
         uint128 _proposalClass,
         uint128 _proposalNonce,
         address _to,
-        uint256 _newDbitPPM
+        uint256 _newDbitPPM,
+        uint256 _newDgovPPM
     ) public returns(bool) {
-        require(_proposalClass <= 1, "Gov: class must be <= 1");
+        require(_proposalClass <= 1, "Gov: class not valid");
         require(
             checkProposal(_proposalClass, _proposalNonce) == true,
             "Gov: proposal not valid"
@@ -398,17 +400,56 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         uint256  maximumExecutionTime = proposal[_proposalClass][_proposalNonce].maximumExecutionTime;
         proposal[_proposalClass][_proposalNonce].maximumExecutionTime = maximumExecutionTime - 1;
 
-        uint256 allocDistributedPPM = dbitAllocationDistibutedPPM;
-
-        // NEEEEEEED TO BE COMPLETED, MISSING EXPLANATION FROM YU
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
+        uint256 dbitAllocDistributedPPM = dbitAllocationDistibutedPPM;
+        uint256 dgovAllocDistributedPPM = dgovAllocationDistibutedPPM;
+
         require(
-            allocDistributedPPM - _allocatedToken.allocatedDBITMinted + _newDbitPPM <= dbitBudgetPPM,
+            dbitAllocDistributedPPM - _allocatedToken.dbitAllocationPPM + _newDbitPPM <= dbitBudgetPPM,
             "Gov: too much"
         );
 
-        allocatedToken[_to].allocatedDBITMinted = _newDbitPPM;
-        //dbitAllocationDistibutedPPM = allocDistributedPPM -
+        require(
+            dgovAllocDistributedPPM - _allocatedToken.dgovAllocationPPM + _newDgovPPM <= dgovBudgetPPM,
+            "Gov: too much"
+        );
+
+        dbitAllocationDistibutedPPM = dbitAllocDistributedPPM - allocatedToken[_to].dbitAllocationPPM + _newDbitPPM;
+        allocatedToken[_to].dbitAllocationPPM = _newDbitPPM;
+
+        dgovAllocationDistibutedPPM = dgovAllocDistributedPPM - allocatedToken[_to].dgovAllocationPPM + _newDgovPPM;
+        allocatedToken[_to].dgovAllocationPPM = _newDgovPPM;
+
+        return true;
+    }
+
+    /**
+    * @dev change the community fund size (DBIT, DGOV)
+    * @param _proposalClass class of the proposal
+    * @param _proposalNonce cnonce of the proposal
+    * @param _newDBITBudget new DBIT budget for community
+    */
+    function changeCommunityFundSizeDBIT(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
+        uint256 _newDBITBudget,
+        uint256 _newDGOVBudget
+    ) public returns(bool) {
+        require(_proposalClass < 1, "Gov: class not valid");
+        require(
+            checkProposal(_proposalClass, _proposalNonce) == true,
+            "Gov: proposal not valid"
+        );
+        require(
+            msg.sender == proposal[_proposalClass][_proposalNonce].contractAddress,
+            "Gov: not proposal owner"
+        );
+
+        uint256  maximumExecutionTime = proposal[_proposalClass][_proposalNonce].maximumExecutionTime;
+        proposal[_proposalClass][_proposalNonce].maximumExecutionTime = maximumExecutionTime - 1;
+
+        dbitBudgetPPM = _newDBITBudget;
+        dgovBudgetPPM = _newDGOVBudget;
 
         return true;
     }
