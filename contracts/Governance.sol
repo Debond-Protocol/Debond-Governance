@@ -377,15 +377,39 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
     * @param _proposalClass class of the proposal
     * @param _proposalNonce cnonce of the proposal
     * @param _to the address that should receive the allocation tokens
+    * @param _dbit_ppm new DBIT allocation PPM for `_to`
     * @param _dbitPPM the new DBIT allocation
     */
-    function changeTeamAllocation(
+    function changeTeamAllocationDBIT(
         uint128 _proposalClass,
         uint128 _proposalNonce,
         address _to,
+        uint256 _dbit_ppm,
         uint256 _dbitPPM
     ) public returns(bool) {
         require(_proposalClass <= 1, "Gov: class must be <= 1");
+        require(
+            checkProposal(_proposalClass, _proposalNonce) == true,
+            "Gov: proposal not valid"
+        );
+        require(
+            msg.sender == proposal[_proposalClass][_proposalNonce].contractAddress,
+            "Govb: not proposal owner"
+        );
+
+        ProposalClassInfo memory _proposalVoting =
+            proposalVoting[_proposalClass][_proposalNonce];
+
+        proposalVoting[_proposalClass][_proposalNonce].maximumExecutionTime =
+            _proposalVoting.maximumExecutionTime - 1;
+
+        // NEEEEEEED TO BE COMPLETED, MISSING EXPLANATION FROM YU
+        AllocatedToken memory _allocatedToken = allocatedToken[_to];
+        require(
+            dbitTotalAllocationPPM - _allocatedToken.allocatedDBITMinted + _dbit_ppm <= 1
+
+        );
+
     }
     
 
@@ -400,6 +424,37 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         uint128 _nonce
     ) external view returns(Proposal memory _proposal) {
         _proposal = proposal[_class][_nonce];
+    }
+
+    /**
+    * @dev check a proposal
+    */
+    function checkProposal(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(bool) {
+        ProposalClassInfo memory _proposalClassInfo = proposalClassInfo[_class];
+        ProposalClassInfo memory _proposalVoting = proposalVoting[_class][_nonce];
+
+        require(
+            _proposalClassInfo.timelock + _proposalVoting.timelock < block.timestamp,
+            "Gov: wait"
+        );
+
+        // NEEEEEEED TO CHECK THE FORMULA WITH YU
+        uint256 approvalVotePercentage = _proposalVoting.approveVote * 100 / _proposalVoting.approveVote;
+        require(
+            approvalVotePercentage >= _proposalClassInfo.minimumApproval,
+            "Gov: minimum not reach"
+        );
+
+        require(
+            _proposalVoting.architectVeto <= _proposalClassInfo.architectVeto,
+            "Gov: Architect"
+        );
+
+
+        return true;
     }
 
     /**
