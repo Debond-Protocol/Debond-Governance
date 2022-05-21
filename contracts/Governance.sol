@@ -152,8 +152,16 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
     */
     function revokeProposal(
         uint128 _class,
-        uint128 _nonce
+        uint128 _nonce,
+        uint128 _revokeClass
     ) external onlyDebondOperator onlyActiveOrPausedProposal(_class, _nonce) {
+        require(_class <= _revokeClass, "Gov: invalid class");
+        require(checkProposal(_class, _nonce) == true, "Gov: invalid proposal");
+        require(
+            msg.sender == proposal[_class][_nonce].contractAddress,
+            "Gov: not proposal owner"
+        );
+
         proposal[_class][_nonce].status = ProposalStatus.Revoked;
 
         emit proposalRevoked(_class, _nonce);

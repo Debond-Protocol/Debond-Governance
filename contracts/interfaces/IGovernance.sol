@@ -112,7 +112,8 @@ interface IGovernance {
     */
     function revokeProposal(
         uint128 _class,
-        uint128 _nonce
+        uint128 _nonce,
+        uint128 _revokeClass
     ) external;
 
     /**
