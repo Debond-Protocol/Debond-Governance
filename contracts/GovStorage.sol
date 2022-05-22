@@ -28,7 +28,6 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
     }
     struct Proposal {
         address owner;
-        address contractAddress;
         uint256 startTime;
         uint256 endTime;
         uint256 forVotes;
@@ -36,6 +35,9 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
         uint256 numberOfVoters;
         uint256 minimumNumberOfVotes;
         uint256 dbitRewards;
+        uint256 executionNonce;
+        uint256 executionInterval;
+        address contractAddress;
         uint256[] dbitDistributedPerDay;
         uint256[] totalVoteTokensPerDay;
         ProposalApproval approvalMode;
@@ -58,9 +60,19 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
         uint128 nonce;
     }
 
+    struct ProposalClassInfo {
+        uint128[] nonces;
+        uint256 timelock;
+        uint256 minimumApproval;
+        uint256 minimumVote;
+        uint256 architectVeto;
+        uint256 maximumExecutionTime;
+        uint256 minimumExecutionInterval;
+    }
+
     struct AllocatedToken {
-        uint256 allocatedDGOVMinted;
         uint256 allocatedDBITMinted;
+        uint256 allocatedDGOVMinted;
         uint256 dbitAllocationPPM;
         uint256 dgovAllocationPPM;
     }
@@ -82,6 +94,10 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
     uint256 private stakingDgoVDuration;
     uint256 private _lockTime;
 
+    uint256 public dbitBudgetPPM;
+    uint256 public dgovBudgetPPM;
+    uint256 public dbitAllocationDistibutedPPM;
+    uint256 public dgovAllocationDistibutedPPM;
     uint256 public dbitTotalAllocationDistributed;
     uint256 public dgovTotalAllocationDistributed;
 
@@ -90,6 +106,7 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
     mapping(address => AllocatedToken) allocatedToken;
     mapping(address => uint256) internal voteTokenBalance;
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
+    mapping(uint128 => ProposalClassInfo) proposalClassInfo;
 
     enum ProposalStatus {Approved, Paused, Revoked, Ended}
     enum VoteChoice {For, Against, Abstain}
@@ -179,6 +196,8 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
         uint256 _dbitRewards,
         address _contractAddress,
         bytes32 _proposalHash,
+        uint256 _executionNonce,
+        uint256 _executionInterval,
         ProposalApproval _approvalMode,
         uint256[] memory _dbitDistributedPerDay
     ) external onlyApprovedGovernance {
@@ -195,6 +214,8 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
         proposal[_class][_nonce].contractAddress = _contractAddress;
         proposal[_class][_nonce].approvalMode = _approvalMode;
         proposal[_class][_nonce].proposalHash = _proposalHash;
+        proposal[_class][_nonce].executionNonce = _executionNonce;
+        proposal[_class][_nonce].executionInterval = _executionInterval;
         proposal[_class][_nonce].status = ProposalStatus.Approved;
         proposal[_class][_nonce].dbitDistributedPerDay = _dbitDistributedPerDay;
 

@@ -5,11 +5,12 @@ chai.use(chaiAsPromised);
 const expect = chai.expect;
 
 const VoteToken = artifacts.require("VoteToken");
-const ERC20Token = artifacts.require("ERC20Token");
+//const ERC20Token = artifacts.require("ERC20Token");
 const GovStorage = artifacts.require("GovStorage");
 const StakingDGOV = artifacts.require("StakingDGOV");
 const Governance = artifacts.require("Governance");
 const DBIT = artifacts.require("DBIT");
+const DGOV = artifacts.require("DGOV");
 
 contract("governance", async (accounts) => {
     let dbit;
@@ -29,7 +30,8 @@ contract("governance", async (accounts) => {
         storage = await GovStorage.deployed();
         //dbit = await ERC20Token.new("Debond Index Token", "DBIT");
         dbit = await DBIT.new();
-        dgov = await ERC20Token.new("Debond Governance Token", "DGOV");
+        dgov = await DGOV.new();
+        //dgov = await ERC20Token.new("Debond Governance Token", "DGOV");
         voteToken = await VoteToken.new("Debond Vote Token", "DVT", debondOperator);
         stakingDGOV = await StakingDGOV.new(
             dbit.address,
@@ -62,6 +64,12 @@ contract("governance", async (accounts) => {
 
         // set the bank contract address in DBIT
         await dbit.setBankContract(debondOperator);
+
+        // set the governance contract address in DGOV
+        await dgov.setGovernanceContract(gov.address);
+
+        // set the bank contract address in DGOV
+        await dgov.setBankContract(debondOperator);
     });
 
     it("check contrats have been deployed", async () => {
@@ -284,21 +292,22 @@ contract("governance", async (accounts) => {
         let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
         let amountToSend = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
         
-        await dgov.mint(user1, amount, {from: user1});
+        await dgov.mintCollateralisedSupply(debondTeam, amount, {from: debondOperator});
+        await dgov.transfer(user1, amount, {from: debondTeam});
         await dgov.approve(stakingDGOV.address, amountToSend, {from: user1});
 
         // mint DBIT tokens to the governance contract to reward dGoV staker
         //await dbit.mint(gov.address, amount, {from: user1});
-        let collateralAmount = await web3.utils.toWei(web3.utils.toBN(10**5), 'ether');
+        let collateralAmount = await web3.utils.toWei(web3.utils.toBN(1), 'ether');
         await dbit.mintCollateralisedSupply(debondTeam, collateralAmount, {from: debondOperator});
-        await gov.mintAllocatedDBIT(debondTeam, amount, {from: user1});
+        await gov.mintAllocatedToken(debondTeam, amount, '0', {from: user1});
         await dbit.transfer(gov.address, collateralAmount, {from: debondTeam});
 
         let alloc = await dbit.allocatedSupply();
         console.log("allocated supply:", alloc.toString());
         alloc = await dbit.airdropedSupply();
         console.log("airdrop supply:", alloc.toString());
-        alloc = await dbit.supplyCollateralised();
+        alloc = await dbit.collaterisedSupply();
         console.log("collateral supply:", alloc.toString());
         let tot = await dbit.totalSupply();
         console.log("total supply:", tot.toString());
@@ -465,16 +474,19 @@ contract("governance", async (accounts) => {
         expect(user2Stak.amountDGOV.toString()).to.equal(amountToSend.toString());
     });
 
-    it("Check DBIT interest is trasfered to dGoV stakeer after unstaking", async () => {
+    it.only("Check DBIT interest is trasfered to dGoV stakeer after unstaking", async () => {
         let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
         let amountToSend = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
         
-        await dgov.mint(user1, amount, {from: user1});
+        await dgov.mintCollateralisedSupply(debondTeam, amount, {from: debondOperator});
+        await dgov.transfer(user1, amount, {from: debondTeam});
         await dgov.approve(stakingDGOV.address, amountToSend, {from: user1});
 
         // mint DBIT tokens to the governance contract to reward dGoV staker
-        //await dbit.mint(gov.address, amount, {from: user1});
-        await dbit.mintAllocatedSupply(gov.address, amount, {from: user1});
+        let collateralAmount = await web3.utils.toWei(web3.utils.toBN(10**5), 'ether');
+        await dbit.mintCollateralisedSupply(debondTeam, collateralAmount, {from: debondOperator});
+        await gov.mintAllocatedToken(debondTeam, amount, '0', {from: user1});
+        await dbit.transfer(gov.address, collateralAmount, {from: debondTeam});
 
         await gov.stakeDGOV(
             user1,

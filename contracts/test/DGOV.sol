@@ -55,7 +55,7 @@ interface ICollateral {
 }
 
 
-contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
+contract DGOV is ERC20, IDebondToken, AccessControl, ICollateral {
     // this minter role will be for airdropToken , bank or the governance Contract
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     uint256 public _collateralisedSupply;
@@ -77,7 +77,7 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
     /** currently setting only the main token parameters , and once the other contracts are deployed then use setContractAddress to set up these contracts.
     */
 
-    constructor() ERC20("Debond Index Token", "DBIT") {}
+    constructor() ERC20("Debond Governance Token", "DGOV") {}
 
     /**
     * @dev return the total supply of DBIT
