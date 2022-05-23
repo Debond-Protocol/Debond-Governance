@@ -30,10 +30,7 @@ function transferDBITAllocation(address _from , address _to, uint256 _amount , u
 function pauseAll(uint proposal_class , uint proposal_nonce, bool setState) external; 
 
 
-function mintAllocationToken(uint proposal_class, uint proposal_nonce, uint amount)   external returns(bool);
 
-
-function mintGOVAllocation(uint proposal_class, uint proposal_nonce, address _to , uint256 _amount, uint proposal_class, uint proposal_nonce ) external ;
 
 
 function changeCommunityFundSize(

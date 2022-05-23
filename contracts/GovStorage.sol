@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.9;
 
 // SPDX-License-Identifier: apache 2.0
 /*
@@ -18,13 +18,42 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "./utils/GovernanceOwnable.sol";
 import "./interfaces/IGovStorage.sol";
 import "./interfaces/IGovernance.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+
 contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
 
+
+    // system total allocation variables: 
+    uint dbitTotalAllocationDistributed;
+    uint dgovTotalAllocationDistributed;
+
+
+
+    // enums .
+
+
+
+
+    modifier onlyGov() {
+        require(msg.sender == governance,"only governance contract can call");
+        _;
+    }
+
+    modifier onlyVoteHolders() {
+        require(IERC20(voteToken).balanceOf(msg.sender) > 0 , "only vote holders can create proposal");
+        _;
+    } 
+
+
+
     // TODO: only governance will have  the R/W but others can Read only.
-    constructor(address _governanceAddress) {
+    constructor(address _governanceAddress, address _debondOperator) {
       //  getRole(DEFAULT_ADMIN_ROLE, governanceAddress);
 
       governance = _governanceAddress;
+      debondOperator  = _debondOperator;
+
     }
     struct Proposal {
         address owner;
@@ -40,7 +69,7 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
         address contractAddress;
         uint256[] dbitDistributedPerDay;
         uint256[] totalVoteTokensPerDay;
-        ProposalApproval approvalMode;
+        IGovStorage.ProposalApproval approvalMode;
         bytes32 proposalHash;
         ProposalStatus status;
     }
@@ -51,7 +80,7 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
         uint128 nonce;
         address contractAddress;
         bool voted;
-        VoteChoice vote;
+        IGovStorage.VoteChoice vote;
         uint256 amountTokens;
         uint256 votingDay;
     }
@@ -98,8 +127,6 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
     uint256 public dgovBudgetPPM;
     uint256 public dbitAllocationDistibutedPPM;
     uint256 public dgovAllocationDistibutedPPM;
-    uint256 public dbitTotalAllocationDistributed;
-    uint256 public dgovTotalAllocationDistributed;
 
     mapping(bytes32 => Vote) votes;
     mapping(uint128 => ProposalClass) proposalClass;
@@ -107,86 +134,38 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
     mapping(address => uint256) internal voteTokenBalance;
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
     mapping(uint128 => ProposalClassInfo) proposalClassInfo;
-
-    enum ProposalStatus {Approved, Paused, Revoked, Ended}
-    enum VoteChoice {For, Against, Abstain}
-    enum ProposalApproval { Both, ShouldApprove, CanVeto}
-
-    modifier onlyGov {
-        require(msg.sender == governance, "Gov: not governance");
-        _;
-    }
-
-    modifier onlyDebondOperator {
-        require(msg.sender == debondOperator, "Gov: Need rights");
-        _;
-    }
-
-    modifier canClaimTokens(uint128 _class, uint128 _nonce) {
-        Proposal memory _proposal = proposal[_class][_nonce];
-        require(_proposal.endTime + _lockTime <= block.timestamp, "");
-        _;
-    }
-
-    modifier onlyActiveProposal(uint128 _class, uint128 _nonce) {
-        Proposal memory _proposal = proposal[_class][_nonce];
-        require(
-            _proposal.endTime >= block.timestamp,
-            "Gov: proposal not found"
-        );
-        require(_proposal.status == ProposalStatus.Approved);
-        _;
-    }
-
-    modifier onlyActiveOrPausedProposal(uint128 _class, uint128 _nonce) {
-        Proposal memory _proposal = proposal[_class][_nonce];
-        require(
-            (
-                _proposal.endTime >= block.timestamp &&
-                _proposal.status == ProposalStatus.Approved
-            ) || _proposal.status == ProposalStatus.Paused,
-            "Gov: not active or paused"
-        );
-        _;
-    }
-
-    modifier onlyPausedProposal(uint128 _class, uint128 _nonce) {
-        Proposal memory _proposal = proposal[_class][_nonce];
-        require(
-            _proposal.status == ProposalStatus.Paused,
-            "Gov: proposal not paused"
-        );
-        _;
-    }
-
-    modifier onlyCorrectOwner(bytes32 proposalHash,uint128 classId, uint128 proposalId) {
-        require(proposalHash == proposal[classId][proposalId].proposalHash, "proposal executed is not mentioned corresponding to proposal");
-        _;
-    }  
+    
+   
 
 
-    /**its used for setting  new governance contract  ,  */
-    function setCurrentGovernance(address newGovernanceAddress,  uint proposalId , uint _proposalClass) hasRole(DEFAULT_ADMIN_ROLE, msg.sender) returns(bool) {
-    //    setGovernanceAddress(newGovernanceAddress);
-    require(this.getProposalDetails(proposalId , _proposalClass).status  == ProposalStatus.Approved, "setGovernance:accessDenied");
+    /**its used for setting  new governance contract  TODO: from the governanceOwnable  */
+    // function setCurrentGovernance(address newGovernanceAddress,  uint proposalId , uint _proposalClass) hasRole(DEFAULT_ADMIN_ROLE, msg.sender) public returns(bool) {
+    // //    setGovernanceAddress(newGovernanceAddress);
+    // require(this.getProposalDetails(proposalId , _proposalClass).status  == ProposalStatus.Approved, "setGovernance:accessDenied");
 
-    governance = newGovernanceAddress;
+    // governance = newGovernanceAddress;
 
-    }
-    function getProposalDetails(
+    // }
+    
+function getProposalDetails(
             uint128 _class,
             uint128 _nonce
-        ) external view returns(Proposal memory _proposal) {
+        ) external view  
+        returns(Proposal memory _proposal)  {
             _proposal = proposal[_class][_nonce];
     }
 
+    function getProposalClassInfo(
+        uint128 _class
+    ) external view returns(ProposalClassInfo memory _proposalClassInfo) {
+        _proposalClassInfo = proposalClassInfo[_class];
+
+    }
 
     function  setProposalStatus(uint128 _class , uint128 _nonce, ProposalStatus newStatus) external {
                 require(msg.sender == governance, " current governance can access");
-    proposal[_class][_nonce].status = ProposalStatus.newStatus;
+    proposal[_class][_nonce].status = newStatus;
     } 
-
-
 
    
     function registerProposal(
@@ -198,9 +177,9 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
         bytes32 _proposalHash,
         uint256 _executionNonce,
         uint256 _executionInterval,
-        ProposalApproval _approvalMode,
+        IGovStorage.ProposalApproval _approvalMode,
         uint256[] memory _dbitDistributedPerDay
-    ) external onlyApprovedGovernance {
+    ) external override   {
         require(msg.sender == governance, " current governance can access");
         require(Address.isContract(_contractAddress), "Gov: Proposal contract not valid");
 
@@ -222,18 +201,56 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
 
     }
 
+
+    /**
+    register proposal class inforamtion 
+    @dev to be called only one time in ogvernance constructor for defining the parameters for the given class 
+    TODO: determine whether people can change the parameters .
+    _nonce cant be changed.
+
+     */
+
+    function registerProposalClassInfo(
+        uint128 _class,
+        uint256 _timelock,
+        uint256 _minimumApproval,
+        uint256 _minimumVote,
+        uint256 _architectVeto,
+        uint256 _maximumExecutionTime,
+        uint256 _minimumExecutionInterval
+    ) external  onlyGov {
+     proposalClassInfo [_class].timelock =   _timelock;
+     proposalClassInfo [_class].minimumApproval = _minimumApproval;
+     proposalClassInfo [_class].minimumVote = _minimumVote;
+     proposalClassInfo [_class].architectVeto = _architectVeto;
+     proposalClassInfo[_class].maximumExecutionTime = _maximumExecutionTime;
+     proposalClassInfo[_class].minimumExecutionInterval = _minimumExecutionInterval;
+    }
+
     /**
      */
-    function setAllocatedToken(address _for , uint _allocatedDGOVMinted , uint _allocatedDBITMinted , uint _dbitAllocationPPM , uint _dgovAllocationPPM ) external {
-        require(msg.sender == governance, " current governance can access");
-        allocatedToken[_for].allocatedDGOVMinted = _allocatedDGOVMinted; 
-        allocatedToken[_for].allocatedDBITMinted = _allocatedDBITMinted;
+    function setAllocatedTokenPPM(address _for  , uint _dbitAllocationPPM , uint _dgovAllocationPPM ) external onlyGov {
+        
         allocatedToken[_for].dbitAllocationPPM = _dbitAllocationPPM;
         allocatedToken[_for].dgovAllocationPPM = _dgovAllocationPPM;
     }
 
 
-    
+    function setTotalAllocationDistributed(uint _dbitTotalAllocationDistributed , uint _dgovTotalAllocationDistributed) external onlyGov {
+    dbitTotalAllocationDistributed = _dbitTotalAllocationDistributed;
+    dgovTotalAllocationDistributed = _dgovTotalAllocationDistributed;
+
+    }
+      /**
+    * @dev generate a new nonce for a given class
+    * @param _class proposal class
+    * @return nonce  generating new nonce.
+    */
+    function _generateNewNonce(uint128 _class) internal returns(uint128 nonce) {
+        proposalClass[_class].nonce++;
+        nonce = proposalClass[_class].nonce;
+    }
+
 
 
 

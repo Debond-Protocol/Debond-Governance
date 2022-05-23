@@ -1,12 +1,11 @@
+//
 pragma solidity ^0.8.9;
 
+enum ProposalApproval {Both, ShouldApprove, CanVeto}
+enum ProposalStatus {Approved, Paused, Revoked, Ended}
+enum VoteChoice {For, Against, Abstain}
 
-
-  enum ProposalApproval {Both, ShouldApprove, CanVeto}
-   enum ProposalStatus {Approved, Paused, Revoked, Ended}
-
-
-     struct Proposal {
+struct Proposal {
         address owner;
         address contractAddress;
         uint256 startTime;
@@ -21,19 +20,24 @@ pragma solidity ^0.8.9;
         ProposalApproval approvalMode;
         bytes32 proposalHash;
         ProposalStatus status;
-    }
+    };
+
+   
 
 
 interface IGovStorage {
+ 
+enum ProposalApproval {Both, ShouldApprove, CanVeto}
+enum ProposalStatus {Approved, Paused, Revoked, Ended}
+enum VoteChoice {For, Against, Abstain}
 
+        
 
-
-
-function getProposal(
+function getProposalDetails(
             uint128 _class,
             uint128 _nonce
-        ) external view returns(Proposal memory _proposal) ;
-
+        ) external  view
+        returns(Proposal memory _proposal) ;
 
  /** 
     * @dev registers a proposal in the database (from the approved governance contract).
@@ -41,18 +45,26 @@ function getProposal(
     * @param _endTime prosal end time
     * @param _contractAddress the proposal contract address
     */
-function registerProposal(uint proposalId) external ;
-/**
-@dev  set the governance contract
-@param   newGovernanceAddress to be set governance address.
-@param proposalClass given proposal class to change the governance adress.
- */
-function setCurrentGovernance(address newGovernanceAddress,  uint proposalClass, uint proposalNonce)  external returns(bool);
 
-function setAllocatedToken(address _for , uint _allocatedDGOVMinted , uint _allocatedDBITMinted , uint _dbitAllocationPPM , uint _dgovAllocationPPM ) external ;
 
-function mintGOVAllocation(address _to , uint256 _amount, uint proposal_class, uint proposal_nonce ) external;
+function registerProposal(
+        uint128 _class,
+        address _owner, 
+        uint256 _endTime,
+        uint256 _dbitRewards,
+        address _contractAddress,
+        bytes32 _proposalHash,
+        uint256 _executionNonce,
+        uint256 _executionInterval,
+        ProposalApproval _approvalMode,
+        uint256[] memory _dbitDistributedPerDay
+    ) external;
 
-function mintDBITAllocation(address _to , uint256 _amount, uint proposal_class, uint proposal_nonce ) external;
+
+
+function setAllocatedTokenPPM(address _for ,  uint _dbitAllocationPPM , uint _dgovAllocationPPM ) external ;
+
+function setTotalAllocationDistributed(uint dbitTotalAllocationDistributed , uint dgovTotalAllocationDistributed) external; 
+
 
 }
