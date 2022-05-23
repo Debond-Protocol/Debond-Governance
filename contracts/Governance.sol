@@ -44,10 +44,10 @@ contract Governance is  IGovernance, ReentrancyGuard, Pausable {
 
     //  for govStorage access.
     IGovStorage govStorage;
-    IData data
+    IData data;
 
     //enums 
-    enum ProposalApprovalStatus(uint _class , uint nonce , IGovStorage.ProposalStatus Status);
+    event ProposalApprovalStatus(uint _class , uint nonce , IGovStorage.ProposalStatus Status);
 
 
     constructor(

@@ -51,7 +51,7 @@ function updateDBITContract(uint proposal_class,uint proposal_nonce, address new
 
 function updateDGOVContract(uint proposal_class,uint proposal_nonce, address newDBITAddress) external;
 
-function updateExchangeContract(uint p)
+function updateExchangeContract(uint proposal_class,uint proposal_nonce, address newExchangeAddress) external;
 
 
 }
