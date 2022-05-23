@@ -454,6 +454,60 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
 
         return true;
     }
+
+    /**
+    * @dev claim fund for a proposal
+    * @param _proposalClass class of the proposal
+    * @param _proposalNonce cnonce of the proposal
+    * @param _to address to transfer fund
+    * @param _amountDBIT DBIT amount to transfer
+    * @param _amountDGOV DGOV amount to transfer
+    */
+    function claimFundForProposal(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
+        address _to,
+        uint256 _amountDBIT,
+        uint256 _amountDGOV
+    ) public returns(bool) {
+        require(_proposalClass <= 2, "Gov: class not valid");
+        require(
+            checkProposal(_proposalClass, _proposalNonce) == true,
+            "Gov: proposal not valid"
+        );
+        require(
+            msg.sender == proposal[_proposalClass][_proposalNonce].contractAddress,
+            "Gov: not proposal owner"
+        );
+
+        uint256 _dbitTotalSupply = IDebondToken(DBIT).totalSupply();
+        uint256 _dgovTotalSupply = IDebondToken(dGoV).totalSupply();
+
+        uint256  maximumExecutionTime = proposal[_proposalClass][_proposalNonce].executionInterval;
+        proposal[_proposalClass][_proposalNonce].executionInterval = maximumExecutionTime - 1;
+
+        // NEED TO CHECK THIS WITH YU (see first param on require)
+        require(
+            _amountDBIT <= (_dbitTotalSupply - dbitTotalAllocationDistributed) / 1e6 * 
+                           (dbitBudgetPPM - dbitAllocationDistibutedPPM),
+            "Gov: DBIT amount not valid"
+        );
+        require(
+            _amountDGOV <= (_dgovTotalSupply - dgovTotalAllocationDistributed) / 1e6 * 
+                           (dgovBudgetPPM - dgovAllocationDistibutedPPM),
+            "Gov: DGOV amount not valid"
+        );
+
+        IDebondToken(DBIT).mintAllocatedSupply(_to, _amountDBIT);
+        allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
+        dbitTotalAllocationDistributed += _amountDBIT;
+
+        IDebondToken(dGoV).mintAllocatedSupply(_to, _amountDGOV);
+        allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
+        dgovTotalAllocationDistributed += _amountDGOV;
+
+        return true;
+    }
     
 
     /**
