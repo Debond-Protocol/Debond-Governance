@@ -13,7 +13,7 @@ pragma solidity ^0.8.0;
     See the License for the specific language governing permissions and
     limitations under the License.
 */
-import "@openzeppelin/contracts/utils/AccessControl.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./utils/GovernanceOwnable.sol";
 import "./interfaces/IGovStorage.sol";
@@ -21,10 +21,10 @@ import "./interfaces/IGovernance.sol";
 contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
 
     // TODO: only governance will have  the R/W but others can Read only.
-    constructor(address governanceAddress) {
+    constructor(address _governanceAddress) {
       //  getRole(DEFAULT_ADMIN_ROLE, governanceAddress);
 
-      governance = governanceAddress;
+      governance = _governanceAddress;
     }
     struct Proposal {
         address owner;
@@ -166,9 +166,9 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
 
 
     /**its used for setting  new governance contract  ,  */
-    function setCurrentGovernance(address newGovernanceAddress,  uint proposalId , uint proposalClass) hasRole(DEFAULT_ADMIN_ROLE, msg.sender) returns(bool) {
+    function setCurrentGovernance(address newGovernanceAddress,  uint proposalId , uint _proposalClass) hasRole(DEFAULT_ADMIN_ROLE, msg.sender) returns(bool) {
     //    setGovernanceAddress(newGovernanceAddress);
-    require(this.getProposalDetails(proposalId , proposalClass).status  == ProposalStatus.Approved, "setGovernance:accessDenied");
+    require(this.getProposalDetails(proposalId , _proposalClass).status  == ProposalStatus.Approved, "setGovernance:accessDenied");
 
     governance = newGovernanceAddress;
 

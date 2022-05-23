@@ -33,8 +33,25 @@ function pauseAll(uint proposal_class , uint proposal_nonce, bool setState) exte
 function mintAllocationToken(uint proposal_class, uint proposal_nonce, uint amount)   external returns(bool);
 
 
-function mintGOVAllocation(address _to , uint256 _amount, uint proposal_class, uint proposal_nonce ) external ;
+function mintGOVAllocation(uint proposal_class, uint proposal_nonce, address _to , uint256 _amount, uint proposal_class, uint proposal_nonce ) external ;
 
+
+function changeCommunityFundSize(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
+        uint256 _newDBITBudget,
+        uint256 _newDGOVBudget
+    ) external returns(bool);
+
+
+
+function updateDebondBondContract(uint proposal_class, uint proposal_nonce, address newBondAddress ) external;
+
+function updateDBITContract(uint proposal_class,uint proposal_nonce, address newDBITAddress ) external;
+
+function updateDGOVContract(uint proposal_class,uint proposal_nonce, address newDBITAddress) external;
+
+function updateExchangeContract(uint p)
 
 
 }
