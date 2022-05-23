@@ -3,8 +3,9 @@
 pragma solidity ^0.8.0;
 
 import "../interfaces/IActivable.sol";
+import "../interfaces/IGovernanceAddressUpdatable.sol";
 
-contract GovernanceOwnable is IActivable {
+contract GovernanceOwnable is IActivable, IGovernanceAddressUpdatable {
 
     constructor(address _governanceAddress) {
         governanceAddress = _governanceAddress;
@@ -26,5 +27,10 @@ contract GovernanceOwnable is IActivable {
 
     function setIsActive(bool _isActive) external onlyGovernance {
         isActive = _isActive;
+    }
+
+    function setGovernanceAddress(address _governanceAddress) external onlyGovernance {
+        require(_governanceAddress != address(0), "null address given");
+        governanceAddress = _governanceAddress;
     }
 }
