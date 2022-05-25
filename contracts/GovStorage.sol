@@ -30,11 +30,6 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
 
 
 
-    // enums .
-
-
-
-
     modifier onlyGov() {
         require(msg.sender == governance,"only governance contract can call");
         _;
@@ -150,10 +145,14 @@ contract GovStorage is AccessControl, GovernanceOwnable , IGovStorage {
 function getProposalDetails(
             uint128 _class,
             uint128 _nonce
-        ) external view  
+        ) public view  
         returns(Proposal memory _proposal)  {
             _proposal = proposal[_class][_nonce];
     }
+
+function getVoteDetails(bytes32 hash) public view returns(Vote memory details) {
+    details = votes[hash];
+}
 
     function getProposalClassInfo(
         uint128 _class
@@ -162,12 +161,29 @@ function getProposalDetails(
 
     }
 
+
     function  setProposalStatus(uint128 _class , uint128 _nonce, ProposalStatus newStatus) external {
                 require(msg.sender == governance, " current governance can access");
     proposal[_class][_nonce].status = newStatus;
     } 
 
-   
+
+
+
+    function setProposalVote(uint128 _class , uint128 _nonce , uint _amount , IGovStorage.VoteChoice  choice,  bytes32 hash, uint forVotes,  uint againstVotes ) public onlyGov {
+
+        if(choice == VoteChoice.For) {
+           proposal[_class][_nonce].forVotes = forVotes + _amount;
+           votes[hash].vote = choice;
+        }    
+
+        else if(choice == VoteChoice.Against) {
+            proposal[_class][_nonce].againstVotes = againstVotes + _amount;
+            votes[hash].vote = choice;
+        }
+    }   
+
+
     function registerProposal(
         uint128 _class,
         address _owner, 
@@ -228,6 +244,27 @@ function getProposalDetails(
     }
 
     /**
+    for calling  called in governance.vote() function to register vote.
+    @dev to be only called by governance contract.
+     */
+    function _registerVote(
+        bytes32 voteHash, 
+        uint128 _class,
+        uint128 _nonce,
+        address _contractAddress,
+        uint _amount,
+        uint amountTokens, 
+        uint votingDay 
+    ) external  onlyGov returns (bool _voted) {
+        votes[voteHash].class = _class;
+        votes[voteHash].nonce = _nonce;
+        votes[voteHash].contractAddress = _contractAddress;
+        votes[voteHash].voted = true;
+        votes[voteHash].amountTokens = _amount;
+        votes[voteHash].votingDay = votingDay;
+    }
+    /**
+
      */
     function setAllocatedTokenPPM(address _for  , uint _dbitAllocationPPM , uint _dgovAllocationPPM ) external onlyGov {
         
