@@ -6,7 +6,7 @@ import "../interfaces/IActivable.sol";
 import "../interfaces/IGovernanceAddressUpdatable.sol";
 
 contract GovernanceOwnable is IActivable, IGovernanceAddressUpdatable {
-
+    address public dataAddress;
     constructor(address _governanceAddress) {
         governanceAddress = _governanceAddress;
         isActive = true;
@@ -33,4 +33,9 @@ contract GovernanceOwnable is IActivable, IGovernanceAddressUpdatable {
         require(_governanceAddress != address(0), "null address given");
         governanceAddress = _governanceAddress;
     }
+
+    function setDebondDataAddress(address _newDataAddress) external onlyGovernance {
+        dataAddress = _newDataAddress;
+    }
+
 }

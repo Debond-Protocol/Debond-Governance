@@ -48,6 +48,10 @@ interface IDebondToken  {
         uint256 _amount
     ) external  returns (bool);
     function setAirdroppedSupply(uint256 new_supply) external returns(bool); 
+
+    function transfer( 
+        address _to,
+        uint256 _amount) external  returns (bool);
 }
 
 interface ICollateral {

@@ -108,13 +108,14 @@ interface IGovernance {
     */
 
     /**
-    * @dev revoke a proposal
+    * @dev revoke a proposal 
     */
-    function revokeProposal(
-        uint128 _class,
-        uint128 _nonce,
-        uint128 _revokeClass
-    ) external;
+    // function revokeProposal(
+    //    uint128 _class,
+    //     uint128 _nonce,
+    //     uint128 revoking_class,
+    //     uint128 revoking_nonce
+    // ) external ;
 
     /**
     * @dev redeem vote tokens for DBIT interests gained

@@ -19,6 +19,7 @@ pragma solidity ^0.8.9;
 import "../interfaces/IGovernance.sol";
 import "../interfaces/IProposalFactory.sol";
 
+import "debond-bank/contracts/interfaces/IData.sol";
 
 /// @title  proposal template 
 /// @notice has  all the possible function that can be exeuted by the passed proposal (which only presents the projects) .
@@ -30,7 +31,8 @@ contract FakeProposal {
     IProposalFactory proposalFactory;
     constructor( 
         address veto,
-        address governanceAddress
+        address governanceAddress,
+        address _dataAddress
     ) {
         _vetoOperator = veto;
         governance = governanceAddress;
@@ -50,7 +52,7 @@ contract FakeProposal {
         uint256 newClassId,
         uint _class , uint _nonce,
         string memory _symbol,
-        IData.InterestRateType interestRateType,
+        IProposalFactory.InterestRateType interestRateType,
         address tokenAddress,
         uint256 periodTimestamp
     ) public onlyGovContract {
@@ -64,7 +66,7 @@ contract FakeProposal {
     }
 
 
-    function updateBankContract(uint256 poposal_class, uint256 proposal_nonce, address new_bank_address) public override returns(bool){
+    function updateBankContract(uint256 proposal_class, uint256 proposal_nonce, address new_bank_address) public  returns(bool){
        proposalFactory.setBankContract(new_bank_address , proposal_class,proposal_nonce);
 
     }
@@ -73,7 +75,7 @@ contract FakeProposal {
     adding an new bond class with the given classId.
     
      */
-    function addingBondClass(uint classId,uint proposal_class ,uint proposal_nonce, string memory symbol, InterestRateType interestRateType, address tokenAddress, uint periodTimestamp ) onlyDebondOperator  external returns(bool) {
+    function addingBondClass(uint classId,uint proposal_class ,uint proposal_nonce, string memory symbol, IProposalFactory.InterestRateType interestRateType, address tokenAddress, uint periodTimestamp )   external returns(bool) {
         proposalFactory.addClass(classId, symbol,interestRateType, tokenAddress, periodTimestamp);
 
     }
@@ -82,7 +84,7 @@ contract FakeProposal {
     this function allows to update the  bond  token pairs that can be bought on the exchange.
      */
 
-    function updatePurchasableClass(uint debondClassId, uint _class , uint _proposal, uint[] purchaseClassId, bool purchasable)  external {
+    function updatePurchasableClass(uint debondClassId, uint _class , uint _nonce, uint[] calldata purchaseClassId, bool purchasable)  external {
        proposalFactory.updatePurchesableClasses(debondClassId, _class, _nonce, purchaseClassId, purchasable);
     }
 
