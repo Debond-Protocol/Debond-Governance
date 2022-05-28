@@ -100,9 +100,9 @@ contract("Debond Maths", async (accounts) => {
                     Number(
                         s1.toString()
                     ) / 10**18
-                ).toFixed(14)
+                ).toFixed(13)
             ).to.equal(
-                s2.toFixed(14)
+                s2.toFixed(13)
             );
         }
     });
@@ -202,7 +202,7 @@ async function sigmoid(c, x) {
 // floating interest rate
 async function floatingInterestRate(_fixRateBond, _floatingRateBond, _benchmarkIR) {
     let x = _fixRateBond / (_fixRateBond + _floatingRateBond);
-    let c = 1 / 3;
+    let c = 0.2;
     let sig = await sigmoid(c, x);
 
     return 2 * _benchmarkIR * sig;

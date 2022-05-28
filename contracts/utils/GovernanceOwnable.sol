@@ -5,14 +5,13 @@ pragma solidity ^0.8.0;
 import "../interfaces/IActivable.sol";
 
 contract GovernanceOwnable is IActivable {
+    address governanceAddress;
+    bool private isActive;
 
     constructor(address _governanceAddress) {
         governanceAddress = _governanceAddress;
         isActive = true;
     }
-
-    address governanceAddress;
-    bool isActive;
 
     modifier onlyGovernance() {
         require(msg.sender == governanceAddress, "Governance Restriction: Not allowed");
@@ -26,5 +25,9 @@ contract GovernanceOwnable is IActivable {
 
     function setIsActive(bool _isActive) external onlyGovernance {
         isActive = _isActive;
+    }
+
+    function contractIsActive() public view returns(bool) {
+        return isActive;
     }
 }

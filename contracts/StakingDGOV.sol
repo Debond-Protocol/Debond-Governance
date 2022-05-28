@@ -74,7 +74,7 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard {
         address _staker,
         uint256 _amount,
         uint256 _duration
-    ) external onlyGov nonReentrant() {
+    ) external onlyGov nonReentrant {
         IERC20 IdGov = IERC20(dGov);
         IVoteToken Ivote = IVoteToken(voteToken);
         
@@ -101,7 +101,7 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard {
         address _staker,
         address _to,
         uint256 _amount
-    ) external onlyGov nonReentrant() {
+    ) external onlyGov nonReentrant {
         StackedDGOV memory _stacked = stackedDGOV[_staker];
         require(
             block.timestamp >= _stacked.startTime + _stacked.duration,

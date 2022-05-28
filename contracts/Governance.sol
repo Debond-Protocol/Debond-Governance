@@ -70,6 +70,44 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
     }
 
     /**
+    * @dev set governance contract is active or not
+    * @param _contractIsActive true to se contract avtive, false otherwise
+    */
+    function activate(bool _contractIsActive) public returns(bool) {
+        contractIsActive = _contractIsActive;
+
+        return contractIsActive;
+    }
+
+    /**
+    * @dev set all contracts for the first time
+    * @param _DBIT DBIT token contract address
+    * @param _DGOV dGoV token contract address
+    * @param _bank bank contract address
+    * @param _debondBond debond bond contract address
+    * @param _exchange exchange contract address
+    */
+    function firstTimeSetContracts(
+        address _DBIT,
+        address _DGOV,
+        address _bank,
+        address _debondBond,
+        address _exchange
+    ) public onlyDebondOperator returns(bool) {
+        require(initialized == false, "Gov: already initialized");
+
+        DBIT = _DBIT;
+        dGoV = _DGOV;
+        bank = _bank;
+        debondBond = _debondBond;
+        exchange = _exchange;
+
+        return true;
+    }
+
+
+
+    /**
     * @dev sets the amount of DBIT to get for one vote token
     * @param _dbitAmount DBIT amount
     */
@@ -233,7 +271,6 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
             _checkIfVoterHasEnoughVoteTokens(_voter, _amountVoteTokens),
             "Gov: not enough enough vote tokens"
         );
-
         // require the user hasn't voted yet
         require(_checkIfNotVoted(_class, _nonce, _proposalContractAddress), "Gov: Already voted");
         
@@ -469,7 +506,7 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         address _to,
         uint256 _amountDBIT,
         uint256 _amountDGOV
-    ) public returns(bool) {
+    ) public nonReentrant returns(bool) {
         require(_proposalClass <= 2, "Gov: class not valid");
         require(
             checkProposal(_proposalClass, _proposalNonce) == true,

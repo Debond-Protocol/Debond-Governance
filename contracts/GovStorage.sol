@@ -70,6 +70,9 @@ contract GovStorage {
     address public DBIT;
     address public dGoV;
     address public bank;
+    address public exchange;
+    address public debondBond;
+    address public debondToken;
     address public voteToken;
     address public governance;
     address public stakingContract;
@@ -88,6 +91,9 @@ contract GovStorage {
     uint256 public dgovAllocationDistibutedPPM;
     uint256 public dbitTotalAllocationDistributed;
     uint256 public dgovTotalAllocationDistributed;
+
+    bool public initialized;
+    bool public contractIsActive;
 
     mapping(bytes32 => Vote) votes;
     mapping(uint128 => ProposalClass) proposalClass;
