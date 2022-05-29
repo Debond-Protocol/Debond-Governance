@@ -18,7 +18,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IVoteToken.sol";
 
-contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
+import "./utils/GovernanceOwnable.sol";
+contract VoteToken is ERC20, ReentrancyGuard, IVoteToken , GovernanceOwnable{
     address debondOperator;
     address govAddress;
     address stakingDGOV;
@@ -37,7 +38,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         string memory _name,
         string memory _symbol,
         address _debondOperator
-    ) ERC20(_name, _symbol) {
+    ) ERC20(_name, _symbol) GovernanceOwnable(_debondOperator) {
         debondOperator = _debondOperator;
     }
 
@@ -85,6 +86,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @param _amount the amount of tokens to mint
     */
     function mintVoteToken(address _user, uint256 _amount) external nonReentrant() {
+        require(msg.sender == stakingDGOV, "VoteToken:  only staking contract");
         _mint(_user, _amount);
     }
 
@@ -94,6 +96,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @param _amount the amount of tokens to burn
     */
     function burnVoteToken(address _user, uint256 _amount) external nonReentrant() {
+        require(msg.sender == stakingDGOV,"VoteToken:  only staking contract");
         _burn(_user, _amount);
     }
 
@@ -102,7 +105,9 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @param _governance governance contract address
     */
     function setGovernanceContract(address _governance) external onlyDebondOperator {
-        govAddress = _governance;
+    
+    // TODO:
+    // super.setGovernanceContract(_governance);
     }
 
     /**
@@ -110,7 +115,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @param gov governance contract address
     */
     function getGovernanceContract() external view returns(address gov) {
-        gov = govAddress;
+        // returns  govAddress;
     }
 
     /**
@@ -126,6 +131,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @param _stakingDGOV stakingDGOV contract address
     */
     function getStakingDGOVContract() external view returns(address _stakingDGOV) {
-        _stakingDGOV = stakingDGOV;
+    // 
+    //    _stakingDGOV = stakingDGOV;
     }
 }

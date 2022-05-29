@@ -16,30 +16,50 @@ pragma solidity ^0.8.0;
 
 interface IVoteToken {
     /**
-    * @dev mints  vote Token tokens to the address of a user
+    * @dev mints  vote  tokens to the address of a user (those staking dGOV )
+    * @notice  to be called only by the stakingContract.stakedGOV() to mint tokens after calculation of rewards
+    * @param _user address of the user intended to get VoteToken
+    * @param _amount is the amount of tokens to be received
     */
     function mintVoteToken(address _user, uint256 _amount) external;
 
     /**
-    * @dev burns vote Token tokens from the address of a user
+    * @dev burns vote Token tokens from the address of a user . 
+    * @notice  to be called only by stakingContract.unstakedGOV() in order to recuperate the remaining Vote Tokens into the 
+    * @param _user address of the user intended to get dGOV token . 
+    * @param _amount is the amount of tokens to be received
     */
     function burnVoteToken(address _user, uint256 _amount) external;
 
     /**
     * @dev set the governance contract address
+    * @notice to be managed by the governanceOwnable with the address initialized by CSO . 
+    * @param _governance is the  new EOA handling the governance.
     */
     function setGovernanceContract(address _governance) external;
 
     /**
-    * @dev set the stakingDGOV contract address
+    * @dev set the  current / new stakingDGOV contract address. 
+    * @notice used first time to set the corresponding StakingDGOV contract and then called by the proposal contract for changing the staking operations.
+    * @param _stakingSGOV is the address of the new staking contract 
     */
     function setStakingDGOVContract(address _stakingSGOV) external;
 
     /**
-    * @dev transfer _amount vote tokens to `_to`
+    * @dev transfer _amount vote tokens from msg.sender () to destination address 
+    * @notice this will be restricted to be transferred between the owner of dGOV who incurred interest on his Vote token to the stakingContract
+    * @param _to is the destination staking Contract address deployed by d/bond 
+    * @param _amount is the amount of the tokens to be transferred
     */
     function transfer(address _to, uint256 _amount) external returns (bool);
 
+     /**
+    * @dev transfer _amount vote tokens from '_from' address   to  '_to' address.
+    * @notice this will be restricted to be transferred between the staking and governance contracts only .
+    * @param _from is the source address consisting of the Vote tokens . 
+    * @param _to is the destination staking Contract address deployed by d/bond 
+    * @param _amount is the amount of the tokens to be transferred. 
+    */
     function transferFrom(
         address _from,
         address _to,

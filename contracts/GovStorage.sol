@@ -308,7 +308,7 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
 
 
     function setAllocatedDGOVMinted( uint newAllocation) external override onlyGov {
-     allocatedToken[_to].newAllocation
+  //   allocatedToken[_to].newAllocation
     // }
 
     
