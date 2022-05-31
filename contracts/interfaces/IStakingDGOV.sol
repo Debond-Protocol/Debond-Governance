@@ -17,6 +17,7 @@ pragma solidity ^0.8.0;
 interface IStakingDGOV {
     /**
     * @dev emitted when dGoV tokens are stacked
+    
     */
     event dgovStacked(address _staker, uint256 _amount);
 

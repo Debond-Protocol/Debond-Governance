@@ -163,7 +163,7 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard {
 
     /**
     * @dev set the DBIT contract address
-    * @param _dbit DBIT address
+    * @param _dbit DBIT address.
     */
     function setDBITContract(address _dbit) external {
         dbit = _dbit;

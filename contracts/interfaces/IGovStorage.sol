@@ -44,8 +44,8 @@ struct Proposal {
     }
 
     struct Vote {
-        uint128 class;
-        uint128 nonce;
+        uint256 class;
+        uint256 nonce;
         address contractAddress;
         bool voted;
         VoteChoice vote;
@@ -56,16 +56,17 @@ struct Proposal {
 
 
      struct ProposalClass {
-        uint128 nonce;
+        uint256 nonce;
         bool  exist;
     }
 
     struct ProposalClassInfo {
-        uint128[] nonces;
+        uint256[] nonces;
         uint256 timelock;
         uint256 minimumApproval;
         uint256 minimumVote;
-        uint256 architectVeto;
+        //uint256 architectVeto; 
+        bool  architectVeto; // defines whether all of the proposals need the architectVeto or not .
         uint256 maximumExecutionTime;
         uint256 minimumExecutionInterval;
     }
@@ -84,7 +85,7 @@ struct Proposal {
     _nonce is the proposalID / nonce to the given class that you want to check.
     returns the proposal object  structure if therre is one.
  */
-    function getProposal(uint128 _class, uint128 _nonce)
+    function getProposal(uint256 _class, uint256 _nonce)
         external
         view
         returns (Proposal memory _proposal);
@@ -95,7 +96,7 @@ struct Proposal {
         returns (Vote calldata details);
 
 
-    function getProposalClassInfo(uint128 _class)
+    function getProposalClassInfo(uint256 _class)
         external
         view
     returns (ProposalClassInfo memory _proposalClassInfo);
@@ -120,7 +121,7 @@ struct Proposal {
      */
 
     function registerProposal(
-        uint128 _class,
+        uint256 _class,
         address _owner,
         uint256 _endTime,
         uint256 _dbitRewards,
@@ -134,11 +135,11 @@ struct Proposal {
 
 
     function registerProposalClassInfo(
-        uint128 _class,
+        uint256 _class,
         uint256 _timelock,
         uint256 _minimumApproval,
         uint256 _minimumVote,
-        uint256 _architectVeto,
+        bool _architectVeto,
         uint256 _maximumExecutionTime,
         uint256 _minimumExecutionInterval
     ) external;
@@ -160,8 +161,8 @@ struct Proposal {
     function setBudgetDGOVPPM(uint256 _newBudget) external;
 
     function setProposalVote(
-        uint128 _class,
-        uint128 _nonce,
+        uint256 _class,
+        uint256 _nonce,
         uint256 _amount,
         IGovStorage.VoteChoice choice,
         bytes32 hash,
@@ -170,40 +171,78 @@ struct Proposal {
     ) external;
 
     function setProposalExecutionInterval(
-        uint128 _class,
-        uint128 _nonce,
+        uint256 _class,
+        uint256 _nonce,
         uint newinterval
     )
     external
     returns(bool);
 
-    // function setUserVoted(
-    //     uint128 _class,
-    //     uint128 _nonce,
-    //     uint256 nbOfVoters
-    // ) external;
 
-    function _registerVote(
+
+     function registerVote(
         bytes32 voteHash,
-        uint128 _class,
-        uint128 _nonce,
+        uint256 _class,
+        uint256 _nonce,
         address _contractAddress,
-        uint256 _amount,
         uint256 amountTokens,
         uint256 votingDay
-    ) external returns (bool _voted);
+    ) external ;
 
 
     function getDebondOperator() external returns(address);
    
-
+    function getClassNonceInfo(uint256 _class) external  view  returns(uint256);
 
 
     function setProposalStatus(
-        uint128 _class,
-        uint128 _nonce,
+        uint256 _class,
+        uint256 _nonce,
         ProposalStatus newStatus
     ) external;
 
+    /**
+    function to set the current supply og minted DBIT / DGOV for the minting after minting the allocation.
+     */
+
+    function addAllocatedTokenMinted( address _to ,uint256 _amountDBIT, uint256 _amountDGOV ) external ;
+
+
+
+
+
+    /** getting the detailsof the allocatedToken.
+    * 
+     */
+
+    function getAllocatedToken(
+        address _of
+    ) external returns(AllocatedToken memory _allocatedToken);
+
+
+
+    function setTotalVoteTokensPerDay(uint256 _class , uint256 _nonce , uint day, uint totalVoteTokensPerDay ,uint _amountVoteTokens)  external ;
+
+
+
+    function getTotalAllocatedDistributedPPM() external view  returns (uint dbitTotal , uint dgovTotal);
+
+
+    function setTotalAllocationDistributedPPM(uint dbitAlloc , uint dgovAlloc)   external ;
+
+
+
+    /**
+    setting the amtTokens for the vote (in order to burn the vote tokens when burning ).
+    * @param  hash is the hash of the vote generated  for given user .
+    * @param value is the amount of vote tokens that are needed to be removed
+    */
+    function setAmountsToken(bytes32 hash, uint value)  external;
+
+
+
+    function getAllocatedTokenPPM(
+        address _for
+    ) external returns(uint dbitAlloc,uint  dgovAlloc);
 
 }

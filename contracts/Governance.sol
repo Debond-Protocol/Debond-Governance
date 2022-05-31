@@ -28,6 +28,7 @@ import "debond-token/contracts/interfaces/IdGOV.sol";
 import "debond-token/contracts/interfaces/IDebondToken.sol";
 //import "Debond-Exchange/contracts/interfaces/IExchange.sol";
 import "debond-bank/contracts/interfaces/IData.sol";
+//import "Debond-ERC3475/contracts/interfaces/IDebondBond.sol";
 
 
 
@@ -57,7 +58,7 @@ contract Governance is  IGovernance, ReentrancyGuard, Pausable  {
     IGovStorage govStorage;
     IData data;
     IdGOV dgov;
-
+    
 
     // address  for token address.
     address dbitAddress;
@@ -129,9 +130,9 @@ contract Governance is  IGovernance, ReentrancyGuard, Pausable  {
         dgovBudgetPPM = 1e5 * 1 ether;
 
     // with parameters timelock, minimumApproval , _minimumVote , _architectVeto , _maximumExecutionTime , _minimumExecutionInterval.
-    govStorage.registerProposalClassInfo(0,3,150,30,0,3,1);
-    govStorage.registerProposalClassInfo(1,3,170,60,1,5,2);
-    govStorage.registerProposalClassInfo(2,3,300,70,1,11,3);
+    govStorage.registerProposalClassInfo(0,3,150,30,false,3,1);
+    govStorage.registerProposalClassInfo(1,3,170,60,true,5,2);
+    govStorage.registerProposalClassInfo(2,3,300,70,true,11,3);
      
     }
 
@@ -395,13 +396,9 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
         );
 
         IDebondToken(dbitAddress).mintAllocatedSupply(_to, _amountDBIT);
-        _allocatedToken.allocatedDBITMinted += _amountDBIT;
-        _allocatedToken.dbitTotalAllocationDistributed += _amountDBIT;
-
-        govStorage.setAllocatedTokenPPM();
         dgov.mintAllocatedSupply(_to, _amountDGOV);
-        _allocatedToken.allocatedDGOVMinted += _amountDGOV;
-        _allocatedToken.dgovTotalAllocationDistributed += _amountDGOV;
+        
+        govStorage.addAllocatedTokenMinted(_to , _amountDBIT, _amountDGOV);
 
         return true;
     }
@@ -428,12 +425,17 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
             approvalVotePercentage >= _proposalClassInfo.minimumApproval,
             "Gov: minimum not reach"
         );
+        bool veto ;
+        if(_proposal.approvalMode == IGovStorage.ProposalApproval.CanVeto)
+        {
+            veto = true;
+
+        }
 
         require(
-            uint256(_proposal.approvalMode) <= _proposalClassInfo.architectVeto,
-            "Gov: Architect"
+            veto == _proposalClassInfo.architectVeto,
+            "Gov: only architect role can approve the vote"
         );
-
 
         return true;
     }
@@ -445,10 +447,9 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
     */
     function getClassInfo(
         uint128 _class
-    ) external view returns(ProposalClassInfo memory _classInfo) {
+    ) external view returns(IGovStorage.ProposalClassInfo memory _classInfo) {
 //        _classInfo = proposalClassInfo[_class];
         _classInfo = govStorage.getProposalClassInfo(_class);
-
 
     }
 
@@ -496,7 +497,8 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
         _reward = _reward * _userVote.amountTokens;
 
         // burn vote tokens owned by the user
-        govStorage.getVoteDetails(_hash).amountTokens = 0;
+         govStorage.setAmountsToken(_hash,0);
+
         IVoteToken _voteTokenContract = IVoteToken(voteToken);
         _voteTokenContract.burnVoteToken(_voter, _userVote.amountTokens);
 
@@ -536,16 +538,12 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
         govStorage.getProposal(_class,_nonce).numberOfVoters += 1;
        
         _updateTotalVoteTokensPerDay(_class, _nonce, _amount);
-        govStorage.getVoteDetails(hash).class = _class;
-        govStorage.getVoteDetails(hash).nonce = _nonce;
-        govStorage.getVoteDetails(hash).contractAddress = _contractAddress;
-        govStorage.getVoteDetails(hash).voted = true;
-        govStorage.getVoteDetails(hash).amount = _amount;
-        govStorage.getVoteDetails(hash).votingDay = _getVotingDay(_class, _nonce);
 
         uint votingDay =  _getVotingDay(_class, _nonce);
+     
+        govStorage.registerVote(hash,_class,_nonce,_contractAddress,_amount,votingDay);
 
-        govStorage._registerVote(
+        govStorage.registerVote(
             hash,_class,_nonce,_contractAddress,_amount, votingDay
         );
     }
@@ -614,7 +612,12 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
         uint256 day = _getVotingDay(_class, _nonce);
 
         uint256 totalVoteTokensPerDay = govStorage.getProposal(_class,_nonce).totalVoteTokensPerDay[day];
-        govStorage.getProposal(_class,_nonce).totalVoteTokensPerDay[day] = totalVoteTokensPerDay + _amountVoteTokens;
+       // govStorage.getProposal(_class,_nonce).totalVoteTokensPerDay[day] = totalVoteTokensPerDay + _amountVoteTokens;
+        govStorage.setTotalVoteTokensPerDay(_class,_nonce,day,totalVoteTokensPerDay , _amountVoteTokens);
+
+
+
+
     }
 
     /**
@@ -707,10 +710,9 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
     /**
     * @dev return the last nonce of a given class
     * @param _class proposal class
-    * @param lastNonce the last nonce of the class
     */
-    function _getClassLastNonce(uint128 _class) internal view returns(uint256 lastNonce) {
-        return    govStorage.getProposalClassInfo(_class).nonce;
+    function _getClassLastNonce(uint128 _class) internal view returns(uint256) {
+        return    govStorage.getClassNonceInfo(_class);
     }
 
   
@@ -721,7 +723,10 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
 /// @dev Explain to a developer any extra details
 
 import "./interfaces/IProposalFactory.sol";
+//import "Debond-Exchange/contracts/interfaces/I"
+import "./interfaces/external/IBank.sol";
 
+import"./interfaces/external/IExchange.sol";
 
 contract  ProposalFactory  is IProposalFactory, Governance {
 
@@ -734,7 +739,7 @@ contract  ProposalFactory  is IProposalFactory, Governance {
         address _debondTeam,
         uint256 _dbitAmountForVote,
         address _governanceStorage,
-        address dataAddress) Governance(  _dbit,
+        address dataAddress) Governance(_dbit,
          _dGoV,
          _stakingContract,
          _voteToken,
@@ -744,7 +749,6 @@ contract  ProposalFactory  is IProposalFactory, Governance {
          _governanceStorage,
          dataAddress) {
              dataContract = dataAddress;
-
     } 
 
         //modifiers
@@ -794,18 +798,19 @@ contract  ProposalFactory  is IProposalFactory, Governance {
         uint128 _nonce,
         uint128 revoking_class,
         uint128 revoking_nonce
-    ) external onlyProposalExecution onlyApproved override  onlyActiveOrPausedProposal(_class, _nonce) {
+    ) external onlyProposalExecution(_class,_nonce) onlyApproved(_class,_nonce) override  onlyActiveOrPausedProposal(_class, _nonce) {
         require(revoking_class > _class , "proposal with higher priority can revoke the give proposal");
-        govStorage.setProposalStatus(_class,_nonce).status = IGovStorage.ProposalStatus.Revoked;
+        govStorage.setProposalStatus(_class,_nonce, IGovStorage.ProposalStatus.Revoked);
         emit proposalRevoked(_class, _nonce);
     }
 
-    /** adds another address to receive the allocation 
+    /** sets the allocation for the given member 
      */
     function addAllocationMember(address _for , uint _allocatedDGOVMinted , uint _allocatedDBITMinted , uint _dbitAllocationPPM , uint _dgovAllocationPPM, uint _class, uint _nonce) external {
         require(msg.sender == govStorage.getProposal(_class, _nonce).contractAddress, "only proposal contract can execute");
         require(govStorage.getProposal(_class, _nonce).status  == IGovStorage.ProposalStatus.Approved,"only approved proposal");
-            govStorage.setAllocatedToken(_for , _allocatedDGOVMinted, _allocatedDBITMinted, _dbitAllocationPPM , _dgovAllocationPPM);
+            govStorage.setAllocatedTokenPPM(_for , _allocatedDGOVMinted, _allocatedDBITMinted);
+    
     }
  
 
@@ -822,41 +827,33 @@ contract  ProposalFactory  is IProposalFactory, Governance {
     /**
     adding bondClass . 
      */
-    function addBondClass(uint newBondClass , uint _class, uint _nonce, string memory symbol , IProposalFactory.InterestRateType interestRateType , address tokenAddress , uint periodTimestamp)  external onlyProposalExecution   {
+    function addBondClass(uint newBondClass , uint _class, uint _nonce, string memory symbol , IDebondBond.InterestRateType interestRateType , address tokenAddress , uint periodTimestamp)   external override onlyProposalExecution(_class,_nonce)   {
     require(msg.sender == govStorage.getProposal(_class, _nonce).contractAddress, "only proposal contract can execute");
     require(govStorage.getProposal(_class,_nonce).status ==IGovStorage.ProposalStatus.Approved, "only passed proposal should execute the function");
      data.addClass(newBondClass,symbol,interestRateType,tokenAddress,periodTimestamp);
     }
 
 
-    /**
-     */
-    function pauseAll(uint _class , uint _nonce, bool setState) external onlyProposalExecution onlyProposalExecution
+    function pauseAll(uint _class , uint _nonce, bool setState ) external  onlyProposalExecution(_class,_nonce) override
     {
     require(msg.sender == govStorage.getProposal(_class, _nonce).contractAddress, "only proposal contract  address owner can execute");
+    require(_class > 2, "Gov: only higher level class  proposal can execute the changes ");
     require(govStorage.getProposal(_class,_nonce).status ==IGovStorage.ProposalStatus.Approved, "only passed proposal should execute the function");
-  //      data.setActive(setState);
-  //      dgov.setActive(setState);
-  //      IDebondToken(DBIT).setActive(setState);
-      //  IExchange(exchangeAddress).setActive(setState);
-      //  IBank(bankAddress).setActive(setState); 
+        //data.setIsActive(setState);
+        //dgov.setIsActive(setState);
+        //IDebondToken(dbitAddress).setIsActive(setState);
+        //IExchange(exchangeAddress).setIsActive(setState);
+        //IBank(bankAddress).setIsActive(setState); 
     }
 
-     /**
-    * @dev change the team allocation  - (DBIT, DGOV)
-    * @param _class class of the proposal
-    * @param _proposalNonce cnonce of the proposal
-    * @param _to the address that should receive the allocation tokens
-    * @param _newDbitPPM the new DBIT allocation
-    * @param _newDgovPPM the new DGOV allocation
-    */
+
     function changeTeamAllocation(
         uint128 _class,
         uint128 _proposalNonce,
         address _to,
         uint256 _newDbitPPM,
         uint256 _newDgovPPM
-    )  onlyProposalExecution onlyProposalExecution public returns(bool)  {
+    )  onlyProposalExecution(_class,_proposalNonce) public returns(bool)  {
         require(msg.sender == govStorage.getProposal(_class, _proposalNonce).contractAddress, "only proposal contract  address owner can execute");
         require(govStorage.getProposal(_class,_proposalNonce).status ==IGovStorage.ProposalStatus.Approved, "only passed proposal should execute the function");
         require(_class <= 1, "Gov: class not valid");
@@ -870,15 +867,18 @@ contract  ProposalFactory  is IProposalFactory, Governance {
         );
 
 
+        uint dbitAllocDistributedPPM;
+        uint dgovAllocDistributedPPM;
+
         uint overallDBITAlloc;
         uint overallDGOVAlloc;
 
         uint256  maximumExecutionTime = govStorage.getProposal(_class, _proposalNonce).executionInterval;
-        govStorage.setProposalExecutionInterval(_class,_proposalNonce,maximumExecutionTime - 1 ).executionInterval;
+        govStorage.setProposalExecutionInterval(_class,_proposalNonce,maximumExecutionTime - 1 );
 
-        IGovStorage.AllocatedToken memory _allocatedToken = govStorage.allocatedToken[_to];
-        uint256 dbitAllocDistributedPPM = govStorage.dbitAllocationDistibutedPPM;
-        uint256 dgovAllocDistributedPPM = govStorage.dgovAllocationDistibutedPPM;
+        IGovStorage.AllocatedToken memory _allocatedToken = govStorage.getAllocatedToken(_to);
+        (dbitAllocDistributedPPM ,dgovAllocDistributedPPM) = govStorage.getTotalAllocatedDistributedPPM();
+        
 
         require(
             dbitAllocDistributedPPM - _allocatedToken.dbitAllocationPPM + _newDbitPPM <= dbitBudgetPPM,
@@ -889,9 +889,13 @@ contract  ProposalFactory  is IProposalFactory, Governance {
             dgovAllocDistributedPPM - _allocatedToken.dgovAllocationPPM + _newDgovPPM <= dgovBudgetPPM,
             "Gov: too much"
         );
+        // TODO: also to check whether these values are actually lower than the max Allocated supply by the DBIT/DBGT. 
 
-        overallDBITAlloc = dbitAllocDistributedPPM - govStorage.getAllocatedTokenPPM(_to)[0] + _newDbitPPM;
-        overallDGOVAlloc = dgovAllocDistributedPPM - govStorage.getAllocatedTokenPPM(_to)[1] + _newDgovPPM;
+
+        (uint dbitTokenAllocatedPPM , uint dgovTokenAllocatedPPM ) = govStorage.getAllocatedTokenPPM(_to); 
+
+        overallDBITAlloc = dbitAllocDistributedPPM - dbitTokenAllocatedPPM + _newDbitPPM;
+        overallDGOVAlloc = dgovAllocDistributedPPM - dgovTokenAllocatedPPM + _newDgovPPM;
 
         govStorage.setTotalAllocationDistributed(overallDBITAlloc, overallDGOVAlloc);
         govStorage.setAllocatedTokenPPM(_to, _newDbitPPM , _newDgovPPM);
@@ -900,19 +904,13 @@ contract  ProposalFactory  is IProposalFactory, Governance {
         return true;
     }
 
-       /**
-    * @dev change the community fund size (DBIT, DGOV) that is possible by the proposal only
-    * @param _class class of the proposal
-    * @param _nonce cnonce of the proposal
-    * @param _newDBITBudget new DBIT budget for community
-    * @param _newDGOVBudget new DGOV budget for community
-    */
+      
     function changeCommunityFundSize(
         uint128 _class,
         uint128 _nonce,
         uint256 _newDBITBudget,
         uint256 _newDGOVBudget
-    ) public onlyProposalExecution onlyProposalExecution returns(bool) {
+    ) public  onlyProposalExecution(_class,_nonce) override returns(bool) {
         
         
         require(msg.sender == govStorage.getProposal(_class, _nonce).contractAddress, "only proposal contract  address owner can execute");
@@ -923,10 +921,10 @@ contract  ProposalFactory  is IProposalFactory, Governance {
             "Gov: proposal not valid"
         );
         require(
-            msg.sender == govStorage.getProposal(_class,_nonce).contractAddress,
+            msg.sender == govStorage.getProposal(_class,_nonce).owner,
             "Gov: not proposal owner"
         );
-
+        // TODO: Sam is there any reason for decreasinf the execution interval ? we need to check the condition  for  the reduction of time < 1 second
         uint256  maximumExecutionTime = govStorage.getProposal(_class, _nonce).executionInterval;
         govStorage.getProposal(_class, _nonce).executionInterval = maximumExecutionTime - 1;
 
@@ -938,10 +936,10 @@ contract  ProposalFactory  is IProposalFactory, Governance {
 
 
 
-    function updatePurchesableClasses(uint debondClassId, uint proposalClass, uint ProposalNonce ,  uint[] calldata purchaseClassId, bool[] calldata purchasable) onlyProposalExecution  override external  {
+    function updatePurchesableClasses(uint debondClassId, uint proposalClass, uint ProposalNonce ,  uint[] calldata purchaseClassId, bool[] calldata purchasable) onlyProposalExecution(proposalClass,proposalClass)  override external  {
     require(msg.sender == govStorage.getProposal(proposalClass, ProposalNonce).contractAddress, "only proposal contract  address owner can execute");
     require(govStorage.getProposal(proposalClass,ProposalNonce).status ==IGovStorage.ProposalStatus.Approved, "only passed proposal should execute the function");
-    require(IData(dataContract).allDebondClasses()[debondClassId] !=0, "the debondClass is not present already" );
+  //  require(IData(dataContract).allDebondClasses()[debondClassId] !=0, "the debondClass is not present already" );
     require(purchaseClassId.length == purchasable.length , "bool array and classiD should be of same length" );
      for(uint i = 0; i < purchaseClassId.length; i++ )
         {   
@@ -952,29 +950,30 @@ contract  ProposalFactory  is IProposalFactory, Governance {
     function addProposalClass(
         uint256 _newProposalClass,
         uint256 proposal_class,
-        uint256 proposal_nonce
-    ) external returns (bool)
+        uint256 proposal_nonce,
+        uint256 _class,
+        uint _timelock, 
+        uint _minimumApproval, 
+        uint _minimumVote, 
+        bool _architectVeto, 
+        uint _maximumExecutionTime, 
+        uint _minimumExecutionTime
+    ) external override returns (bool)
     {
-
-return true;
-
+    require(msg.sender == govStorage.getProposal(proposal_class, proposal_nonce).contractAddress, "only proposal contract  address owner can execute");
+    require(govStorage.getProposal(proposal_class,proposal_nonce).status ==IGovStorage.ProposalStatus.Approved, "only passed proposal should execute the function");
+    govStorage.registerProposalClassInfo(_newProposalClass, _timelock, _minimumApproval, _minimumVote, _architectVeto, _maximumExecutionTime,_minimumExecutionTime);
+    return true;
     }
 
-    /**
-    * @dev claim fund for a proposal
-    * @param _class class of the proposal
-    * @param _proposalNonce cnonce of the proposal
-    * @param _to address to transfer fund
-    * @param _amountDBIT DBIT amount to transfer
-    * @param _amountDGOV DGOV amount to transfer
-    */
+   
     function claimFundForProposal(
         uint128 _class,
         uint128 _proposalNonce,
         address _to,
         uint256 _amountDBIT,
         uint256 _amountDGOV
-    ) public override onlyProposalExecution returns(bool) {
+    ) public override onlyProposalExecution(_class,_proposalNonce) returns(bool) {
 
         require(_class <= 2, "Gov: class not valid");
         require(
@@ -991,23 +990,31 @@ return true;
 
         uint256  maximumExecutionTime = govStorage.getProposal(_class,_proposalNonce).executionInterval;
         govStorage.setProposalExecutionInterval(_class, _proposalNonce, maximumExecutionTime - 1); 
+       
+       (uint dbitTotalAllocationDistributed, uint dgovTotalAllocationDistributed) = govStorage.getTotalAllocatedDistributed();
+       (uint  dbitAllocationDistibutedPPM , uint dgovAllocationDistibutedPPM ) = govStorage.getTotalAllocatedDistributedPPM();
+       (uint dbitBudgetPPM , uint dgovBudgetPPM) = govStorage.getBudgetPPM();
+       
         // NEED TO CHECK THIS WITH YU (see first param on require)
+      
         require(
-            _amountDBIT <= (_dbitTotalSupply - govStorage.dbitTotalAllocationDistributed) / 1e6 * 
-                           (govStorage.getBudgetPPM()[0] - govStorage.dbitAllocationDistibutedPPM),
+            _amountDBIT <= (_dbitTotalSupply - dbitTotalAllocationDistributed) / 1e6 * 
+                           (dbitBudgetPPM - dbitAllocationDistibutedPPM),
             "Gov: DBIT amount not valid"
         );
         require(
-            _amountDGOV <= (_dgovTotalSupply - govStorage.dgovTotalAllocationDistributed) / 1e6 * 
-                           (govStorage.getBudgetPPM()[1] - govStorage.dgovAllocationDistibutedPPM),
+            _amountDGOV <= (_dgovTotalSupply - dgovTotalAllocationDistributed) / 1e6 * 
+                           (dgovBudgetPPM - dgovAllocationDistibutedPPM),
             "Gov: DGOV amount not valid"
         );
 
         IDebondToken(dbitAddress).mintAllocatedSupply(_to, _amountDBIT);
         dgov.mintAllocatedSupply(_to, _amountDGOV);
 
-        govStorage.setAllocationTokenPPM(_to,govStorage.getAllocatedTokenPPM(_to)[0]+ _amountDBIT  , govStorage.getAllocatedTokenPPM(_to)[1]+ _amountDGOV);
-        govStorage.setTotalAllocationDistributed(govStorage.getTotalAllocatedDistributed()[0] + _amountDBIT ,govStorage.getTotalAllocatedDistributed()[1] + _amountDGOV);
+
+        (uint dbitAllocPPM , uint dgovAllocPPM) = govStorage.getAllocatedTokenPPM(_to);
+        govStorage.setAllocatedTokenPPM(_to,dbitAllocPPM + _amountDBIT  , dgovAllocPPM + _amountDGOV);
+        govStorage.setTotalAllocationDistributed(dbitTotalAllocationDistributed + _amountDBIT ,dgovTotalAllocationDistributed + _amountDGOV);
 
 
         return true;

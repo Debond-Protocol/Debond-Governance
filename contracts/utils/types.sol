@@ -37,6 +37,11 @@ struct Proposal {
         uint256 votingDay;
     }
 
+    struct ProposalClass {
+        uint128 nonce;
+    }
+
+
 
 
 

@@ -7,13 +7,21 @@ import "../interfaces/IGovernanceAddressUpdatable.sol";
 
 contract GovernanceOwnable is IActivable, IGovernanceAddressUpdatable {
     address public dataAddress;
+    address public dbit;
+    address public dgov;
+
+    address public exchangeAddress;
+    address  governanceAddress;
+    address public  bankAddress;
+    address public dbitAddress;
+    address public dgovAddress;
+    bool isActive;
+
     constructor(address _governanceAddress) {
         governanceAddress = _governanceAddress;
         isActive = true;
     }
 
-    address governanceAddress;
-    bool isActive;
 
     modifier onlyGovernance() {
         require(msg.sender == governanceAddress, "Governance Restriction: Not allowed");
@@ -37,5 +45,23 @@ contract GovernanceOwnable is IActivable, IGovernanceAddressUpdatable {
     function setDebondDataAddress(address _newDataAddress) external onlyGovernance {
         dataAddress = _newDataAddress;
     }
+
+    function setDBITTokenContract(address _newDBITAddress) external onlyGovernance {
+        dbitAddress = _newDBITAddress;
+    }
+    function setDGOVTokenContract(address _newDGOVTokenAddress) external onlyGovernance {
+        dbitAddress = _newDGOVTokenAddress;
+    }
+    
+    function setBankAddress(address _newBankAddress) external onlyGovernance {
+        bankAddress = _newBankAddress;
+    }
+    
+
+    function setExchangeAddress(address _newExchangeAddress) external onlyGovernance {
+        exchangeAddress = _newExchangeAddress;
+    }
+
+
 
 }
