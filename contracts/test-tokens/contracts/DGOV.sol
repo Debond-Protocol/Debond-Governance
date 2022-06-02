@@ -53,6 +53,10 @@ contract DGOV is ERC20Capped, Ownable, IdGOV, AccessControl , GovernanceOwnable 
         _;
     }
 
+    modifier onlyGovernance() {
+        require(msg.sender == _governanceAddress,"access denied");
+    }
+
     /**
 
     */
@@ -158,7 +162,6 @@ contract DGOV is ERC20Capped, Ownable, IdGOV, AccessControl , GovernanceOwnable 
     }
 
   
-
     
     /** allows to set the airdrop supply after the initialisation just in case.
      */
@@ -169,4 +172,11 @@ contract DGOV is ERC20Capped, Ownable, IdGOV, AccessControl , GovernanceOwnable 
         );
         _airdropedSupply = new_supply;
     }
+
+    function setMaximumSupply(uint maximumSupply) external onlyGovernance {
+        _maximumSupply = maximumSupply;
+    }
+
+
+
 }

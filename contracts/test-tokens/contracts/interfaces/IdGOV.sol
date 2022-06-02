@@ -39,4 +39,11 @@ interface IdGOV {
         address _to,
         uint256 _amount
     ) external returns (bool);
+
+
+    function setMaximumSupply(uint maximumSupply) external;
+
 }
+
+
+

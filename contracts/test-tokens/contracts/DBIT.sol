@@ -120,7 +120,7 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral , GovernanceOwn
     }
 
 
-    function transfer(address _from , address _to ,  uint _amount)    public   returns(bool) {
+    function transfer( address _to ,  uint _amount)    public   returns(bool) {
     require(_checkIfItsLockedSupply(msg.sender, _amount), "insufficient supply");
      _transfer(msg.sender, _to, _amount);
      return true;

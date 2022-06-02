@@ -64,36 +64,21 @@ contract FakeProposal {
             periodTimestamp
         );
     }
-
-
     function updateBankContract(uint256 proposal_class, uint256 proposal_nonce, address new_bank_address) public  returns(bool){
        proposalFactory.setBankContract(new_bank_address , proposal_class,proposal_nonce);
-
     }
-
     /**
     adding an new bond class with the given classId.
-    
      */
     function addingBondClass(uint classId,uint proposal_class ,uint proposal_nonce, string memory symbol, IProposalFactory.InterestRateType interestRateType, address tokenAddress, uint periodTimestamp )   external returns(bool) {
         proposalFactory.addClass(classId, symbol,interestRateType, tokenAddress, periodTimestamp);
 
     }
-
     /**
     this function allows to update the  bond  token pairs that can be bought on the exchange.
      */
-
     function updatePurchasableClass(uint debondClassId, uint _class , uint _nonce, uint[] calldata purchaseClassId, bool purchasable)  external {
        proposalFactory.updatePurchesableClasses(debondClassId, _class, _nonce, purchaseClassId, purchasable);
     }
-
- 
-
-
-
-
-
-
 
 }

@@ -78,6 +78,4 @@ contract GovernanceOwnable is IActivable, IGovernanceAddressUpdatable {
         
     }
 
-
-
 }

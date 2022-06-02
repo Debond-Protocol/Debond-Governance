@@ -967,6 +967,8 @@ contract  ProposalFactory  is IProposalFactory, Governance {
     }
 
    
+
+
     function claimFundForProposal(
         uint128 _class,
         uint128 _proposalNonce,
@@ -994,9 +996,7 @@ contract  ProposalFactory  is IProposalFactory, Governance {
        (uint dbitTotalAllocationDistributed, uint dgovTotalAllocationDistributed) = govStorage.getTotalAllocatedDistributed();
        (uint  dbitAllocationDistibutedPPM , uint dgovAllocationDistibutedPPM ) = govStorage.getTotalAllocatedDistributedPPM();
        (uint dbitBudgetPPM , uint dgovBudgetPPM) = govStorage.getBudgetPPM();
-       
-        // NEED TO CHECK THIS WITH YU (see first param on require)
-      
+        
         require(
             _amountDBIT <= (_dbitTotalSupply - dbitTotalAllocationDistributed) / 1e6 * 
                            (dbitBudgetPPM - dbitAllocationDistibutedPPM),
@@ -1016,12 +1016,19 @@ contract  ProposalFactory  is IProposalFactory, Governance {
         govStorage.setAllocatedTokenPPM(_to,dbitAllocPPM + _amountDBIT  , dgovAllocPPM + _amountDGOV);
         govStorage.setTotalAllocationDistributed(dbitTotalAllocationDistributed + _amountDBIT ,dgovTotalAllocationDistributed + _amountDGOV);
 
-
         return true;
+
     }
-    
 
 
 
-
+    function setDovVMaxSupply(uint _maxSupplyDGOV) external onlyDebondOperator {
+        dgov.setMaximumSupply(_maxSupplyDGOV);
+    } 
 }
+/**
+1. adding function to  change the proposal
+- check the modifiers to check the integration with  the EPOCH. (NIMP).
+-  benchmarkInterest changed.
+- adding function to set ERC20
+ */

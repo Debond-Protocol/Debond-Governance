@@ -196,29 +196,4 @@ interface IProposalFactory {
         uint256 _amountDGOV
     ) external   returns(bool);
 
-
-//TODO:  define them from the governanceOwnable . 
-
-
- // function updateDebondBondContract(uint proposal_class, uint proposal_nonce, address newBondAddress ) external;
-
-    // function updateDBITContract(uint proposal_class,uint proposal_nonce, address newDBITAddress ) external;
-
-    // function updateDGOVContract(uint proposal_class,uint proposal_nonce, address newDBITAddress) external;
-
-    // function updateExchangeContract(uint proposal_class,uint proposal_nonce, address newExchangeAddress) external;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
