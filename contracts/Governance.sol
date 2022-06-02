@@ -116,7 +116,7 @@ contract Governance is  IGovernance, ReentrancyGuard, Pausable  {
         _dbitAmountForOneVote = _dbitAmountForVote;
         debondOperator = _debondOperator;
         debondTeam = _debondTeam;
-        govStorage = IGovStorage(govStorage); 
+        govStorage = IGovStorage(_governanceStorage); 
         data = IData(dataAddress);
         dgov = IdGOV(_dGoV);
 

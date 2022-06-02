@@ -15,13 +15,14 @@ contract GovernanceOwnable is IActivable, IGovernanceAddressUpdatable {
     address public  bankAddress;
     address public dbitAddress;
     address public dgovAddress;
+    address public stakingDGOV;
+    address public voteToken;
     bool isActive;
 
     constructor(address _governanceAddress) {
         governanceAddress = _governanceAddress;
         isActive = true;
     }
-
 
     modifier onlyGovernance() {
         require(msg.sender == governanceAddress, "Governance Restriction: Not allowed");
@@ -60,6 +61,21 @@ contract GovernanceOwnable is IActivable, IGovernanceAddressUpdatable {
 
     function setExchangeAddress(address _newExchangeAddress) external onlyGovernance {
         exchangeAddress = _newExchangeAddress;
+    }
+
+
+    /**
+    * @dev set the stakingDGOV contract address
+    * @param _stakingDGOV stakingDGOV contract address
+    */
+    function setStakingDGOVContract(address _stakingDGOV) external onlyGovernance {
+        stakingDGOV = _stakingDGOV;
+    }
+
+    function setVoteTokenContract(address _newVoteToken) external onlyGovernance{
+
+        voteToken = _newVoteToken;
+        
     }
 
 

@@ -1,5 +1,4 @@
 pragma solidity ^0.8.0;
-
 // SPDX-License-Identifier: apache 2.0
 /*
     Copyright 2020 Sigmoid Foundation <info@dGOV.finance>
@@ -13,21 +12,16 @@ pragma solidity ^0.8.0;
     See the License for the specific language governing permissions and
     limitations under the License.
 */
-
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IVoteToken.sol";
-
 import "./utils/GovernanceOwnable.sol";
 contract VoteToken is ERC20, ReentrancyGuard, IVoteToken , GovernanceOwnable{
     address debondOperator;
     address govAddress;
     address stakingDGOV;
 
-    modifier onlyGov {
-        require(msg.sender == govAddress, "Gov: not governance");
-        _;
-    }
+   
 
     modifier onlyDebondOperator {
         require(msg.sender == debondOperator, "Gov: not governance");
@@ -42,15 +36,10 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken , GovernanceOwnable{
         debondOperator = _debondOperator;
     }
 
-    /**
-    * @dev transfer _amount vote tokens to `_to`
-    * @param _to adrress to send tokens to
-    * @param _amount the amount to transfer
-    */
     function transfer(address _to, uint256 _amount) public override(ERC20, IVoteToken) returns (bool) {
         require(
             _to == govAddress || _to == stakingDGOV,
-            "VoteToken: can't transfer vote tokens"
+            "VoteToken: only transfer to governance addr / stakingDGOV"
         );
 
         address owner = _msgSender();
@@ -100,38 +89,22 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken , GovernanceOwnable{
         _burn(_user, _amount);
     }
 
-    /**
-    * @dev set the governance contract address
-    * @param _governance governance contract address
-    */
-    function setGovernanceContract(address _governance) external onlyDebondOperator {
-    
-    // TODO:
-    // super.setGovernanceContract(_governance);
-    }
-
+  
     /**
     * @dev get the governance contract address
     * @param gov governance contract address
     */
-    function getGovernanceContract() external view returns(address gov) {
-        // returns  govAddress;
+    function getGovernanceContract() external view returns() {
+         returns  govAddress;
     }
 
-    /**
-    * @dev set the stakingDGOV contract address
-    * @param _stakingDGOV stakingDGOV contract address
-    */
-    function setStakingDGOVContract(address _stakingDGOV) external {
-        stakingDGOV = _stakingDGOV;
-    }
+ 
 
     /**
     * @dev get the stakingDGOV contract address
     * @param _stakingDGOV stakingDGOV contract address
     */
-    function getStakingDGOVContract() external view returns(address _stakingDGOV) {
-    // 
-    //    _stakingDGOV = stakingDGOV;
+    function getStakingDGOVContract() external view  returns() {
+        return stakingDGOV;
     }
 }

@@ -42,11 +42,9 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
         _;
     }
 
-    // TODO: only governance will have  the R/W but others can Read only.
-    constructor(address _governanceAddress, address _debondOperator) GovernanceOwnable(_governanceAddress) {
+    // TODO: only governance address will be of the governance ownable.
+    constructor( address _debondOperator) GovernanceOwnable(_governanceAddress) {
         //  getRole(DEFAULT_ADMIN_ROLE, governanceAddress);
-
-        governance = _governanceAddress;
         debondOperator = _debondOperator;
     }
 
@@ -117,6 +115,10 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
 
     }
 
+    function setGovernanceAddress(address _governanceAddress )  external onlyDebondOperator {
+        governance = _governanceAddress;        
+    }
+
     function setProposalStatus(
         uint256 _class,
         uint256 _nonce,
@@ -125,7 +127,6 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
         require(msg.sender == governance, " current governance can access");
         proposal[_class][_nonce].status = newStatus;
     }
-
 
     function setProposalClassStatus(
         uint256 _class,
