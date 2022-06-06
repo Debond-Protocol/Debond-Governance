@@ -29,6 +29,11 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
     uint256 public dgovBudgetPPM;
     uint256 public dbitAllocationDistibutedPPM;
     uint256 public dgovAllocationDistibutedPPM;
+
+    // bank constants.
+    uint public benchmarkInterestRate;
+
+
     modifier onlyGov() {
         require(msg.sender == governance, "only governance contract can call");
         _;
@@ -191,14 +196,12 @@ return proposalClass[_class].nonce;
         uint256 _executionInterval,
         IGovStorage.ProposalApproval _approvalMode,
         uint256[] memory _dbitDistributedPerDay
-    ) external override {
+    ) external onlyVoteHolders override {
         require(msg.sender == governance, " current governance can access");
         require(
             Address.isContract(_contractAddress),
             "Gov: Proposal contract not valid"
         );
-
-       
 
         uint256 _nonce = _generateNewNonce(_class);
 
@@ -333,8 +336,6 @@ return proposalClass[_class].nonce;
         dgov = dgovBudgetPPM;
     }
 
-
-
     function addAllocatedDGOVMinted( address _to ,uint256 _amountDBIT, uint256 _amountDGOV ) external  onlyGov {
     allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
     allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
@@ -342,7 +343,8 @@ return proposalClass[_class].nonce;
     dbitTotalAllocationDistributed += _amountDBIT;
     dgovTotalAllocationDistributed += _amountDGOV;
      }
-     function addAllocatedTokenMinted(address _to ,uint256 _amountDBIT, uint256 _amountDGOV) external {
+     
+     function addAllocatedTokenMinted(address _to ,uint256 _amountDBIT, uint256 _amountDGOV)  external onlyGov {
          allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
          allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
      }
@@ -356,7 +358,11 @@ return proposalClass[_class].nonce;
 
     }
   
-
+    /**
+    @dev defines the totalVoteTokens reimbursed for the interest.
+    
+    
+     */
     function setTotalVoteTokensPerDay(uint256 _class , uint256 _nonce , uint day, uint totalVoteTokensPerDay ,uint _amountVoteTokens) onlyGov external 
     {
         proposal[_class][_nonce].totalVoteTokensPerDay[day] = totalVoteTokensPerDay + _amountVoteTokens;
@@ -374,4 +380,15 @@ return proposalClass[_class].nonce;
         proposalClass[_class].nonce++;
         nonce = proposalClass[_class].nonce;
     }
+
+
+    function setBenchmarkInterestRate(uint _newInterestRate) external onlyGov  {
+        benchmarkInterestRate = _newInterestRate;
+
+
+    }
+
+
+
+
 }

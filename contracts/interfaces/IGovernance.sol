@@ -1,5 +1,4 @@
 pragma solidity ^0.8.0;
-
 // SPDX-License-Identifier: apache 2.0
 /*
     Copyright 2020 Sigmoid Foundation <info@SGM.finance>
@@ -14,33 +13,21 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
+import "./IGovStorage.sol";
 
+
+// @dev defines the functions of governance , which orchestrates the functionality of proposal creation , voting and deterction of results to get results.
+// ref from openzeppelin.
 interface IGovernance {
     /**
-    * @dev emitted when new virtual `voteToken` tokens are created
-    */
-    event tokenMinted(address _user, uint256 _amount);
-
-    /**
-    * @dev emitted when new virtual `voteToken` tokens are burned
-    */
-    event tokenBurned(address _user, uint256 _amount);
-
-    /**
-    * @dev emitted when new virtual `voteToken` tokens is transfered
-    */
-    event voteTokenTransfered(address _from, address _to, uint256 _amount);
-    
-    /**
-    * @dev emitted when a new proposal is created
-    */
+    @dev emits after the creation of  proposal.    
+     */
     event proposalRegistered(
         uint128 _class,
         uint128 _nonce,
         uint256 _endTime,
         address _contractAddress
     );
-
     /**
     * @dev emitted when a new proposal is revoked
     */
@@ -66,7 +53,7 @@ interface IGovernance {
     );
 
     /**
-    * @dev emitted when a proposal is ended
+    * @dev emitted when a proposal is successfully voted
     */
     event proposalEnded(
         uint128 _class,
@@ -81,8 +68,13 @@ interface IGovernance {
         uint128 _nonce,
         address _proposalContractAddress,
         uint256 _amountVoteTokens
-    );
+        );
 
+    /**
+    @dev emitted during the voting of the proposal via signature.
+     */
+    event userVotedBySig( uint128 _class, uint128 _nonce,address  _proposalContractAddress, uint256 _amountVoteTokens,bytes32 signatory );
+    
     /**
     * @dev emitted when vote tokens are redeemed
     */
@@ -95,21 +87,51 @@ interface IGovernance {
     );
 
     /**
-    * @dev register a proposal
-    *
+    * @dev registers a proposal by storing the proposal contract details into gov storage and setting the status.
+    **/
     function registerProposal(
         uint128 _class,
+        uint128 _nonce,
         address _owner,
         uint256 _endTime,
         uint256 _dbitRewards,
         address _contractAddress,
-        uint256[] memory _dbitDistributedPerDay
+        uint256[] calldata _dbitDistributedPerDay
     ) external;
-    */
 
     /**
-    * @dev revoke a proposal 
+    * @dev pause a proposal 
+    * @notice can only be paused by the proposal creator or governance 
     */
+    function pauseProposal(
+        uint128 _class,
+        uint128 _nonce
+    ) external; 
+
+    /**
+    * @dev  unpauses the proposal contract
+    * @notice can be unpaused by the governance. .
+     */
+    function unpauseProposal(
+        uint128 _class,
+        uint128 _nonce
+    ) external ;
+
+    /**
+    * @dev sets  the  proposal  status (used  by debondOperator if the given proposal has the ProposalApprove.CanVeto defined).
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    * @param Status is the  choice by the debondOperator (can only be Approve or rejected.)
+    
+     */
+
+    function approvalProposal(
+        uint128 _class,
+        uint128 _nonce,
+        IGovStorage.ProposalStatus  Status // 
+    ) external;
+
+
     // function revokeProposal(
     //    uint128 _class,
     //     uint128 _nonce,

@@ -22,13 +22,15 @@ import "../interfaces/IProposalFactory.sol";
 import "debond-bank/contracts/interfaces/IData.sol";
 
 /// @title  proposal template 
-/// @notice has  all the possible function that can be exeuted by the passed proposal (which only presents the projects) .
+/// @notice this contract is to be deployed before creation of the proposal instance , and then supplied in createProposal() in governance.
 /// @dev Explain to a developer any extra details
+
 contract FakeProposal {
     address public _vetoOperator;
     address public governance;
     address public dataAddress;
     IProposalFactory proposalFactory;
+    
     constructor( 
         address veto,
         address governanceAddress,
@@ -40,12 +42,10 @@ contract FakeProposal {
         proposalFactory = IProposalFactory(governanceAddress);
     }
 
-
     modifier onlyGovContract() {
         require(msg.sender == _vetoOperator, "ERR_ONLY_ADMIN");
         _;
     }
-
 
     /**BANK OPERATIONS  */
     function AddNewBondClass(
@@ -55,7 +55,7 @@ contract FakeProposal {
         IProposalFactory.InterestRateType interestRateType,
         address tokenAddress,
         uint256 periodTimestamp
-    ) public onlyGovContract {
+    ) public  returns(bool) {
         proposalFactory.addClass(
             newClassId,_class,_nonce,
             _symbol,
@@ -63,22 +63,18 @@ contract FakeProposal {
             tokenAddress,
             periodTimestamp
         );
-    }
-    function updateBankContract(uint256 proposal_class, uint256 proposal_nonce, address new_bank_address) public  returns(bool){
-       proposalFactory.setBankContract(new_bank_address , proposal_class,proposal_nonce);
-    }
-    /**
-    adding an new bond class with the given classId.
-     */
-    function addingBondClass(uint classId,uint proposal_class ,uint proposal_nonce, string memory symbol, IProposalFactory.InterestRateType interestRateType, address tokenAddress, uint periodTimestamp )   external returns(bool) {
-        proposalFactory.addClass(classId, symbol,interestRateType, tokenAddress, periodTimestamp);
-
-    }
-    /**
-    this function allows to update the  bond  token pairs that can be bought on the exchange.
-     */
-    function updatePurchasableClass(uint debondClassId, uint _class , uint _nonce, uint[] calldata purchaseClassId, bool purchasable)  external {
-       proposalFactory.updatePurchesableClasses(debondClassId, _class, _nonce, purchaseClassId, purchasable);
-    }
+    return(true);
+    // }
+    // function updateBankContract(uint256 proposal_class, uint256 proposal_nonce, address new_bank_address) public  returns(bool){
+    //    proposalFactory.setBankContract(new_bank_address , proposal_class,proposal_nonce);
+    //    return(true);
+    // }
+    // /**
+    // this function allows to update the  bond  token pairs that can be bought on the exchange.
+    //  */
+    // function updatePurchasableClass(uint debondClassId, uint _class , uint _nonce, uint[] calldata purchaseClassId, bool purchasable)  external {
+    //    proposalFactory.updatePurchesableClasses(debondClassId, _class, _nonce, purchaseClassId, purchasable);
+    //     return(true);
+    // }
 
 }

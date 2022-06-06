@@ -37,11 +37,13 @@ import "./utils/GovernanceOwnable.sol";
 
 
 
-contract Governance is  IGovernance, ReentrancyGuard, Pausable  {
+contract Governance is  IGovernance, ReentrancyGuard, Pausable , GovernanceOwnable  {
 
+    string public  constant name  = "D/BOND Governance contract"; 
+
+    bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
 
     uint256 public constant NUMBER_OF_SECONDS_IN_DAY = 1 days;
-
 
     // only used for data type reference in getProposal
      struct ProposalClassInfo {
@@ -53,32 +55,22 @@ contract Governance is  IGovernance, ReentrancyGuard, Pausable  {
         uint256 maximumExecutionTime;
         uint256 minimumExecutionInterval;
     }
-
     //  for govStorage access.
     IGovStorage govStorage;
     IData data;
-    IdGOV dgov;
+    IdGOV Dgov;
     
-
-    // address  for token address.
-    address dbitAddress;
+    // address  of DBIT.
+    address  dbitAddr;
     address dGOV;
-    address voteToken;
-    uint _dbitAmountForOneVote;
-    address debondOperator; // ad
+    address vote;
+    address debondOperator; 
     address debondTeam; // this is the treasury for the debondTeam for paying the allcoation 
     address stakingContract;
-
-
-
-
-    // CONSTANTS :
-
     // defines the maximum time BUDGET for PPM  for sharing.
     uint public dbitBudgetPPM;
     uint public dgovBudgetPPM;
 
-    //enums 
     event ProposalApprovalStatus(uint _class , uint nonce , IGovStorage.ProposalStatus Status);
 
     //modifier 
@@ -105,20 +97,21 @@ contract Governance is  IGovernance, ReentrancyGuard, Pausable  {
         address _voteToken,
         address _debondOperator,
         address _debondTeam,
-        uint256 _dbitAmountForVote,
         address _governanceStorage,
-        address dataAddress
-    )  {
-        dbitAddress = _dbit;
+        address dataAddr,
+        address _governanceOwnable
+    ) GovernanceOwnable(_governanceOwnable)  {
+        dbitAddr = _dbit;
         dGOV = _dGoV;
-        voteToken = _voteToken;
+        vote = _voteToken;
         stakingContract = _stakingContract;
-        _dbitAmountForOneVote = _dbitAmountForVote;
         debondOperator = _debondOperator;
         debondTeam = _debondTeam;
         govStorage = IGovStorage(_governanceStorage); 
-        data = IData(dataAddress);
-        dgov = IdGOV(_dGoV);
+        data = IData(dataAddr);
+        Dgov = IdGOV(_dGoV);
+
+
 
         // with parameter dbitAllocationPPM and dgovAllocationPPM.
         govStorage.setAllocatedTokenPPM(debondTeam, 8e4 * 1 ether, 4e4 * 1 ether);
@@ -128,6 +121,9 @@ contract Governance is  IGovernance, ReentrancyGuard, Pausable  {
         
         dbitBudgetPPM = 1e5 * 1 ether;
         dgovBudgetPPM = 1e5 * 1 ether;
+
+
+
 
     // with parameters timelock, minimumApproval , _minimumVote , _architectVeto , _maximumExecutionTime , _minimumExecutionInterval.
     govStorage.registerProposalClassInfo(0,3,150,30,false,3,1);
@@ -200,9 +196,7 @@ contract Governance is  IGovernance, ReentrancyGuard, Pausable  {
         emit proposalUnpaused(_class, _nonce);
     }
     /**
-    * @dev sets  the  proposal  status (used  by debondOperator if the given proposal has the ProposalApprove.CanVeto defined).
-    * @param _class proposal class
-    * @param _nonce proposal nonce
+    
     * 
     */
     function approvalProposal(
@@ -210,6 +204,7 @@ contract Governance is  IGovernance, ReentrancyGuard, Pausable  {
         uint128 _nonce,
         IGovStorage.ProposalStatus  Status // 
     ) external  onlyActiveProposal(_class, _nonce) onlyDebondOperator {
+        // condition if the debondOperator  can veto , he can decide whether the contract are true or false. 
         if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.ProposalApproval.CanVeto)
 {
         govStorage.setProposalStatus(_class,_nonce,Status);
@@ -220,19 +215,12 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
 {
     govStorage.setProposalStatus(_class,_nonce,IGovStorage.ProposalStatus.Approved);
         emit ProposalApprovalStatus(_class, _nonce, IGovStorage.ProposalStatus.Approved);
+        emit proposalEnded(_class, _nonce);
 }
   
     }
-
-      /** TODO: will be set by the ProposalFactory . 
-    * @dev returns the amount of DBIT to get for one vote token
-    * @param dbitAmount DBIT amount
-    */
-    function getDBITAmountForOneVote(uint128 _class, uint128 _nonce) public view returns(uint256 dbitAmount) {
-         require(msg.sender == govStorage.getProposal(_class, _nonce).contractAddress, "only proposal contract can execute");
-        require(govStorage.getProposal(_class, _nonce).status  == IGovStorage.ProposalStatus.Approved,"only approved proposal");
-        dbitAmount = _dbitAmountForOneVote;
-    }
+   
+   
 
     /**
     * @dev  for allowing users use VOTE  tokens to given proposal.
@@ -287,89 +275,51 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
         emit userVoted(_class, _nonce, _proposalContractAddress, _amountVoteTokens);
     }
 
+
     /**
-    * @dev redeem vote tokens and get dbit interest
-    * @param _voter the address of the voter
-    * @param _to address to send interest to
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    * @param _contractAddress proposal contract address
-    */
-    function redeemVoteTokenForDBIT(
+    casting Voting by signature from the external signer (from compounds lab governorAlpha prootcol). 
+    @param v is the function selection string generated by the 
+    
+     */
+
+
+    function voteBySig(
         address _voter,
-        address _to,
         uint128 _class,
         uint128 _nonce,
-        address _contractAddress
-    ) external nonReentrant() {
-        IGovStorage.Proposal memory _proposal = govStorage.getProposal(_class,_nonce);
-        require(block.timestamp > _proposal.endTime, "Gov: still voting");
+        address _proposalContractAddress,
+        IGovStorage.VoteChoice _userVote,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) 
+    {
+        bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), getChainId(), address(this)));
+        bytes32 structhash = keccak256(abi.encode(BALLOT_TYPEHASH, _class, _nonce , _userVote));
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+        address signatory = ecrecover(digest, v, r, s);
 
-        bytes32 _hash = _hashVote(_voter, _class, _nonce, _contractAddress);
-        IGovStorage.Vote memory _userVote = govStorage.getVoteDetails(_hash);
-       // Vote memory _userVote = votes[_hash];
-        require(_userVote.voted == true, "Gov: you haven't voted");
-        require(_userVote.amountTokens > 0, "Gov: no tokens");
-        require(_userVote.votingDay > 0, "Gov: invalid vote");
+        require(signatory != address(0), "invalid signature" );
 
-        require(
-            _transferDBITInterest(
-                _voter,
-                _to,
-                _class,
-                _nonce,
-                _contractAddress
-            ),
-            "Gov: cannot transfer DBIT interest"
+         _vote(
+            _class,
+            _nonce,
+            _amountVoteTokens,
+            _proposalContractAddress,
+            _userVote,
+            _proposal
         );
+        
+        voted = true;
 
-        emit voteTokenRedeemed(_voter, _to, _class, _nonce, _contractAddress);
+        emit userVotedBySig(_class, _nonce, _proposalContractAddress, _amountVoteTokens, signatory);
+
+
     }
-
+   
+  
     /**
-    * @dev stake DGOV tokens and gain DBIT interests
-    * @param _staker the address of the staker
-    * @param _amount the amount of DGOV to stake
-    * @param _duration the time the tokens wiull be staked
-    * @param staked true if tokens have been staked, false otherwise
-    */
-    function stakeDGOV(
-        address _staker,
-        uint256 _amount,
-        uint256 _duration
-    ) external returns(bool staked) {
-        IStakingDGOV IStaking = IStakingDGOV(stakingContract);
-        IStaking.stakeDgovToken(_staker, _amount, _duration);
-
-        staked = true;
-    }
-
-    /**
-    * @dev unstake DGOV tokens and gain DBIT interests
-    * @param _staker the address of the staker
-    * @param _amount the amount of DGOV to stake
-    * @param _to address to which DGOV tokens are sent back
-    * @param unstaked true if tokens have been staked, false otherwise
-    */
-    function unstakeDGOV(
-        address _staker,
-        address _to,
-        uint256 _amount
-    ) external returns(bool unstaked) {
-        IStakingDGOV IStaking = IStakingDGOV(stakingContract);
-        IStaking.unstakeDgovToken(_staker, _to, _amount);
-
-        // transfer the interest earned in DBIT to the staker
-        uint256 interest = IStaking.calculateInterestEarned(_staker);
-        require(IStaking.updateStakedDGOV(_staker, _amount), "Gov: don't have enough DGOV");
-        IDebondToken Idbit = IDebondToken(dbitAddress);
-        Idbit.transfer( _to, _amount * interest);
-
-        unstaked = true;
-    }
-
-    /**
-    * @dev mint allocated DBIT to a given address
+    * @dev mint allocated DBIT to a given address (approved by whitelisting to core team)
     * @param _to the address to mint DBIT to
     * @param _amountDBIT the amount of DBIT to mint
     * @param _amountDGOV the amount of DGOV to mint
@@ -378,26 +328,27 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
         address _to,
         uint256 _amountDBIT,
         uint256 _amountDGOV
-    ) public returns(bool) {
+    ) public  onlyDebondOperator returns(bool) {
         IGovStorage.AllocatedToken memory _allocatedToken = govStorage.getTokenAllocation(_to);
 
         uint256 _dbitCollaterizedSupply = IDebondToken(dbitAddress).supplyCollateralised();
-        uint256 _dgovCollaterizedSupply = dgov.supplyCollateralised();
+        uint256 _dgovCollaterizedSupply = Dgov.supplyCollateralised();
 
         require(
             IDebondToken(dbitAddress).allocatedSupplyBalance(_to) + _amountDBIT <=
             _dbitCollaterizedSupply * _allocatedToken.dbitAllocationPPM / 1 ether,
-            "Gov: not enough supply"
+            "Gov: not enough supply of DBIT "
         );
         require(
-            dgov.allocatedSupplyBalance(_to) + _amountDGOV <=
+            IdGOV(dGOV).allocatedSupplyBalance(_to) + _amountDGOV <=
             _dgovCollaterizedSupply * _allocatedToken.dgovAllocationPPM / 1 ether,
             "Gov: not enough supply"
         );
 
         IDebondToken(dbitAddress).mintAllocatedSupply(_to, _amountDBIT);
-        dgov.mintAllocatedSupply(_to, _amountDGOV);
-        
+
+        IdGOV(dGOV).mintAllocatedSupply(_to, _amountDGOV);
+
         govStorage.addAllocatedTokenMinted(_to , _amountDBIT, _amountDGOV);
 
         return true;
@@ -454,6 +405,19 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
     }
 
     /**
+    * @dev gets the the chainID for the current EVM chain for signature generation.
+    * 
+    */
+
+    function getChainId() internal pure returns (uint) {
+        uint chainId;
+        assembly { chainId := chainid() }
+        return chainId;
+    }
+}
+
+
+    /**
     * @dev return the array that contains number votes for each day
     * @param _class proposal class
     * @param _nonce proposal nonce
@@ -463,50 +427,6 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
         uint128 _nonce
     ) external view returns(uint256[] memory) {
         return govStorage.getProposal(_class,_nonce).totalVoteTokensPerDay;
-    }
-
-    /**
-    * @dev Transfer DBIT interests earned by voting
-    * @param _voter the address of the voter
-    * @param _to the address to which to send interests
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    * @param _contractAddress proposal contract address
-    */
-    function _transferDBITInterest(
-        address _voter,
-        address _to,
-        uint128 _class,
-        uint128 _nonce,
-        address _contractAddress
-    ) internal returns(bool _transfered) {
-        IGovStorage.Proposal memory _proposal = govStorage.getProposal(_class,_nonce);
-
-        uint256 proposalDurationInDay = _proposal.dbitDistributedPerDay.length;
-        uint256 numberOfDays = _getNumberOfDaysRewarded(_voter, _class, _nonce, _contractAddress);
-        require(numberOfDays <= proposalDurationInDay, "Gov: Invalid vote");
-
-        bytes32 _hash = _hashVote(_voter, _class, _nonce, _contractAddress);
-        IGovStorage.Vote memory _userVote = govStorage.getVoteDetails(_hash);
-
-        uint256 _reward = 0;
-        for(uint256 i = proposalDurationInDay - numberOfDays; i < numberOfDays; i++) {
-            _reward += _proposal.dbitDistributedPerDay[i] / _proposal.totalVoteTokensPerDay[i];
-        }
-
-        _reward = _reward * _userVote.amountTokens;
-
-        // burn vote tokens owned by the user
-         govStorage.setAmountsToken(_hash,0);
-
-        IVoteToken _voteTokenContract = IVoteToken(voteToken);
-        _voteTokenContract.burnVoteToken(_voter, _userVote.amountTokens);
-
-        // transfer DBIT interests to user
-        IERC20 _dbit = IERC20(dbitAddress);
-        _dbit.transferFrom(dbitAddress, _to, _reward);
-
-        _transfered = true;
     }
 
     /**
@@ -636,29 +556,7 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
         day = (duration / NUMBER_OF_SECONDS_IN_DAY);
     }
 
-    /**
-    * @dev get the bnumber of days elapsed since the user has voted
-    * @param _voter the address of the voter
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    * @param _contractAddress proposal contract address
-    * @param numberOfDay the number of days
-    */
-    function _getNumberOfDaysRewarded(
-        address _voter,
-        uint128 _class,
-        uint128 _nonce,
-        address _contractAddress
-    ) internal view returns(uint256 numberOfDay) {
-        IGovStorage.Proposal memory _proposal = govStorage.getProposal(_class,_nonce);
-        uint256 proposalDurationInDay = _proposal.dbitDistributedPerDay.length;
 
-        bytes32 _hash = _hashVote(_voter, _class, _nonce, _contractAddress);
-        IGovStorage.Vote memory _userVote = govStorage.getVoteDetails(_hash);
-        uint256 votingDay = _userVote.votingDay;
-
-        numberOfDay = (proposalDurationInDay - votingDay) + 1;
-    }
 
     /**
     * @dev Check if a user already voted for a proiposal
@@ -775,15 +673,7 @@ contract  ProposalFactory  is IProposalFactory, Governance {
     }
   
 
-      /** TODO: will go to ProposalFactory contract.
-    * @dev sets the amount of DBIT to get for one vote token
-    * @param _dbitAmount DBIT amount
-    */
-    function setDBITAmountForOneVote(uint256 _dbitAmount) public onlyDebondOperator  override returns(bool) {
-        _dbitAmountForOneVote = _dbitAmount;
-        return(true);
-    }
-
+    
    
 
 
@@ -840,7 +730,7 @@ contract  ProposalFactory  is IProposalFactory, Governance {
     require(_class > 2, "Gov: only higher level class  proposal can execute the changes ");
     require(govStorage.getProposal(_class,_nonce).status ==IGovStorage.ProposalStatus.Approved, "only passed proposal should execute the function");
         //data.setIsActive(setState);
-        //dgov.setIsActive(setState);
+        //Dgov.setIsActive(setState);
         //IDebondToken(dbitAddress).setIsActive(setState);
         //IExchange(exchangeAddress).setIsActive(setState);
         //IBank(bankAddress).setIsActive(setState); 
@@ -988,7 +878,7 @@ contract  ProposalFactory  is IProposalFactory, Governance {
         );
 
         uint256 _dbitTotalSupply = IDebondToken(dbitAddress).totalSupply();
-        uint256 _dgovTotalSupply = dgov.totalSupply();
+        uint256 _dgovTotalSupply = Dgov.totalSupply();
 
         uint256  maximumExecutionTime = govStorage.getProposal(_class,_proposalNonce).executionInterval;
         govStorage.setProposalExecutionInterval(_class, _proposalNonce, maximumExecutionTime - 1); 
@@ -1009,7 +899,7 @@ contract  ProposalFactory  is IProposalFactory, Governance {
         );
 
         IDebondToken(dbitAddress).mintAllocatedSupply(_to, _amountDBIT);
-        dgov.mintAllocatedSupply(_to, _amountDGOV);
+        Dgov.mintAllocatedSupply(_to, _amountDGOV);
 
 
         (uint dbitAllocPPM , uint dgovAllocPPM) = govStorage.getAllocatedTokenPPM(_to);
@@ -1023,8 +913,18 @@ contract  ProposalFactory  is IProposalFactory, Governance {
 
 
     function setDovVMaxSupply(uint _maxSupplyDGOV) external onlyDebondOperator {
-        dgov.setMaximumSupply(_maxSupplyDGOV);
+        Dgov.setMaximumSupply(_maxSupplyDGOV);
     } 
+
+
+    function setBenchmarkInterestRate(uint proposalClass , uint proposalNonce , uint _newRate) external onlyApproved(_class ,_nonce)    returns(bool) {
+        govStorage.setBenchmarkInterestRate(_newRate);
+        return(true);
+    }
+
+
+
+
 }
 /**
 1. adding function to  change the proposal
