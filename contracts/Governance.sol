@@ -160,7 +160,7 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         uint256 _executionInterval,
         ProposalApproval _approvalMode,
         uint256[] memory _dbitDistributedPerDay
-    ) external onlyDebondOperator {
+    ) public {
         require(Address.isContract(_contractAddress), "Gov: Proposal contract not valid");
 
         uint128 _nonce = _generateNewNonce(_class);

@@ -14,41 +14,44 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-contract NewGovStorage {
-    struct  Proposal {
-        uint256 id;
-        uint256 startTime;
-        uint256 endTime;
-        ProposalStatus status;
-        ProposalApproval approvalMode;
-    }
+import "./interfaces/INewGovernance.sol";
 
+abstract contract NewGovStorage is INewGovernance {
     struct ProposalClass {
         uint128 nonce;
     }
 
     address public debondOperator;
+    address public governance;
 
     uint256 public voteStart;
     uint256 public votePeriod;
 
-    enum ProposalStatus {
-        Active,
-        Canceled,
-        Pending,
-        Defeated,
-        Succeeded,
-        Executed
-    }
-
-    enum ProposalApproval {
-        NoVote,
-        Approve,
-        VoteAndVeto
-    }
-
     mapping(uint128 => ProposalClass) proposalClass;
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
+    mapping(uint128 =>  uint256) voteQuorum;
+
+    /**
+     * @dev Emitted when a proposal is created.
+     */
+     event ProposalCreated(
+        uint128 class,
+        uint128 nonce,
+        uint256 proposalId,
+        uint256 startVoteTime,
+        uint256 endVoteTime,
+        address proposer,
+        address[] targets,
+        uint256[] values,
+        bytes[] calldatas,
+        string description,
+        ProposalApproval approval
+    );
+
+    /**
+    * @dev Emitted when a proposal is executed
+    */
+    event ProposalExecuted(uint256 proposalId);
 
     modifier onlyDebondOperator {
         require(msg.sender == debondOperator, "Gov: Need rights");

@@ -25,31 +25,12 @@ import "./interfaces/INewGovernance.sol";
 import "./test/DBIT.sol";
 import "./Pausable.sol";
 
-contract NewGovernance is NewGovStorage, INewGovernance, ReentrancyGuard, Pausable {
+/**
+* @author Samuel Gwlanold Edoumou (Debond Organization)
+*/
+contract NewGovernance is NewGovStorage, ReentrancyGuard, Pausable {
     /**
-     * @dev Emitted when a proposal is created.
-     */
-     event ProposalCreated(
-        uint128 class,
-        uint128 nonce,
-        uint256 proposalId,
-        uint256 startVoteTime,
-        uint256 endVoteTime,
-        address proposer,
-        address[] targets,
-        uint256[] values,
-        bytes[] calldatas,
-        string description,
-        ProposalApproval approval
-    );
-
-    /**
-    * @dev create a proposal onchain
-    * @param _class proposal class
-    * @param _targets array of target contracts
-    * @param _values array of ether send
-    * @param _calldatas array of calldata to be executed
-    * @param _description proposal description
+    * @dev see {INewGovernance} for description
     */
     function createProposal(
         uint128 _class,
@@ -100,6 +81,118 @@ contract NewGovernance is NewGovStorage, INewGovernance, ReentrancyGuard, Pausab
     }
 
     /**
+    * @dev execute a proposal
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    */
+    function executeProposal(
+        uint128 _class,
+        uint128 _nonce,
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        bytes32 _descriptionHash
+    ) public returns(uint256 proposalId) {
+        
+        proposalId = _hashProposal(
+            _class,
+            _nonce,
+            _targets,
+            _values,
+            _calldatas,
+            _descriptionHash
+        );
+
+        ProposalStatus status = getProposalStatus(
+            _class,
+            _nonce,
+            proposalId
+        );
+
+        require(
+            status == ProposalStatus.Succeeded,
+            "Gov: proposal not successful"
+        );
+
+        proposal[_class][_nonce].status = ProposalStatus.Executed;
+
+        emit ProposalExecuted(proposalId);
+
+        _execute(_targets, _values, _calldatas);
+    }
+    
+    /**
+    * @dev internal execution mechanism.
+    */
+    function _execute(
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas
+    ) internal virtual {
+        string memory errorMessage = "Gov: call reverted without message";
+
+        for (uint256 i = 0; i < _targets.length; i++) {
+            (
+                bool success,
+                bytes memory data
+            ) = _targets[i].call{value: _values[i]}(_calldatas[i]);
+
+            Address.verifyCallResult(success, data, errorMessage);
+        }
+    }
+
+    /**
+    * @dev return the proposal status
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    * @param _id proposal id
+    */
+    function getProposalStatus(
+        uint128 _class,
+        uint128 _nonce,
+        uint256 _id
+    ) public view returns(ProposalStatus unassigned) {
+        Proposal memory _proposal = proposal[_class][_nonce];
+        require(_proposal.id == _id, "Gov: invalid proposal");
+
+        if (_proposal.status == ProposalStatus.Canceled) {
+            return ProposalStatus.Canceled;
+        }
+
+        if (_proposal.status == ProposalStatus.Executed) {
+            return ProposalStatus.Executed;
+        }
+
+        if (_proposal.startTime >= block.timestamp) {
+            return ProposalStatus.Pending;
+        }
+
+        if (_proposal.endTime >= block.timestamp) {
+            return ProposalStatus.Active;
+        }
+    }
+
+    /**
+    * @dev set the vote quorum for a given class
+    * @param _class proposal class
+    * @param _quorum the vote quorum
+    */
+    function setVoteQuorum(
+        uint128 _class,
+        uint256 _quorum
+    ) public onlyDebondOperator {
+        voteQuorum[_class] = _quorum;
+    }
+
+    /**
+    * @dev get the quorum for a given proposal class
+    * @param _class proposal class
+    */
+    function getVoteQuorum(uint128 _class) public view returns(uint256) {
+        return voteQuorum[_class];
+    }
+
+    /**
     * @dev generate a new nonce for a given class
     * @param _class proposal class
     */
@@ -143,7 +236,7 @@ contract NewGovernance is NewGovStorage, INewGovernance, ReentrancyGuard, Pausab
     * @dev set the vode stating time
     * @param _start time when the vote should start
     */
-    function _setVoteStartTime(uint256 _start) internal {
+    function _setVoteStartTime(uint256 _start) public onlyDebondOperator {
         voteStart = _start;
     }
 
@@ -151,7 +244,7 @@ contract NewGovernance is NewGovStorage, INewGovernance, ReentrancyGuard, Pausab
     * @dev set the vote ending time
     * @param _end time at when the vote should end
     */
-    function _setVotePeriod(uint256 _end) internal {
+    function _setVotePeriod(uint256 _end) public onlyDebondOperator {
         votePeriod = _end;
     }
 
@@ -169,6 +262,13 @@ contract NewGovernance is NewGovStorage, INewGovernance, ReentrancyGuard, Pausab
         if (_class == 2) {
             return ProposalApproval.NoVote;
         }
+    }
+
+    /**
+    * @dev return the governance contract address
+    */
+    function getGovernance() public view returns(address) {
+        return governance;
     }
 
 }

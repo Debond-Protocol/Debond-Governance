@@ -14,6 +14,25 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-contract Proposal {
+import ".././interfaces/INewGovernance.sol";
 
+contract Proposal {
+    address governance;
+
+    constructor(address _governance) {
+        governance = _governance;
+    }
+
+    function createProposal(
+        uint128 _class,
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        string memory _description
+    ) public {
+        INewGovernance gov = INewGovernance(governance);
+        require(gov.getGovernance() == governance, "Proposal: invalid Gov");
+        
+        gov.createProposal(_class, _targets, _values, _calldatas, _description);
+    }
 }
