@@ -104,7 +104,7 @@ contract VoteCounting is GovSharedStorage {
     */
     function _voteSucceeded(
         uint256 _proposalId
-    ) internal virtual returns(bool succeeded) {
+    ) internal view returns(bool succeeded) {
         ProposalVote storage proposalVote = _proposalVotes[_proposalId];
 
         succeeded = proposalVote.forVotes > proposalVote.againstVotes;

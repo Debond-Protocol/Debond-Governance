@@ -29,7 +29,7 @@ abstract contract NewGovStorage is INewGovernance {
 
     mapping(uint128 => ProposalNonce) proposalNonce;
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
-    mapping(uint128 =>  uint256) voteQuorum;
+    mapping(uint256 =>  uint256) proposalQuorum;
 
     /**
      * @dev Emitted when a proposal is created.

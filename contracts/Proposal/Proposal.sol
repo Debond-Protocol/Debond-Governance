@@ -32,7 +32,7 @@ contract Proposal {
     ) public {
         INewGovernance gov = INewGovernance(governance);
         require(gov.getGovernance() == governance, "Proposal: invalid Gov");
-        
+
         gov.createProposal(_class, _targets, _values, _calldatas, _description);
     }
 }

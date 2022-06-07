@@ -18,7 +18,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./NewGovStorage.sol";
-import "./GovSharedStorage.sol";
+import "./utils/VoteCounting.sol";
 import "./interfaces/IVoteToken.sol";
 import "./interfaces/IStakingDGOV.sol";
 import "./interfaces/IGovernance.sol";
@@ -29,9 +29,10 @@ import "./Pausable.sol";
 /**
 * @author Samuel Gwlanold Edoumou (Debond Organization)
 */
-contract NewGovernance is NewGovStorage, GovSharedStorage, ReentrancyGuard, Pausable {
+contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable {
     /**
     * @dev see {INewGovernance} for description
+    * @param _class proposal class
     */
     function createProposal(
         uint128 _class,
@@ -96,7 +97,6 @@ contract NewGovernance is NewGovStorage, GovSharedStorage, ReentrancyGuard, Paus
         bytes[] memory _calldatas,
         bytes32 _descriptionHash
     ) public returns(uint256 proposalId) {
-        
         proposalId = _hashProposal(
             _class,
             _nonce,
@@ -125,7 +125,7 @@ contract NewGovernance is NewGovStorage, GovSharedStorage, ReentrancyGuard, Paus
     }
     
     /**
-    * @dev internal execution mechanism.
+    * @dev internal execution mechanism
     */
     function _execute(
         address[] memory _targets,
@@ -142,6 +142,38 @@ contract NewGovernance is NewGovStorage, GovSharedStorage, ReentrancyGuard, Paus
 
             Address.verifyCallResult(success, data, errorMessage);
         }
+    }
+
+    /**
+    * @dev vote for a proposal
+    */
+    function vote(
+        uint128 _class,
+        uint128 _nonce,
+        uint8 _userVote,
+        uint256 _amountVoteTokens
+    ) public returns(uint256) {
+        address voter = _msgSender();
+
+        return _vote(_class, _nonce, voter, _userVote, _amountVoteTokens);
+    }
+
+    function _vote(
+        uint128 _class,
+        uint128 _nonce,
+        address _voter,
+        uint8 _userVote,
+        uint256 _amountVoteTokens
+    ) internal returns(uint256 amountOfVoteTokens) {
+        Proposal memory _proposal = proposal[_class][_nonce];
+        require(
+            getProposalStatus(_class, _nonce, _proposal.id) == ProposalStatus.Active,
+            "Gov: vote not active"
+        );
+
+        _countVote(_proposal.id, _voter, _userVote, _amountVoteTokens);
+
+        amountOfVoteTokens = _amountVoteTokens;
     }
 
     /**
@@ -173,6 +205,12 @@ contract NewGovernance is NewGovStorage, GovSharedStorage, ReentrancyGuard, Paus
         if (_proposal.endTime >= block.timestamp) {
             return ProposalStatus.Active;
         }
+
+        if (_quorumReached(_proposal.id) && _voteSucceeded(_proposal.id)) {
+            return ProposalStatus.Succeeded;
+        } else {
+            return ProposalStatus.Defeated;
+        }
     }
 
     /**
@@ -180,19 +218,19 @@ contract NewGovernance is NewGovStorage, GovSharedStorage, ReentrancyGuard, Paus
     * @param _class proposal class
     * @param _quorum the vote quorum
     */
-    function setVoteQuorum(
+    function setProposalQuorum(
         uint128 _class,
         uint256 _quorum
     ) public onlyDebondOperator {
-        voteQuorum[_class] = _quorum;
+        _proposalClassInfo[_class][1] = _quorum;
     }
 
     /**
     * @dev get the quorum for a given proposal class
-    * @param _class proposal class
+    * @param _proposalId proposal id
     */
-    function getVoteQuorum(uint128 _class) public view returns(uint256) {
-        return voteQuorum[_class];
+    function getProposalQuorum(uint256 _proposalId) public view returns(uint256) {
+        return proposalQuorum[proposalClass[_proposalId]];
     }
 
     /**
