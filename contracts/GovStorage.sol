@@ -48,9 +48,9 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
     }
 
     // TODO: only governance address will be of the governance ownable.
-    constructor( address _debondOperator) GovernanceOwnable(_governanceAddress) {
+    constructor( address _governanceAddress) GovernanceOwnable(_governanceAddress) {
         //  getRole(DEFAULT_ADMIN_ROLE, governanceAddress);
-        debondOperator = _debondOperator;
+        governanceAddress = _governanceAddress;
     }
 
     address public debondOperator; // entities with Veto access for the proposal
@@ -58,7 +58,6 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
     address public DBIT;
     address public dGoV;
     address public bank;
-    address public voteToken;
     address public governance;
     address public stakingContract;
 
@@ -120,9 +119,7 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
 
     }
 
-    function setGovernanceAddress(address _governanceAddress )  external onlyDebondOperator {
-        governance = _governanceAddress;        
-    }
+    
 
     function setProposalStatus(
         uint256 _class,

@@ -96,11 +96,10 @@ contract("Staking contract", async (accounts: String[]) => {
 
     it("calculate interest earned by the  voters   ", async () => {
         // increasing time to considerable amount in getting APY
-        //increaseTime(100000000000); 
+        increaseTime(100000000000); 
         expect(StakingContract.estimateInterestEarned(stakeAmtVoter2, 1000000000)).to.be.above(1);
     });
 
-
-
+ 
 
 });

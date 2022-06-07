@@ -47,20 +47,7 @@ interface IVoteToken {
     */
     function burnVoteToken(address _user, uint256 _amount) external;
 
-    /**
-    * @dev set the governance contract address
-    * @notice to be managed by the governanceOwnable with the address initialized by CSO . 
-    * @param _governance is the  new EOA handling the governance.
-    */
-    function setGovernanceContract(address _governance) external;
-
-    /**
-    * @dev set the  current / new stakingDGOV contract address. 
-    * @notice used first time to set the corresponding StakingDGOV contract and then called by the proposal contract for changing the staking operations.
-    * @param _stakingSGOV is the address of the new staking contract 
-    */
-    function setStakingDGOVContract(address _stakingSGOV) external;
-
+  
     /**
     * @dev transfer _amount vote tokens from msg.sender () to destination address 
     * @notice this will be restricted to be transferred between the owner of dGOV who incurred interest on his Vote token to the stakingContract

@@ -28,7 +28,7 @@ import "debond-token/contracts/interfaces/IdGOV.sol";
 import "debond-token/contracts/interfaces/IDebondToken.sol";
 //import "Debond-Exchange/contracts/interfaces/IExchange.sol";
 import "debond-bank/contracts/interfaces/IData.sol";
-//import "Debond-ERC3475/contracts/interfaces/IDebondBond.sol";
+import "./interfaces/IDebondBond.sol";
 
 
 
@@ -257,10 +257,9 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
 
         // require the user hasn't voted yet
         require(_checkIfNotVoted(_class, _nonce, _proposalContractAddress), "Gov: Already voted");
-        
+
         // LOCK THEM AND NOT TRANSFER
         _voteTokenContract.transferFrom(_voter, address(this), _amountVoteTokens);
-
         _vote(
             _class,
             _nonce,
@@ -317,43 +316,6 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
 
     }
    
-  
-    /**
-    * @dev mint allocated DBIT to a given address (approved by whitelisting to core team)
-    * @param _to the address to mint DBIT to
-    * @param _amountDBIT the amount of DBIT to mint
-    * @param _amountDGOV the amount of DGOV to mint
-    */
-    function mintAllocatedToken(
-        address _to,
-        uint256 _amountDBIT,
-        uint256 _amountDGOV
-    ) public  onlyDebondOperator returns(bool) {
-        IGovStorage.AllocatedToken memory _allocatedToken = govStorage.getTokenAllocation(_to);
-
-        uint256 _dbitCollaterizedSupply = IDebondToken(dbitAddress).supplyCollateralised();
-        uint256 _dgovCollaterizedSupply = Dgov.supplyCollateralised();
-
-        require(
-            IDebondToken(dbitAddress).allocatedSupplyBalance(_to) + _amountDBIT <=
-            _dbitCollaterizedSupply * _allocatedToken.dbitAllocationPPM / 1 ether,
-            "Gov: not enough supply of DBIT "
-        );
-        require(
-            IdGOV(dGOV).allocatedSupplyBalance(_to) + _amountDGOV <=
-            _dgovCollaterizedSupply * _allocatedToken.dgovAllocationPPM / 1 ether,
-            "Gov: not enough supply"
-        );
-
-        IDebondToken(dbitAddress).mintAllocatedSupply(_to, _amountDBIT);
-
-        IdGOV(dGOV).mintAllocatedSupply(_to, _amountDGOV);
-
-        govStorage.addAllocatedTokenMinted(_to , _amountDBIT, _amountDGOV);
-
-        return true;
-    }
-
 
     /**
     * @dev check a proposal for approval voting percentage .
@@ -414,7 +376,7 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
         assembly { chainId := chainid() }
         return chainId;
     }
-}
+
 
 
     /**
@@ -517,7 +479,6 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
             "Gov: not enough enough vote tokens"
         );
     }
-
     /**
     * @dev update the total vote tokens received for a proposal during 24 hours
     * @param _class proposal class
@@ -530,16 +491,10 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
         uint256 _amountVoteTokens
     ) internal {
         uint256 day = _getVotingDay(_class, _nonce);
-
         uint256 totalVoteTokensPerDay = govStorage.getProposal(_class,_nonce).totalVoteTokensPerDay[day];
        // govStorage.getProposal(_class,_nonce).totalVoteTokensPerDay[day] = totalVoteTokensPerDay + _amountVoteTokens;
         govStorage.setTotalVoteTokensPerDay(_class,_nonce,day,totalVoteTokensPerDay , _amountVoteTokens);
-
-
-
-
     }
-
     /**
     * @dev get the bnumber of days elapsed since the vote has started
     * @param _class proposal class
@@ -555,9 +510,6 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
         
         day = (duration / NUMBER_OF_SECONDS_IN_DAY);
     }
-
-
-
     /**
     * @dev Check if a user already voted for a proiposal
     * @param _hash vote hash
@@ -566,8 +518,6 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
     function _voted(bytes32 _hash) internal view returns(bool voted) {
         voted =   govStorage.getVoteDetails(_hash).voted;
     }
-
- 
 
     /**
     * @dev check if a user hasn't voted yet
@@ -583,7 +533,6 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
         bytes32 _hash = _hashVote(msg.sender, _class, _nonce, _proposalContractAddress);
         bool hasVoted = _voted(_hash);
         require(hasVoted == false, "Gov: Already voted");
-
         return true;
     }
 
@@ -613,7 +562,6 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
         return    govStorage.getClassNonceInfo(_class);
     }
 
-  
 }
 
 /// @title A Proposal factory : provides the API to execute the changes in the given proposal.
@@ -921,6 +869,50 @@ contract  ProposalFactory  is IProposalFactory, Governance {
         govStorage.setBenchmarkInterestRate(_newRate);
         return(true);
     }
+
+
+
+
+      
+    /**
+    * @dev mint allocated DBIT to a given address (approved by whitelisting to core team)
+    * @param _to the address to mint DBIT to
+    * @param _amountDBIT the amount of DBIT to mint
+    * @param _amountDGOV the amount of DGOV to mint
+    */
+    function mintAllocatedToken(
+        uint proposal_class,
+        uint proposal_nonce,
+        address _to,
+        uint256 _amountDBIT,
+        uint256 _amountDGOV
+    ) public onlyApproved(proposal_class ,proposal_nonce)  onlyDebondOperator returns(bool) {
+        IGovStorage.AllocatedToken memory _allocatedToken = govStorage.getTokenAllocation(_to);
+
+        uint256 _dbitCollaterizedSupply = IDebondToken(dbitAddress).supplyCollateralised();
+        uint256 _dgovCollaterizedSupply = Dgov.supplyCollateralised();
+
+        require(
+            IDebondToken(dbitAddress).allocatedSupplyBalance(_to) + _amountDBIT <=
+            _dbitCollaterizedSupply * _allocatedToken.dbitAllocationPPM / 1 ether,
+            "Gov: not enough supply of DBIT "
+        );
+        require(
+            IdGOV(dGOV).allocatedSupplyBalance(_to) + _amountDGOV <=
+            _dgovCollaterizedSupply * _allocatedToken.dgovAllocationPPM / 1 ether,
+            "Gov: not enough supply"
+        );
+
+        IDebondToken(dbitAddress).mintAllocatedSupply(_to, _amountDBIT);
+
+        IdGOV(dGOV).mintAllocatedSupply(_to, _amountDGOV);
+
+        govStorage.addAllocatedTokenMinted(_to , _amountDBIT, _amountDGOV);
+
+        return true;
+    }
+
+
 
 
 

@@ -28,7 +28,6 @@ interface IdGOV {
 
     function allocatedSupplyBalance(address _from) external returns (uint256);
 
-    function totalSupply() external returns(uint);
 
     /**
     only set by airdropToken (which is further called by airdrop contract) in order to set airdrop token supply

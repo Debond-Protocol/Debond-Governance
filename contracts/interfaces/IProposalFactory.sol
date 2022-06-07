@@ -14,7 +14,7 @@
 
 pragma solidity ^0.8.9;
 
-import "Debond-ERC3475/contracts/interface/IDebondBond.sol";
+import "./IDebondBond.sol";
 
 /// @title interface of proposal factory
 /// @notice Explain to an end user what this does

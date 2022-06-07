@@ -37,17 +37,6 @@ interface IStakingDGOV {
     function unstakeDgovToken(address _staker, address _to, uint256 _amount) external;
 
     /**
-    * @dev set the governance contract address
-    * @param _governance contract address
-    */
-    function setGovernanceContract(address _governance) external;
-
-    /**
-    * @dev get the governance contract address
-    */
-    function getGovernanceContract() external view returns(address gov);
-
-    /**
     * @dev get the amount of dGoV staked by a user
     */
     function getStakedDGOV(address _user) external view returns(uint256 _stakedAmount);
@@ -77,4 +66,11 @@ interface IStakingDGOV {
     * @dev set the DBIT contract address
     */
     function setDBITContract(address _dbit) external;
+
+
+    function unstakeAndPayDBIT(
+        address _staker,
+        address _to,
+        uint256 _amount
+    ) external returns(bool unstaked);
 }

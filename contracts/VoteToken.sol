@@ -19,7 +19,6 @@ import "./utils/GovernanceOwnable.sol";
 contract VoteToken is ERC20, ReentrancyGuard, IVoteToken , GovernanceOwnable{
     address debondOperator;
     address govAddress;
-    address stakingDGOV;
 
    
 
@@ -78,7 +77,6 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken , GovernanceOwnable{
         require(msg.sender == stakingDGOV, "VoteToken:  only staking contract");
         _mint(_user, _amount);
     }
-
     /**
     * @dev burns vote tokens
     * @param _user the user address
@@ -88,23 +86,18 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken , GovernanceOwnable{
         require(msg.sender == stakingDGOV,"VoteToken:  only staking contract");
         _burn(_user, _amount);
     }
-
-  
     /**
-    * @dev get the governance contract address
-    * @param gov governance contract address
-    */
-    function getGovernanceContract() external view returns() {
-         returns  govAddress;
-    }
+    * @dev get the governance contract address    */
+    function getGovernanceContract() external view returns(address) {
+         return  govAddress;
+   }
 
  
 
     /**
     * @dev get the stakingDGOV contract address
-    * @param _stakingDGOV stakingDGOV contract address
     */
-    function getStakingDGOVContract() external view  returns() {
+    function getStakingDGOVContract() external view  returns(address) {
         return stakingDGOV;
     }
 }

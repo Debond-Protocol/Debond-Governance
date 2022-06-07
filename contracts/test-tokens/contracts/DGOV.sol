@@ -44,17 +44,14 @@ contract DGOV is ERC20Capped, Ownable, IdGOV, AccessControl , GovernanceOwnable 
     address _airdropAddress; // address of DBITCreditAirdrop.
 
     // checks locked supply.
-    mapping(address => uint256) public lockedBalance;
-    mapping(address => uint256)  public _airdropedBalance;
-    mapping(address => uint256) public  _allocatedBalance;
+    mapping(address => uint256) internal lockedBalance;
+    mapping(address => uint256)  internal _airdropedBalance;
+    mapping(address => uint256) internal  _allocatedBalance;
+    mapping(address => uint256) internal _unlockedBalance;
 
     modifier onlyAirdropToken() {
         require(msg.sender == _airdropAddress, "access denied");
         _;
-    }
-
-    modifier onlyGovernance() {
-        require(msg.sender == _governanceAddress,"access denied");
     }
 
     /**
@@ -70,11 +67,7 @@ contract DGOV is ERC20Capped, Ownable, IdGOV, AccessControl , GovernanceOwnable 
     function totalSupply() public view override returns (uint256) {
         return _collateralisedSupply + _allocatedSupply + _airdropedSupply;
     }
-
-    // set  locked supply balance for each account
    
-   
-
     // gets the amount of the lockedBalance for an given address
     function LockedBalance(address account) public view returns (uint256 _lockedBalance) {
          uint ratio = _collateralisedSupply/( 2e9 * _airdropedSupply );

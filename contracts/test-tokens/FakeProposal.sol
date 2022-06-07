@@ -13,13 +13,9 @@ pragma solidity ^0.8.0;
     See the License for the specific language governing permissions and
     limitations under the License.
 */
-
 pragma solidity ^0.8.9;
-
 import "../interfaces/IGovernance.sol";
 import "../interfaces/IProposalFactory.sol";
-
-import "debond-bank/contracts/interfaces/IData.sol";
 
 /// @title  proposal template 
 /// @notice this contract is to be deployed before creation of the proposal instance , and then supplied in createProposal() in governance.
@@ -56,7 +52,7 @@ contract FakeProposal {
         address tokenAddress,
         uint256 periodTimestamp
     ) public  returns(bool) {
-        proposalFactory.addClass(
+        proposalFactory.addBondClass(
             newClassId,_class,_nonce,
             _symbol,
             interestRateType,
@@ -64,7 +60,7 @@ contract FakeProposal {
             periodTimestamp
         );
     return(true);
-    // }
+ }
     // function updateBankContract(uint256 proposal_class, uint256 proposal_nonce, address new_bank_address) public  returns(bool){
     //    proposalFactory.setBankContract(new_bank_address , proposal_class,proposal_nonce);
     //    return(true);
@@ -76,5 +72,4 @@ contract FakeProposal {
     //    proposalFactory.updatePurchesableClasses(debondClassId, _class, _nonce, purchaseClassId, purchasable);
     //     return(true);
     // }
-
 }
