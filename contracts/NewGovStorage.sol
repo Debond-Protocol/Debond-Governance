@@ -17,7 +17,7 @@ pragma solidity ^0.8.0;
 import "./interfaces/INewGovernance.sol";
 
 abstract contract NewGovStorage is INewGovernance {
-    struct ProposalClass {
+    struct ProposalNonce {
         uint128 nonce;
     }
 
@@ -27,7 +27,7 @@ abstract contract NewGovStorage is INewGovernance {
     uint256 public voteStart;
     uint256 public votePeriod;
 
-    mapping(uint128 => ProposalClass) proposalClass;
+    mapping(uint128 => ProposalNonce) proposalNonce;
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
     mapping(uint128 =>  uint256) voteQuorum;
 

@@ -18,6 +18,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./NewGovStorage.sol";
+import "./GovSharedStorage.sol";
 import "./interfaces/IVoteToken.sol";
 import "./interfaces/IStakingDGOV.sol";
 import "./interfaces/IGovernance.sol";
@@ -28,7 +29,7 @@ import "./Pausable.sol";
 /**
 * @author Samuel Gwlanold Edoumou (Debond Organization)
 */
-contract NewGovernance is NewGovStorage, ReentrancyGuard, Pausable {
+contract NewGovernance is NewGovStorage, GovSharedStorage, ReentrancyGuard, Pausable {
     /**
     * @dev see {INewGovernance} for description
     */
@@ -64,6 +65,8 @@ contract NewGovernance is NewGovStorage, ReentrancyGuard, Pausable {
         proposal[_class][nonce].startTime = _start;
         proposal[_class][nonce].endTime = _end;
         proposal[_class][nonce].approvalMode = approval;
+
+        proposalClass[proposalId] = _class;
 
         emit ProposalCreated(
             _class,
@@ -197,9 +200,9 @@ contract NewGovernance is NewGovStorage, ReentrancyGuard, Pausable {
     * @param _class proposal class
     */
     function _generateNewNonce(uint128 _class) internal returns(uint128 nonce) {
-        proposalClass[_class].nonce++;
+        proposalNonce[_class].nonce++;
 
-        nonce = proposalClass[_class].nonce;
+        nonce = proposalNonce[_class].nonce;
     }
 
     /**

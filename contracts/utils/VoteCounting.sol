@@ -14,17 +14,19 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-contract VoteCounting {
-    struct UserVote {
+import "../GovSharedStorage.sol";
+
+contract VoteCounting is GovSharedStorage {
+    struct User {
         bool hasVoted;
-        uint256 weight;
+        uint8 weight;
     }
 
     struct ProposalVote {
         uint256 forVotes;
         uint256 againstVotes;
         uint256 abstainVotes;
-        mapping(address => UserVote) userVote;
+        mapping(address => User) user;
     }
 
     enum VoteType {
@@ -39,35 +41,107 @@ contract VoteCounting {
     * @dev check if an account has voted for a proposal
     * @param _proposalId proposal id
     * @param _account voter account address
+    * @param voted true if the account has already voted, false otherwise
     */
     function hasVoted(
         uint256 _proposalId,
         address _account
-    ) public view returns(bool) {
-        return _proposalVotes[_proposalId].userVote[_account].hasVoted;
+    ) public view returns(bool voted) {
+        voted = _proposalVotes[_proposalId].user[_account].hasVoted;
     }
 
     /**
     * @dev returns the number of vote tokens used by an account
     * @param _proposalId proposal id
     * @param _account voter account address
+    * @param amountTokens amount of vote tokens
     */
     function numberOfVoteTokens(
         uint256 _proposalId,
         address _account
-    ) public view returns(uint256) {
-        return _proposalVotes[_proposalId].userVote[_account].weight;
+    ) public view returns(uint256 amountTokens) {
+        amountTokens = _proposalVotes[_proposalId].user[_account].weight;
     }
 
+    /**
+    * @dev return number of votes of a proposal for each votre type
+    * @param _proposalId proposal id
+    * @param forVotes number or FOR votes
+    * @param againstVotes number or AGAINST votes
+    * @param abstainVotes number abstains
+    */
     function getProposalVotes(
         uint256 _proposalId
-    ) public view returns(uint256, uint256, uint256) {
+    ) public view returns(uint256 forVotes, uint256 againstVotes, uint256 abstainVotes) {
         ProposalVote storage proposalVote = _proposalVotes[_proposalId];
 
-        return (
+        (forVotes, againstVotes, abstainVotes) = 
+        (
             proposalVote.forVotes,
             proposalVote.againstVotes,
             proposalVote.abstainVotes
         );
+    }
+
+    /**
+    * @dev check if the quorum has been reached
+    * @param _proposalId proposal id
+    * @param reached true if quorum has been reached, false otherwise
+    */
+    function _quorumReached(
+        uint256 _proposalId
+    ) internal view returns(bool reached) {
+        uint128 class = proposalClass[_proposalId];
+        ProposalVote storage proposalVote = _proposalVotes[_proposalId];
+
+        reached = _proposalClassInfo[class][1] <= proposalVote.forVotes + proposalVote.abstainVotes;
+    }
+
+    /**
+    * @dev check if the vote is successful or not
+    * @param _proposalId proposal id
+    * @param succeeded true if FOR votes are greater than AGAINST vote
+    */
+    function _voteSucceeded(
+        uint256 _proposalId
+    ) internal virtual returns(bool succeeded) {
+        ProposalVote storage proposalVote = _proposalVotes[_proposalId];
+
+        succeeded = proposalVote.forVotes > proposalVote.againstVotes;
+    } 
+
+    /**
+    * @dev update the user vote when he votes
+    * @param _proposalId proposal id
+    * @param _account user account address
+    * @param _vote user vote (0: For, 1: Against, 2: Abstain)
+    * @param _weight the amount of vote tokens used to vote
+    */
+    function _countVote(
+        uint256 _proposalId,
+        address _account,
+        uint8 _vote,
+        uint256 _weight
+    ) internal virtual {
+        ProposalVote storage proposalVote = _proposalVotes[_proposalId];
+
+        require(
+            !proposalVote.user[_account].hasVoted,
+            "VoteCounting: already voted"
+        );
+
+        proposalVote.user[_account].hasVoted = true;
+
+        if (_vote == uint8(VoteType.For)) {
+            proposalVote.forVotes += _weight;
+        } else if (_vote == uint8(VoteType.Against)) {
+            proposalVote.againstVotes += _weight;
+        } else if (_vote == uint8(VoteType.Abstain)) {
+            proposalVote.abstainVotes += _weight;
+        } else {
+            revert("VoteCounting: invalid vote");
+        }
+
+        proposalVote.user[_account].weight = uint8(_weight);
     }
 }
