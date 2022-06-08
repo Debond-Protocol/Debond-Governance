@@ -91,10 +91,9 @@ contract VoteCounting is GovSharedStorage {
     function _quorumReached(
         uint256 _proposalId
     ) internal view returns(bool reached) {
-        uint128 class = proposalClass[_proposalId];
         ProposalVote storage proposalVote = _proposalVotes[_proposalId];
 
-        reached = _proposalClassInfo[class][1] <= proposalVote.forVotes + proposalVote.abstainVotes;
+        reached = _quorum(_proposalId) <= proposalVote.forVotes + proposalVote.abstainVotes;
     }
 
     /**
@@ -143,5 +142,19 @@ contract VoteCounting is GovSharedStorage {
         }
 
         proposalVote.user[_account].weight = uint8(_weight);
+    }
+
+    function _quorum(
+        uint256 _proposalId
+    ) internal view returns(uint256 quorum) {
+        uint128 class = proposalClass[_proposalId];
+
+        ProposalVote storage proposalVote = _proposalVotes[_proposalId];
+
+        quorum =  proposalClassInfo[class][1] * (
+            proposalVote.forVotes +
+            proposalVote.againstVotes +
+            proposalVote.abstainVotes
+        ) / 100;
     }
 }

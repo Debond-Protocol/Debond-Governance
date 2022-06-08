@@ -15,7 +15,13 @@ pragma solidity ^0.8.0;
 */
 
 abstract contract GovSharedStorage {
-    mapping(uint128 => uint256[6]) public _proposalClassInfo;
+    struct ProposalNonce {
+        uint128 nonce;
+    }
+    
+    mapping(uint128 => uint256[6]) public proposalClassInfo;
+
+    mapping(uint128 => ProposalNonce) proposalNonce;
 
     // mapping that links proposal id to proposal class
     mapping(uint256 => uint128) public proposalClass;

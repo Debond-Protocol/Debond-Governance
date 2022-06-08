@@ -30,6 +30,24 @@ import "./Pausable.sol";
 * @author Samuel Gwlanold Edoumou (Debond Organization)
 */
 contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable {
+    constructor() {
+        // proposal class info
+        proposalClassInfo[0][0] = 3;
+        proposalClassInfo[0][1] = 50;
+        proposalClassInfo[0][3] = 1;
+        proposalClassInfo[0][4] = 1;
+
+        proposalClassInfo[1][0] = 3;
+        proposalClassInfo[1][1] = 50;
+        proposalClassInfo[1][3] = 1;
+        proposalClassInfo[1][4] = 1;
+
+        proposalClassInfo[2][0] = 3;
+        proposalClassInfo[2][1] = 50;
+        proposalClassInfo[2][3] = 0;
+        proposalClassInfo[2][4] = 120;
+    }
+
     /**
     * @dev see {INewGovernance} for description
     * @param _class proposal class
@@ -222,15 +240,17 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         uint128 _class,
         uint256 _quorum
     ) public onlyDebondOperator {
-        _proposalClassInfo[_class][1] = _quorum;
+        proposalClassInfo[_class][1] = _quorum;
     }
 
     /**
     * @dev get the quorum for a given proposal class
     * @param _proposalId proposal id
     */
-    function getProposalQuorum(uint256 _proposalId) public view returns(uint256) {
-        return proposalQuorum[proposalClass[_proposalId]];
+    function getProposalQuorum(
+        uint256 _proposalId
+    ) public view returns(uint256 quorum) {
+        quorum = proposalClassInfo[proposalClass[_proposalId]][1];
     }
 
     /**
@@ -274,7 +294,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
     }
 
     /**
-    * @dev set the vode stating time
+    * @dev set the vode starting time
     * @param _start time when the vote should start
     */
     function _setVoteStartTime(uint256 _start) public onlyDebondOperator {

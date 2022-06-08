@@ -17,19 +17,13 @@ pragma solidity ^0.8.0;
 import "./interfaces/INewGovernance.sol";
 
 abstract contract NewGovStorage is INewGovernance {
-    struct ProposalNonce {
-        uint128 nonce;
-    }
-
     address public debondOperator;
     address public governance;
 
     uint256 public voteStart;
     uint256 public votePeriod;
 
-    mapping(uint128 => ProposalNonce) proposalNonce;
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
-    mapping(uint256 =>  uint256) proposalQuorum;
 
     /**
      * @dev Emitted when a proposal is created.
