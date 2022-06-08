@@ -29,7 +29,6 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard {
         uint256 duration;
     }
 
-    address public dbit;
     address public dGov;
     address public voteToken;
     address public debondOperator;
@@ -51,13 +50,11 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard {
     }
 
     constructor (
-        address _dbit,
         address _dGovToken,
         address _voteToken,
         address _debondOperator,
         uint256 _interestRate
     ) {
-        dbit = _dbit;
         dGov = _dGovToken;
         voteToken = _voteToken;
         debondOperator = _debondOperator;
@@ -162,14 +159,6 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard {
     }
 
     /**
-    * @dev set the DBIT contract address
-    * @param _dbit DBIT address
-    */
-    function setDBITContract(address _dbit) external {
-        dbit = _dbit;
-    }
-
-    /**
     * @dev calculate the interest earned in DBIT
     * @param _staker the address of the dGoV staker
     * @param interest interest earned
@@ -187,7 +176,7 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard {
 
     /**
     * @dev Estimate how much Interest the user has gained since he staked dGoV
-    * @param _amount the amount of DBIT staked
+    * @param _amount the amount of DGOV staked
     * @param _duration staking duration to estimate interest from
     * @param interest the estimated interest earned so far
     */

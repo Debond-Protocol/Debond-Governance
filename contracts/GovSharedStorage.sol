@@ -18,11 +18,13 @@ abstract contract GovSharedStorage {
     struct ProposalNonce {
         uint128 nonce;
     }
-    
+
+    // link proposal class to class info
     mapping(uint128 => uint256[6]) public proposalClassInfo;
 
+    // links proposal class to proposal nonce
     mapping(uint128 => ProposalNonce) proposalNonce;
 
-    // mapping that links proposal id to proposal class
+    // links proposal id to proposal class
     mapping(uint256 => uint128) public proposalClass;
 }

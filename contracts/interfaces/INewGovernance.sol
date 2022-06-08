@@ -55,6 +55,24 @@ interface INewGovernance {
     ) external returns(uint128 nonce, uint256 proposalId);
 
     /**
+    * @dev execute a proposal
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    * @param _targets array of target contracts
+    * @param _values array of ether send
+    * @param _calldatas array of calldata to be executed
+    * @param _descriptionHash hash of the proposal description
+    */
+    function executeProposal(
+        uint128 _class,
+        uint128 _nonce,
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        bytes32 _descriptionHash
+    ) external returns(uint256 proposalId);
+
+    /**
     * @dev return the governance address
     */
     function getGovernance() external view returns(address);
