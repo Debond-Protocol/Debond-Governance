@@ -30,7 +30,15 @@ import "./Pausable.sol";
 * @author Samuel Gwlanold Edoumou (Debond Organization)
 */
 contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable {
-    constructor() {
+    constructor(
+        address _dgovContract,
+        address _stakingContract,
+        address _voteTokenContract
+    ) {
+        dgovContract = _dgovContract;
+        stakingContract = _stakingContract;
+        voteTokenContract = _voteTokenContract;
+
         // proposal class info
         proposalClassInfo[0][0] = 3;
         proposalClassInfo[0][1] = 50;
@@ -164,14 +172,37 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
 
     /**
     * @dev vote for a proposal
+    * @param _class _class proposal class
+    * @param _nonce _class proposal nonce
+    * @param _tokenOwner owner of staked dgov (can delagate their vote)
+    * @param _userVote vote type: 0-FOR, 1-AGAINST, 2-ABSTAIN
+    * @param _amountVoteTokens amount of vote tokens
     */
     function vote(
         uint128 _class,
         uint128 _nonce,
+        address _tokenOwner,
         uint8 _userVote,
         uint256 _amountVoteTokens
     ) public returns(uint256) {
         address voter = _msgSender();
+
+        uint256 _dgovStaked = IStakingDGOV(stakingContract).getStakedDGOV(_tokenOwner);
+        uint256 approvedToSpend = IERC20(dgovContract).allowance(_tokenOwner, voter);
+
+        require(
+            _amountVoteTokens <= _dgovStaked &&
+            _amountVoteTokens <= approvedToSpend,
+            "Gov: not approved or not enough dGoV staked"
+        );
+        require(
+            _amountVoteTokens <= 
+            IERC20(voteTokenContract).balanceOf(_tokenOwner) - 
+            IVoteToken(voteTokenContract).lockedBalanceOf(_tokenOwner),
+            "Gov: not enough vote tokens"
+        );
+
+        IVoteToken(voteTokenContract).lockTokens(_tokenOwner, _amountVoteTokens);
 
         return _vote(_class, _nonce, voter, _userVote, _amountVoteTokens);
     }

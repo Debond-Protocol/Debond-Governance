@@ -19,6 +19,8 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IVoteToken.sol";
 
 contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
+    mapping(address => uint256) private _lockedBalance;
+
     address debondOperator;
     address govAddress;
     address stakingDGOV;
@@ -39,6 +41,42 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         address _debondOperator
     ) ERC20(_name, _symbol) {
         debondOperator = _debondOperator;
+    }
+
+    /**
+    * @dev return the locked balance of an account
+    * @param _account user account address
+    */
+    function lockedBalanceOf(address _account) public view returns(uint256) {
+        return _lockedBalance[_account];
+    }
+
+    /**
+    * @dev lock vote tokens
+    * @param _account owner address of vote tokens
+    * @param _amount the amount of vote tokens to lock
+    */
+    function lockTokens(address _account, uint256 _amount) internal {
+        require(
+            _amount <= balanceOf(_account),
+            "VoteToken: not enough tokens"
+        );
+
+        _lockedBalance[_account] += _amount;
+    }
+
+    /**
+    * @dev unlock vote tokens
+    * @param _account owner address of vote tokens
+    * @param _amount the amount of vote tokens to lock
+    */
+    function unlockTokens(address _account, uint256 _amount) internal {
+        require(
+            _amount <= _lockedBalance[_account],
+            "VoteToken: not enough tokens locked"
+        );
+
+        _lockedBalance[_account] -= _amount;
     }
 
     /**

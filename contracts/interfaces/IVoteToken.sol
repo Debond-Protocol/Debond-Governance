@@ -45,4 +45,19 @@ interface IVoteToken {
         address _to,
         uint256 _amount
     ) external returns (bool);
+
+    /**
+    * @dev return the locked balance of an account
+    */
+    function lockedBalanceOf(address _account) external view returns(uint256);
+
+    /**
+    * @dev lock vote tokens
+    */
+    function lockTokens(address _account, uint256 _amount) external;
+
+    /**
+    * @dev unlock vote tokens
+    */
+    function unlockTokens(address _account, uint256 _amount) external;
 }

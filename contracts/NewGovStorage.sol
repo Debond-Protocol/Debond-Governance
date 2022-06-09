@@ -19,6 +19,11 @@ import "./interfaces/INewGovernance.sol";
 abstract contract NewGovStorage is INewGovernance {
     address public debondOperator;
     address public governance;
+    address public bankContract;
+    address public dgovContract;
+    address public dbitContract;
+    address public stakingContract;
+    address public voteTokenContract;
 
     uint256 public voteStart;
     uint256 public votePeriod;

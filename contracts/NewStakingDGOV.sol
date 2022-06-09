@@ -92,7 +92,7 @@ contract NewStakingDGOV {
             "Staking: Not enough dGoV staked"
         );
 
-        // burn vote tokens and transfer back dGoV to the stasker
+        // burn vote tokens and transfer back dGoV to the staker
         Ivote.burnVoteToken(_staker, _amount);
         IdGov.transfer(_staker, _amount);
 
