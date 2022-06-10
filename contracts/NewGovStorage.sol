@@ -27,6 +27,7 @@ abstract contract NewGovStorage is INewGovernance {
 
     uint256 public voteStart;
     uint256 public votePeriod;
+    uint256 constant public NUMBER_OF_SECONDS_IN_DAY = 1 days;
 
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
 

@@ -23,7 +23,7 @@ abstract contract GovSharedStorage {
     mapping(uint128 => uint256[6]) public proposalClassInfo;
 
     // links proposal class to proposal nonce
-    mapping(uint128 => ProposalNonce) proposalNonce;
+    mapping(uint128 => uint128) public proposalNonce;
 
     // links proposal id to proposal class
     mapping(uint256 => uint128) public proposalClass;

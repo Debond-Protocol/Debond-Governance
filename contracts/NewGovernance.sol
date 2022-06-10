@@ -207,6 +207,40 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         return _vote(_class, _nonce, voter, _userVote, _amountVoteTokens);
     }
 
+    /**
+    * @dev redeem vote tokens and get DBIT rewards
+    */
+    function unlockVoteTokens(
+        uint256 _proposalId
+    ) external {
+        address tokenOwner = _msgSender();
+
+        uint128 class = proposalClass[_proposalId];
+        uint128 nonce = proposalNonce[class];
+
+        require(
+            block.timestamp > proposal[class][nonce].endTime,
+            "Gov: still voting"
+        );
+        require(
+            hasVoted(_proposalId, tokenOwner),
+            "Gov: you haven't voted"
+        );
+        require(
+            IVoteToken(voteTokenContract).lockedBalanceOf(tokenOwner) > 0,
+            "Gov: no tokens"
+        );
+        require(
+            numberOfVoteTokens(_proposalId, tokenOwner) > 0,
+            "Gov: no tokens"
+        )
+        
+        //numberOfVoteTokens(_proposalId, tokenOwner)
+    }
+
+    /**
+    * @dev internal vote function
+    */
     function _vote(
         uint128 _class,
         uint128 _nonce,
@@ -220,7 +254,8 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
             "Gov: vote not active"
         );
 
-        _countVote(_proposal.id, _voter, _userVote, _amountVoteTokens);
+        uint256 day = _getVotingDay(_class, _nonce);
+        _countVote(_proposal.id, _voter, _userVote, day, _amountVoteTokens);
 
         amountOfVoteTokens = _amountVoteTokens;
     }
@@ -289,9 +324,8 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
     * @param _class proposal class
     */
     function _generateNewNonce(uint128 _class) internal returns(uint128 nonce) {
-        proposalNonce[_class].nonce++;
-
-        nonce = proposalNonce[_class].nonce;
+        nonce = proposalNonce[_class] + 1;
+        proposalNonce[_class] = nonce;
     }
 
     /**
@@ -361,6 +395,22 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
     */
     function getGovernance() public view returns(address) {
         return governance;
+    }
+
+    /**
+    * @dev get the bnumber of days elapsed since the vote has started
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    * @param day the current voting day
+    */
+    function _getVotingDay(uint128 _class, uint128 _nonce) internal view returns(uint256 day) {
+        Proposal memory _proposal = proposal[_class][_nonce];
+
+        uint256 duration = _proposal.startTime > block.timestamp ?
+            _proposal.startTime - block.timestamp:
+            block.timestamp - _proposal.startTime;
+        
+        day = (duration / NUMBER_OF_SECONDS_IN_DAY);
     }
 
 }

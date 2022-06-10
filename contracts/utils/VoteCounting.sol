@@ -20,6 +20,7 @@ contract VoteCounting is GovSharedStorage {
     struct User {
         bool hasVoted;
         uint8 weight;
+        uint256 votingDay;
     }
 
     struct ProposalVote {
@@ -120,6 +121,7 @@ contract VoteCounting is GovSharedStorage {
         uint256 _proposalId,
         address _account,
         uint8 _vote,
+        uint256 _votingDay,
         uint256 _weight
     ) internal virtual {
         ProposalVote storage proposalVote = _proposalVotes[_proposalId];
@@ -141,6 +143,7 @@ contract VoteCounting is GovSharedStorage {
             revert("VoteCounting: invalid vote");
         }
 
+        proposalVote.user[_account].votingDay = _votingDay;
         proposalVote.user[_account].weight = uint8(_weight);
     }
 
