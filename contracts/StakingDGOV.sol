@@ -25,13 +25,20 @@ import "./interfaces/IGovStorage.sol";
 
 import "./utils/GovernanceOwnable.sol";
 
-contract StakingDGOV is IStakingDGOV, ReentrancyGuard, GovernanceOwnable {
+import "./Pausable.sol";
+
+
+contract StakingDGOV is IStakingDGOV, ReentrancyGuard, GovernanceOwnable  {
    // sets the dbit amount for an vote.
    uint _dbitAmountForOneVote;
-      
+
+   event voteTokenRedeemed(address _voter, address _to,uint  _class, uint _nonce, address _contractAddress);
+
+
     /**
     * @dev structure that stores information on the stacked dGoV
     */
+
     struct StackedDGOV {
         uint256 amountDGOV;
         uint256 startTime;
@@ -135,7 +142,7 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard, GovernanceOwnable {
         Ivote.burnVoteToken(_staker, _amount);
 
         // transfer staked DGOV to the staker 
-        IERC20 IdGov = IERC20(dGov);
+        IdGOV _IdGov =IdGOV(dGov);
         IdGov.transfer(_to, _amount);
 
         emit dgovUnstacked(_staker, _to, _amount);

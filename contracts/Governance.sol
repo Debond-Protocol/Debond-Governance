@@ -26,16 +26,12 @@ import "./interfaces/IGovStorage.sol";
 import "debond-token/contracts/interfaces/IdGOV.sol";
 
 import "debond-token/contracts/interfaces/IDebondToken.sol";
-//import "Debond-Exchange/contracts/interfaces/IExchange.sol";
+
 import "debond-bank/contracts/interfaces/IData.sol";
-import "./interfaces/IDebondBond.sol";
 
-
+//import "Debond-Exchange/contracts/interfaces/IExchange.sol";
 
 import "./utils/GovernanceOwnable.sol";
-
-
-
 
 contract Governance is  IGovernance, ReentrancyGuard, Pausable , GovernanceOwnable  {
 
@@ -229,7 +225,7 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
     * @param _userVote The voter vote: For or Against
     * @param _amountVoteTokens amount of vote tokens
     */
-    function vote(
+    function Vote(
         address _voter,
         uint128 _class,
         uint128 _nonce,
@@ -291,7 +287,9 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) 
+    )
+    public 
+
     {
         bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), getChainId(), address(this)));
         bytes32 structhash = keccak256(abi.encode(BALLOT_TYPEHASH, _class, _nonce , _userVote));
@@ -568,7 +566,6 @@ else if(govStorage.getProposal(_class, _nonce).approvalMode == IGovStorage.Propo
 /// @notice this will be setting 
 /// @dev Explain to a developer any extra details
 
-import "./interfaces/IProposalFactory.sol";
 //import "Debond-Exchange/contracts/interfaces/I"
 import "./interfaces/external/IBank.sol";
 

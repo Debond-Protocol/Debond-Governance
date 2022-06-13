@@ -16,7 +16,6 @@ pragma solidity ^0.8.0;
 pragma solidity ^0.8.9;
 import "../interfaces/IGovernance.sol";
 import "../interfaces/IProposalFactory.sol";
-
 /// @title  proposal template 
 /// @notice this contract is to be deployed before creation of the proposal instance , and then supplied in createProposal() in governance.
 /// @dev Explain to a developer any extra details

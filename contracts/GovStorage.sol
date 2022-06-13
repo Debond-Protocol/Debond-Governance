@@ -19,11 +19,11 @@ import "./utils/GovernanceOwnable.sol";
 import "./interfaces/IGovStorage.sol";
 import "./interfaces/IGovernance.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "Debond-ERC3475/contracts/interfaces/IDebondBond.sol";
+import "./interfaces/IDebondBond.sol";
 
 contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
     // system total allocation variables:
-    uint256  public dbitTotalAllocationDistributed;
+    uint256 public dbitTotalAllocationDistributed;
     uint256 public dgovTotalAllocationDistributed;
     uint256 public dbitBudgetPPM;
     uint256 public dgovBudgetPPM;
@@ -31,8 +31,7 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
     uint256 public dgovAllocationDistibutedPPM;
 
     // bank constants.
-    uint public benchmarkInterestRate;
-
+    uint256 public benchmarkInterestRate;
 
     modifier onlyGov() {
         require(msg.sender == governance, "only governance contract can call");
@@ -48,7 +47,9 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
     }
 
     // TODO: only governance address will be of the governance ownable.
-    constructor( address _governanceAddress) GovernanceOwnable(_governanceAddress) {
+    constructor(address _governanceAddress)
+        GovernanceOwnable(_governanceAddress)
+    {
         //  getRole(DEFAULT_ADMIN_ROLE, governanceAddress);
         governanceAddress = _governanceAddress;
     }
@@ -69,9 +70,6 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
     uint256 private stakingDgoVDuration;
     uint256 private _lockTime;
 
-   
-
-    
     mapping(bytes32 => Vote) votes;
     mapping(uint256 => ProposalClass) proposalClass;
     mapping(address => AllocatedToken) private allocatedToken;
@@ -89,8 +87,8 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
 
     function getVoteDetails(bytes32 hash)
         public
-        override
         view
+        override
         returns (Vote memory details)
     {
         details = votes[hash];
@@ -98,28 +96,25 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
 
     function getProposalClassInfo(uint256 _class)
         external
-        override
         view
+        override
         returns (ProposalClassInfo memory _proposalClassInfo)
     {
         _proposalClassInfo = proposalClassInfo[_class];
     }
 
-
-    function getDebondOperator() external returns(address) {return debondOperator;}
+    function getDebondOperator() external returns (address) {
+        return debondOperator;
+    }
 
     function getTokenAllocation(address _of)
         public
-        view 
+        view
         override
         returns (AllocatedToken memory _allocatedToken)
-
     {
         _allocatedToken = allocatedToken[_of];
-
     }
-
-    
 
     function setProposalStatus(
         uint256 _class,
@@ -130,22 +125,16 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
         proposal[_class][_nonce].status = newStatus;
     }
 
-    function setProposalClassStatus(
-        uint256 _class,
-        bool status
-    )
-    public 
-    onlyGov
+    function setProposalClassStatus(uint256 _class, bool status)
+        public
+        onlyGov
     {
         proposalClass[_class].exist = status;
- 
     }
 
-
-    function getClassNonceInfo(uint256 _class) public  view   returns(uint256) {
-return proposalClass[_class].nonce;    
+    function getClassNonceInfo(uint256 _class) public view returns (uint256) {
+        return proposalClass[_class].nonce;
     }
-
 
     function setProposalVote(
         uint256 _class,
@@ -165,22 +154,14 @@ return proposalClass[_class].nonce;
         }
     }
 
-
-
     function setProposalExecutionInterval(
         uint256 _class,
         uint256 _nonce,
-        uint newinterval
-    )
-    external
-    override
-    onlyGov
-    returns(bool)
-    {
+        uint256 newinterval
+    ) external override onlyGov returns (bool) {
         proposal[_class][_nonce].executionInterval = newinterval;
-        return(true);
+        return (true);
     }
-
 
     function registerProposal(
         uint256 _class,
@@ -193,7 +174,7 @@ return proposalClass[_class].nonce;
         uint256 _executionInterval,
         IGovStorage.ProposalApproval _approvalMode,
         uint256[] memory _dbitDistributedPerDay
-    ) external onlyVoteHolders override {
+    ) external override onlyVoteHolders {
         require(msg.sender == governance, " current governance can access");
         require(
             Address.isContract(_contractAddress),
@@ -208,8 +189,8 @@ return proposalClass[_class].nonce;
         proposal[_class][_nonce].endTime = _endTime;
         proposal[_class][_nonce].dbitRewards = _dbitRewards;
         proposal[_class][_nonce].contractAddress = _contractAddress;
-       // TODO: check that whether its set to be same as that of the proposal class info.
-       // require(this.getProposalClassInfo(_class).architectVeto == _approvalMode., "not  same  approval method  than class");
+        // TODO: check that whether its set to be same as that of the proposal class info.
+        // require(this.getProposalClassInfo(_class).architectVeto == _approvalMode., "not  same  approval method  than class");
         proposal[_class][_nonce].approvalMode = _approvalMode;
         proposal[_class][_nonce].proposalHash = _proposalHash;
         proposal[_class][_nonce].executionNonce = _executionNonce;
@@ -217,6 +198,7 @@ return proposalClass[_class].nonce;
         proposal[_class][_nonce].status = ProposalStatus.Approved;
         proposal[_class][_nonce].dbitDistributedPerDay = _dbitDistributedPerDay;
     }
+
     /**
     register proposal class inforamtion (for the first time).
     @dev to be called only one time in ogvernance constructor for defining the parameters for the given class 
@@ -232,14 +214,14 @@ return proposalClass[_class].nonce;
         uint256 _maximumExecutionTime,
         uint256 _minimumExecutionInterval
     ) external onlyGov {
-        proposalClass[_class].exist = true; 
+        proposalClass[_class].exist = true;
         proposalClassInfo[_class].timelock = _timelock;
         proposalClassInfo[_class].minimumApproval = _minimumApproval;
         proposalClassInfo[_class].minimumVote = _minimumVote;
         proposalClassInfo[_class].architectVeto = _architectVeto;
         proposalClassInfo[_class].maximumExecutionTime = _maximumExecutionTime;
-        proposalClassInfo[_class].minimumExecutionInterval = _minimumExecutionInterval;
-        
+        proposalClassInfo[_class]
+            .minimumExecutionInterval = _minimumExecutionInterval;
     }
 
     /**
@@ -253,7 +235,7 @@ return proposalClass[_class].nonce;
         address _contractAddress,
         uint256 amountTokens,
         uint256 votingDay
-    ) external  onlyGov override {
+    ) external override onlyGov {
         votes[voteHash].class = _class;
         votes[voteHash].nonce = _nonce;
         votes[voteHash].contractAddress = _contractAddress;
@@ -274,7 +256,6 @@ return proposalClass[_class].nonce;
         allocatedToken[_for].dgovAllocationPPM = _dgovAllocationPPM;
     }
 
-
     function setTotalAllocationDistributed(
         uint256 _dbitTotalAllocationDistributed,
         uint256 _dgovTotalAllocationDistributed
@@ -283,88 +264,106 @@ return proposalClass[_class].nonce;
         dgovTotalAllocationDistributed = _dgovTotalAllocationDistributed;
     }
 
-
-    function getAllocatedTokenPPM(
-        address _for
-    ) external returns(uint dbitAlloc,uint  dgovAlloc) {
+    function getAllocatedTokenPPM(address _for)
+        external
+        returns (uint256 dbitAlloc, uint256 dgovAlloc)
+    {
         dbitAlloc = allocatedToken[_for].dbitAllocationPPM;
         dgovAlloc = allocatedToken[_for].dgovAllocationPPM;
     }
 
-    function getAllocatedToken(
-        address _of
-    ) external returns(AllocatedToken memory _allocatedToken) {
+    function getAllocatedToken(address _of)
+        external
+        returns (AllocatedToken memory _allocatedToken)
+    {
         return allocatedToken[_of];
     }
 
-    function getTotalAllocatedDistributedPPM() external view override returns (uint dbitTotal , uint dgovTotal) {
-            dbitTotal = dbitAllocationDistibutedPPM;
-            dgovTotal = dgovAllocationDistibutedPPM;    
+    function getTotalAllocatedDistributedPPM()
+        external
+        view
+        override
+        returns (uint256 dbitTotal, uint256 dgovTotal)
+    {
+        dbitTotal = dbitAllocationDistibutedPPM;
+        dgovTotal = dgovAllocationDistibutedPPM;
     }
 
-
-    function setTotalAllocationDistributedPPM(uint dbitAlloc , uint dgovAlloc)  onlyGov  external 
-    {   dbitAllocationDistibutedPPM = dbitAlloc;
+    function setTotalAllocationDistributedPPM(
+        uint256 dbitAlloc,
+        uint256 dgovAlloc
+    ) external onlyGov {
+        dbitAllocationDistibutedPPM = dbitAlloc;
         dgovAllocationDistibutedPPM = dgovAlloc;
-
-        
     }
 
-
-    function  getTotalAllocatedDistributed() external returns(uint dbitTotal, uint dgovTotal ) {
+    function getTotalAllocatedDistributed()
+        external
+        returns (uint256 dbitTotal, uint256 dgovTotal)
+    {
         dbitTotal = dbitTotalAllocationDistributed;
         dgovTotal = dgovTotalAllocationDistributed;
     }
 
-
-
-
-
-    function setBudgetDBITPPM(uint256 _newBudget) external  onlyGov{
+    function setBudgetDBITPPM(uint256 _newBudget) external onlyGov {
         dbitBudgetPPM = _newBudget;
     }
 
-    function setBudgetDGOVPPM(uint256 _newBudget) external  onlyGov{
+    function setBudgetDGOVPPM(uint256 _newBudget) external onlyGov {
         dgovBudgetPPM = _newBudget;
     }
 
-    function getBudgetPPM() external returns(uint dbit , uint dgov) {
+    function getBudgetPPM() external returns (uint256 dbit, uint256 dgov) {
         dbit = dbitBudgetPPM;
         dgov = dgovBudgetPPM;
     }
 
-    function addAllocatedDGOVMinted( address _to ,uint256 _amountDBIT, uint256 _amountDGOV ) external  onlyGov {
-    allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
-    allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
+    function addAllocatedDGOVMinted(
+        address _to,
+        uint256 _amountDBIT,
+        uint256 _amountDGOV
+    ) external onlyGov {
+        allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
+        allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
 
-    dbitTotalAllocationDistributed += _amountDBIT;
-    dgovTotalAllocationDistributed += _amountDGOV;
-     }
-     
-     function addAllocatedTokenMinted(address _to ,uint256 _amountDBIT, uint256 _amountDGOV)  external onlyGov {
-         allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
-         allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
-     }
+        dbitTotalAllocationDistributed += _amountDBIT;
+        dgovTotalAllocationDistributed += _amountDGOV;
+    }
 
+    function addAllocatedTokenMinted(
+        address _to,
+        uint256 _amountDBIT,
+        uint256 _amountDGOV
+    ) external onlyGov {
+        allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
+        allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
+    }
 
-    
-
-    function setAmountsToken(bytes32 hash, uint value) onlyGov override external
+    function setAmountsToken(bytes32 hash, uint256 value)
+        external
+        override
+        onlyGov
     {
         votes[hash].amountTokens = value;
-
     }
-  
+
     /**
     @dev defines the totalVoteTokens reimbursed for the interest.
     
     
      */
-    function setTotalVoteTokensPerDay(uint256 _class , uint256 _nonce , uint day, uint totalVoteTokensPerDay ,uint _amountVoteTokens) onlyGov external 
-    {
-        proposal[_class][_nonce].totalVoteTokensPerDay[day] = totalVoteTokensPerDay + _amountVoteTokens;
-
+    function setTotalVoteTokensPerDay(
+        uint256 _class,
+        uint256 _nonce,
+        uint256 day,
+        uint256 totalVoteTokensPerDay,
+        uint256 _amountVoteTokens
+    ) external onlyGov {
+        proposal[_class][_nonce].totalVoteTokensPerDay[day] =
+            totalVoteTokensPerDay +
+            _amountVoteTokens;
     }
+
     /**
      * @dev generate a new nonce for a given class
      * @param _class proposal class
@@ -378,14 +377,10 @@ return proposalClass[_class].nonce;
         nonce = proposalClass[_class].nonce;
     }
 
-
-    function setBenchmarkInterestRate(uint _newInterestRate) external onlyGov  {
+    function setBenchmarkInterestRate(uint256 _newInterestRate)
+        external
+        onlyGov
+    {
         benchmarkInterestRate = _newInterestRate;
-
-
     }
-
-
-
-
 }

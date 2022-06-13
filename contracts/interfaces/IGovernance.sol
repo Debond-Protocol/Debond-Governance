@@ -150,4 +150,19 @@ interface IGovernance {
         address _contractAddress
     ) external;
 
+
+    /**
+    @dev voting the appliation 
+     */
+
+     function Vote(
+        address _voter,
+        uint128 _class,
+        uint128 _nonce,
+        address _proposalContractAddress,
+        IGovStorage.VoteChoice _userVote,
+        uint256 _amountVoteTokens
+    ) external;
+
+
 }

@@ -10,9 +10,9 @@ contract GovernanceOwnable is IActivable, IGovernanceAddressUpdatable {
     address public dbit;
     address public dgov;
 
-    address public exchangeAddress;
+    address ExchangeAddress;
+    address BankAddress;
     address  governanceAddress;
-    address public  bankAddress;
     address public dbitAddress;
     address public dgovAddress;
     address public stakingDGOV;
@@ -55,12 +55,12 @@ contract GovernanceOwnable is IActivable, IGovernanceAddressUpdatable {
     }
     
     function setBankAddress(address _newBankAddress) external onlyGovernance {
-        bankAddress = _newBankAddress;
+        BankAddress = _newBankAddress;
     }
     
 
     function setExchangeAddress(address _newExchangeAddress) external onlyGovernance {
-        exchangeAddress = _newExchangeAddress;
+        ExchangeAddress = _newExchangeAddress;
     }
 
 

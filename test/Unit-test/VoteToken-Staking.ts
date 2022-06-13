@@ -3,7 +3,7 @@ const { VoteTokenInstance, StakingDGOVInstance, DGOVInstance } = require('../../
 const VoteToken = artifacts.require("VoteToken");
 const DGOV = artifacts.require("DGOV");
 const Staking = artifacts.require("StakingDGOV");
-const DBIT
+const DBIT = artifacts.require("DBIT");
 
 var Vote: VoteTokenInstance;
 var StakingContract: StakingDGOVInstance;
