@@ -19,11 +19,19 @@ abstract contract GovSharedStorage {
         uint128 nonce;
     }
 
+    struct VotingReward {
+        uint256 numberOfVotingDays;
+        uint256 numberOfDBITDistributedPerDay;
+    }
+
     // link proposal class to class info
     mapping(uint128 => uint256[6]) public proposalClassInfo;
 
     // links proposal class to proposal nonce
     mapping(uint128 => uint128) public proposalNonce;
+
+    // vote rewards info
+    mapping(uint128 => VotingReward) public votingReward;
 
     // links proposal id to proposal class
     mapping(uint256 => uint128) public proposalClass;

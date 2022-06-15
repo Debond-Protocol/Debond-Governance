@@ -108,7 +108,7 @@ contract VoteCounting is GovSharedStorage {
         ProposalVote storage proposalVote = _proposalVotes[_proposalId];
 
         succeeded = proposalVote.forVotes > proposalVote.againstVotes;
-    } 
+    }
 
     /**
     * @dev update the user vote when he votes
@@ -121,7 +121,6 @@ contract VoteCounting is GovSharedStorage {
         uint256 _proposalId,
         address _account,
         uint8 _vote,
-        uint256 _votingDay,
         uint256 _weight
     ) internal virtual {
         ProposalVote storage proposalVote = _proposalVotes[_proposalId];
@@ -143,7 +142,6 @@ contract VoteCounting is GovSharedStorage {
             revert("VoteCounting: invalid vote");
         }
 
-        proposalVote.user[_account].votingDay = _votingDay;
         proposalVote.user[_account].weight = uint8(_weight);
     }
 
@@ -159,5 +157,9 @@ contract VoteCounting is GovSharedStorage {
             proposalVote.againstVotes +
             proposalVote.abstainVotes
         ) / 100;
+    }
+
+    function _getVotingDay(uint256 _proposalId) internal view returns(uint256 day) {
+
     }
 }

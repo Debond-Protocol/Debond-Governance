@@ -20,6 +20,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./NewGovStorage.sol";
 import "./utils/VoteCounting.sol";
 import "./interfaces/IVoteToken.sol";
+import "./interfaces/IGovSettings.sol";
 import "./interfaces/IStakingDGOV.sol";
 import "./interfaces/IGovernance.sol";
 import "./interfaces/INewGovernance.sol";
@@ -33,11 +34,13 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
     constructor(
         address _dgovContract,
         address _stakingContract,
-        address _voteTokenContract
+        address _voteTokenContract,
+        address _govSettingsContract
     ) {
         dgovContract = _dgovContract;
         stakingContract = _stakingContract;
         voteTokenContract = _voteTokenContract;
+        govSettingsContract = _govSettingsContract;
 
         // proposal class info
         proposalClassInfo[0][0] = 3;
@@ -54,6 +57,17 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         proposalClassInfo[2][1] = 50;
         proposalClassInfo[2][3] = 0;
         proposalClassInfo[2][4] = 120;
+
+        // voting rewards by class
+        votingReward[0].numberOfVotingDays = 3;
+        votingReward[0].numberOfDBITDistributedPerDay = 5;
+
+        votingReward[1].numberOfVotingDays = 3;
+        votingReward[1].numberOfDBITDistributedPerDay = 5;
+
+        votingReward[2].numberOfVotingDays = 3;
+        votingReward[2].numberOfDBITDistributedPerDay = 5;
+
     }
 
     /**
@@ -85,8 +99,9 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
             keccak256(bytes(_description))
         );
 
-        uint256 _start = block.timestamp + voteStart;
-        uint256 _end = _start + votePeriod;
+        // ToDo: Discuss with Yu Liu wether to use block.number instead of block.timestamp
+        uint256 _start = block.timestamp + IGovSettings(govSettingsContract).votingDelay();
+        uint256 _end = _start + IGovSettings(govSettingsContract).votingPeriod();
 
         proposal[_class][nonce].id = proposalId;
         proposal[_class][nonce].startTime = _start;
@@ -172,20 +187,20 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
 
     /**
     * @dev vote for a proposal
-    * @param _class _class proposal class
-    * @param _nonce _class proposal nonce
+    * @param _proposalId proposal Id
     * @param _tokenOwner owner of staked dgov (can delagate their vote)
     * @param _userVote vote type: 0-FOR, 1-AGAINST, 2-ABSTAIN
     * @param _amountVoteTokens amount of vote tokens
     */
     function vote(
-        uint128 _class,
-        uint128 _nonce,
+        uint256 _proposalId,
         address _tokenOwner,
         uint8 _userVote,
         uint256 _amountVoteTokens
-    ) public returns(uint256) {
+    ) public {
         address voter = _msgSender();
+        uint128 class = proposalClass[_proposalId];
+        uint128 nonce = proposalNonce[class];
 
         uint256 _dgovStaked = IStakingDGOV(stakingContract).getStakedDGOV(_tokenOwner);
         uint256 approvedToSpend = IERC20(dgovContract).allowance(_tokenOwner, voter);
@@ -198,17 +213,18 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         require(
             _amountVoteTokens <= 
             IERC20(voteTokenContract).balanceOf(_tokenOwner) - 
-            IVoteToken(voteTokenContract).lockedBalanceOf(_tokenOwner),
+            IVoteToken(voteTokenContract).lockedBalanceOf(_tokenOwner, _proposalId),
             "Gov: not enough vote tokens"
         );
 
-        IVoteToken(voteTokenContract).lockTokens(_tokenOwner, _amountVoteTokens);
+        IVoteToken(voteTokenContract).lockTokens(_tokenOwner, _amountVoteTokens, _proposalId);
 
-        return _vote(_class, _nonce, voter, _userVote, _amountVoteTokens);
+        _vote(class, nonce, voter, _userVote, _amountVoteTokens);
     }
 
     /**
     * @dev redeem vote tokens and get DBIT rewards
+    * @param _proposalId proposal Id
     */
     function unlockVoteTokens(
         uint256 _proposalId
@@ -226,16 +242,19 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
             hasVoted(_proposalId, tokenOwner),
             "Gov: you haven't voted"
         );
-        require(
-            IVoteToken(voteTokenContract).lockedBalanceOf(tokenOwner) > 0,
-            "Gov: no tokens"
-        );
-        require(
-            numberOfVoteTokens(_proposalId, tokenOwner) > 0,
-            "Gov: no tokens"
-        )
         
-        //numberOfVoteTokens(_proposalId, tokenOwner)
+        uint256 _amount = IVoteToken(voteTokenContract).lockedBalanceOf(tokenOwner, _proposalId);
+        _unlockVoteTokens(_proposalId, _amount);
+    }
+
+    /**
+    * @dev internal unlockVoteTokens function
+    * @param _proposalId proposal Id
+    * @param _amount amount of vote tokes to unlock
+    */
+    function _unlockVoteTokens(uint256 _proposalId, uint256 _amount) internal {
+        address voter = _msgSender();
+        IVoteToken(voteTokenContract).unlockTokens(voter, _amount, _proposalId);
     }
 
     /**
@@ -247,7 +266,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         address _voter,
         uint8 _userVote,
         uint256 _amountVoteTokens
-    ) internal returns(uint256 amountOfVoteTokens) {
+    ) internal {
         Proposal memory _proposal = proposal[_class][_nonce];
         require(
             getProposalStatus(_class, _nonce, _proposal.id) == ProposalStatus.Active,
@@ -255,9 +274,8 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         );
 
         uint256 day = _getVotingDay(_class, _nonce);
-        _countVote(_proposal.id, _voter, _userVote, day, _amountVoteTokens);
-
-        amountOfVoteTokens = _amountVoteTokens;
+        _proposalVotes[_proposal.id].user[_voter].votingDay = day;
+        _countVote(_proposal.id, _voter, _userVote, _amountVoteTokens);
     }
 
     /**
@@ -359,22 +377,6 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
     }
 
     /**
-    * @dev set the vode starting time
-    * @param _start time when the vote should start
-    */
-    function _setVoteStartTime(uint256 _start) public onlyDebondOperator {
-        voteStart = _start;
-    }
-
-    /**
-    * @dev set the vote ending time
-    * @param _end time at when the vote should end
-    */
-    function _setVotePeriod(uint256 _end) public onlyDebondOperator {
-        votePeriod = _end;
-    }
-
-    /**
     * @dev returns the proposal approval mode according to the proposal class
     * @param _class proposal class
     */
@@ -407,10 +409,29 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         Proposal memory _proposal = proposal[_class][_nonce];
 
         uint256 duration = _proposal.startTime > block.timestamp ?
-            _proposal.startTime - block.timestamp:
-            block.timestamp - _proposal.startTime;
+            0: block.timestamp - _proposal.startTime;
         
         day = (duration / NUMBER_OF_SECONDS_IN_DAY);
+    }
+
+    /**
+    * @dev get the number of days elapsed since the user has voted
+    * @param _voter the address of the voter
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    * @param numberOfDay the number of days
+    */
+    function _getNumberOfDaysRewarded(
+        address _voter,
+        uint128 _class,
+        uint128 _nonce
+    ) internal view returns(uint256 numberOfDay) {
+        Proposal memory _proposal = proposal[_class][_nonce];
+
+        uint256 proposalDurationInDay = votingReward[_class].numberOfVotingDays;
+        uint256 votingDay = _proposalVotes[_proposal.id].user[_voter].votingDay;
+
+        numberOfDay = (proposalDurationInDay - votingDay) + 1;
     }
 
 }

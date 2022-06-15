@@ -750,8 +750,7 @@ contract Governance is GovStorage, IGovernance, ReentrancyGuard, Pausable {
         Proposal memory _proposal = proposal[_class][_nonce];
 
         uint256 duration = _proposal.startTime > block.timestamp ?
-            _proposal.startTime - block.timestamp:
-            block.timestamp - _proposal.startTime;
+            0: block.timestamp - _proposal.startTime;
         
         day = (duration / NUMBER_OF_SECONDS_IN_DAY);
     }

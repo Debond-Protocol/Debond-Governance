@@ -19,7 +19,8 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IVoteToken.sol";
 
 contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
-    mapping(address => uint256) private _lockedBalance;
+    // key1: user address, key2: proposalId
+    mapping(address => mapping(uint256 => uint256)) private _lockedBalance;
 
     address debondOperator;
     address govAddress;
@@ -46,37 +47,48 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     /**
     * @dev return the locked balance of an account
     * @param _account user account address
+    * @param _proposalId proposal Id
     */
-    function lockedBalanceOf(address _account) public view returns(uint256) {
-        return _lockedBalance[_account];
+    function lockedBalanceOf(address _account, uint256 _proposalId) public view returns(uint256) {
+        return _lockedBalance[_account][_proposalId];
     }
 
     /**
     * @dev lock vote tokens
     * @param _account owner address of vote tokens
     * @param _amount the amount of vote tokens to lock
+    * @param _proposalId proposal Id
     */
-    function lockTokens(address _account, uint256 _amount) internal {
+    function lockTokens(
+        address _account,
+        uint256 _amount,
+        uint256 _proposalId
+    ) public {
         require(
             _amount <= balanceOf(_account),
             "VoteToken: not enough tokens"
         );
 
-        _lockedBalance[_account] += _amount;
+        _lockedBalance[_account][_proposalId] += _amount;
     }
 
     /**
     * @dev unlock vote tokens
     * @param _account owner address of vote tokens
     * @param _amount the amount of vote tokens to lock
+    * @param _proposalId proposal Id
     */
-    function unlockTokens(address _account, uint256 _amount) internal {
+    function unlockTokens(
+        address _account,
+        uint256 _amount,
+        uint256 _proposalId
+    ) public {
         require(
-            _amount <= _lockedBalance[_account],
+            _amount <= _lockedBalance[_account][_proposalId],
             "VoteToken: not enough tokens locked"
         );
 
-        _lockedBalance[_account] -= _amount;
+        _lockedBalance[_account][_proposalId] -= _amount;
     }
 
     /**

@@ -76,4 +76,6 @@ interface INewGovernance {
     * @dev return the governance address
     */
     function getGovernance() external view returns(address);
+
+
 }

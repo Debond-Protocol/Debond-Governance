@@ -47,31 +47,17 @@ interface IExecutable {
         address newBankAddress
     ) external returns(bool);
 
-    function updateBondContract(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        address newBondAddress
-    ) external returns(bool);
-
-    function updateTokenContract(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        uint256 newTokenClass,
-        address newTokenAddress
-    ) external returns(bool);
-
     // need to check if Fibonacci numbers are still used
     // if not then remove the last two inputs
     function createBondClass(
         uint128 poposalClass,
         uint128 proposalNonce,
         uint256 bondClass,
-        string calldata bondSymbol,
-        uint256 Fibonacci_number,
-        uint256 Fibonacci_epoch
+        uint256[] calldata classInfo,
+        string[] calldata classInfoDescription
     ) external returns (bool);
 
-    function transferTokenFromGovernance(
+    function transferToken(
         uint128 poposalClass,
         uint128 proposalNonce,
         address _token,
@@ -79,12 +65,13 @@ interface IExecutable {
         uint256 _amount
     ) external returns(bool);
 
-    function claimFundForProposal(
+    function transferTokenFromAPM(
         uint128 poposalClass,
         uint128 proposalNonce,
+        address _from,
+        address _token,
         address _to,
-        uint256 dbitAmount,
-        uint256 dgovAmount
+        uint256 _amount
     ) external returns(bool);
 
     function mintAllocationToken(
@@ -93,6 +80,7 @@ interface IExecutable {
         uint256 dgovAmount
     ) external returns(bool);
 
+    //change how much allocation an address can enjoy
     function changeTeamAllocation(
         uint128 poposalClass,
         uint128 proposalNonce,
@@ -101,10 +89,25 @@ interface IExecutable {
         uint256 dgovPPM
     ) external returns(bool);
 
+    //change the percentage of token that can be minted as allocation, start from 10%,
     function changeCommunityFundSize(
         uint128 poposalClass,
         uint128 proposalNonce,
         uint256 newDBITBudgetPPM,
         uint256 newDGOVBudgetPPM
+    ) external returns(bool);
+
+    //Update benchmark intrest rate
+    function updateBenchmarkInterestRate(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
+        uint256 _newBenchmarkInterestRate
+    ) external returns(bool);
+
+    //update maximum supply of DGOV
+    function updateDGOVMaxSupply(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
+        uint256 _newDGOVMaxSupply
     ) external returns(bool);
 }
