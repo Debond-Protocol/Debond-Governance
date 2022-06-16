@@ -28,11 +28,14 @@ contract NewStakingDGOV is INewStaking {
         uint256 duration;
     }
 
+    // key1: staker address, key2: staking rank of the staker
     mapping(address => mapping(uint256 => StackedDGOV)) internal stackedDGOV;
     mapping(address => uint256) stakingCounter;
 
     event dgovStacked(address staker, uint256 amount, uint256 counter);
     event dgovUnstacked(address staker, uint256 amount, uint256 counter);
+
+    uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
 
     address public dGov;
     address public voteToken; 
@@ -80,30 +83,46 @@ contract NewStakingDGOV is INewStaking {
     /**
     * @dev unstack dGoV tokens
     * @param _staker the address of the staker
-    * @param _amount the amount of dGoV tokens to unstak
     * @param _stakingCounter the staking rank
     */
     function unstakeDgovToken(
         address _staker,
-        uint256 _amount,
         uint256 _stakingCounter
-    ) external {
-        StackedDGOV memory _stacked = stackedDGOV[_staker][_stakingCounter];
+    ) external returns(uint256 unstakedAmount) {
+        StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
 
         require(
-            block.timestamp >= _stacked.startTime + _stacked.duration,
+            block.timestamp >= _staked.startTime + _staked.duration,
             "Staking: still staking"
         );
-        require(
-            _amount <= _stacked.amountDGOV,
-            "Staking: Not enough dGoV staked"
-        );
+
+        require(_staked.amountDGOV > 0, "Staking: no dGoV staked");
+
+        unstakedAmount = _staked.amountDGOV;
+        _staked.amountDGOV = 0;
 
         // burn vote tokens and transfer back dGoV to the staker
-        Ivote.burnVoteToken(_staker, _amount);
-        IdGov.transfer(_staker, _amount);
+        Ivote.burnVoteToken(_staker, unstakedAmount);
+        IdGov.transfer(_staker, unstakedAmount);
 
-        emit dgovUnstacked(_staker, _amount, _stakingCounter);
+        emit dgovUnstacked(_staker, unstakedAmount, _stakingCounter);
+    }
+
+    /**
+    * @dev calculate the interest earned by DGOV staker
+    * @param _staker DGOV staker
+    * @param _stakingCounter the staking rank
+    * @param _interestRate interest rate
+    */
+    function calculateInterestEarned(
+        address _staker,
+        uint256 _stakingCounter,
+        uint256 _interestRate
+    ) external view returns(uint256 interest) {
+        StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
+        require(_staked.amountDGOV > 0, "Staking: not dGoV staked");
+
+        interest = (_interestRate * _staked.duration * 1 ether) / NUMBER_OF_SECONDS_IN_YEAR;
     }
 
     /**

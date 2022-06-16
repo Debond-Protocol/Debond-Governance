@@ -44,6 +44,8 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         voteTokenContract = _voteTokenContract;
         govSettingsContract = _govSettingsContract;
 
+        interestRateForStakingDGOV = 5;
+
         // proposal class info
         proposalClassInfo[0][0] = 3;
         proposalClassInfo[0][1] = 50;
@@ -225,6 +227,11 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         _vote(class, nonce, voter, _userVote, _amountVoteTokens);
     }
 
+    /**
+    * @dev stake DGOV tokens
+    * @param _amount amount of DGOV to stake
+    * @param _duration staking duration
+    */
     function stakeDGOV(
         uint256 _amount,
         uint256 _duration
@@ -234,6 +241,28 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         INewStaking(stakingContract).stakeDgovToken(staker, _amount, _duration);
 
         staked = true;
+    }
+
+    function unstakeDGOV(
+        uint256 _stakingCounter
+    ) public returns(bool unstaked) {
+        address staker = _msgSender();
+
+        uint256 amountStaked = INewStaking(stakingContract).unstakeDgovToken(
+            staker,
+            _stakingCounter
+        );
+
+        uint256 interest = INewStaking(stakingContract).calculateInterestEarned(
+            staker,
+            _stakingCounter,
+            interestRateForStakingDGOV
+        );
+
+        // transfer DBIT interests to the staker
+        IERC20(dbitContract).transferFrom(dbitContract, staker, amountStaked * interest);
+
+        unstaked = true;
     }
 
     /**
@@ -394,6 +423,19 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
     */
     function getVotingDay(uint256 _proposalId) public view returns(uint256 day) {
         day = _proposalVotes[_proposalId].user[_msgSender()].votingDay;
+    }
+
+    /**
+    * @dev Estimate how much Interest the user has gained since he staked dGoV
+    * @param _amount the amount of DGOV staked
+    * @param _duration staking duration to estimate interest from
+    * @param interest the estimated interest earned so far
+    */
+    function estimateInterestEarned(
+        uint256 _amount,
+        uint256 _duration
+    ) external view returns(uint256 interest) {
+        interest = _amount * (interestRateForStakingDGOV * _duration / NUMBER_OF_SECONDS_IN_DAY);
     }
 
     /**

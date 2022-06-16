@@ -23,12 +23,17 @@ interface INewStaking {
 
     function unstakeDgovToken(
         address _staker,
-        uint256 _amount,
         uint256 _stakingCounter
-    ) external;
+    ) external returns(uint256 unstakedAmount);
 
     function getStakedDGOV(
         address _staker,
         uint256 _stakingCounter
     ) external view returns(uint256 _stakedAmount);
+
+    function calculateInterestEarned(
+        address _staker,
+        uint256 _stakingCounter,
+        uint256 _interestRate
+    ) external view returns(uint256 interest);
 }

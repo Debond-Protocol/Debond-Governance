@@ -26,7 +26,9 @@ abstract contract NewGovStorage is INewGovernance {
     address public voteTokenContract;
     address public govSettingsContract;
 
+    uint256 public interestRateForStakingDGOV;
     uint256 constant public NUMBER_OF_SECONDS_IN_DAY = 1 days;
+
 
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
 
