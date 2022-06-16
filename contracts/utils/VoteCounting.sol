@@ -19,6 +19,7 @@ import "../GovSharedStorage.sol";
 contract VoteCounting is GovSharedStorage {
     struct User {
         bool hasVoted;
+        bool hasBeenRewarded;
         uint8 weight;
         uint256 votingDay;
     }

@@ -33,6 +33,10 @@ abstract contract GovSharedStorage {
     // vote rewards info
     mapping(uint128 => VotingReward) public votingReward;
 
+    // total vote tokens collected per day for a given proposal
+    // key1: proposal id, key2: voting day (1, 2, 3, etc.)
+    mapping(uint256 => mapping(uint256 => uint256)) public totalVoteTokenPerDay;
+
     // links proposal id to proposal class
     mapping(uint256 => uint128) public proposalClass;
 }

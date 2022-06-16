@@ -18,27 +18,40 @@ interface IVoteToken {
     /**
     * @dev mints  vote Token tokens to the address of a user
     */
-    function mintVoteToken(address _user, uint256 _amount) external;
+    function mintVoteToken(
+        address _user,
+        uint256 _amount
+    ) external;
 
     /**
     * @dev burns vote Token tokens from the address of a user
     */
-    function burnVoteToken(address _user, uint256 _amount) external;
+    function burnVoteToken(
+        address _user,
+        uint256 _amount
+    ) external;
 
     /**
     * @dev set the governance contract address
     */
-    function setGovernanceContract(address _governance) external;
+    function setGovernanceContract(
+        address _governance
+    ) external;
 
     /**
     * @dev set the stakingDGOV contract address
     */
-    function setStakingDGOVContract(address _stakingSGOV) external;
+    function setStakingDGOVContract(
+        address _stakingSGOV
+    ) external;
 
     /**
     * @dev transfer _amount vote tokens to `_to`
     */
-    function transfer(address _to, uint256 _amount) external returns (bool);
+    function transfer(
+        address _to,
+        uint256 _amount
+    ) external returns (bool);
 
     function transferFrom(
         address _from,
@@ -49,15 +62,27 @@ interface IVoteToken {
     /**
     * @dev return the locked balance of an account
     */
-    function lockedBalanceOf(address _account, uint256 _proposalId) external view returns(uint256);
+    function lockedBalanceOf(
+        address _account,
+        uint256 _proposalId
+    ) external view returns(uint256);
 
     /**
     * @dev lock vote tokens
     */
-    function lockTokens(address _account, uint256 _amount, uint256 _proposalId) external;
+    function lockTokens(
+        address _owner,
+        address _spender,
+        uint256 _amount,
+        uint256 _proposalId
+    ) external;
 
     /**
     * @dev unlock vote tokens
     */
-    function unlockTokens(address _account, uint256 _amount, uint256 _proposalId) external;
+    function unlockTokens(
+        address _owner,
+        uint256 _amount,
+        uint256 _proposalId
+    ) external;
 }

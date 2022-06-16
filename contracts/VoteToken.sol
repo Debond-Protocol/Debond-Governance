@@ -55,40 +55,46 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
 
     /**
     * @dev lock vote tokens
-    * @param _account owner address of vote tokens
+    * @param _owner owner address of vote tokens
+    * @param _spender spender address of vote tokens
     * @param _amount the amount of vote tokens to lock
     * @param _proposalId proposal Id
     */
     function lockTokens(
-        address _account,
+        address _owner,
+        address _spender,
         uint256 _amount,
         uint256 _proposalId
     ) public {
         require(
-            _amount <= balanceOf(_account),
+            _amount <= balanceOf(_owner),
             "VoteToken: not enough tokens"
         );
 
-        _lockedBalance[_account][_proposalId] += _amount;
+        if (_owner == _spender) {
+            _spendAllowance(_owner, _spender, _amount);
+        }
+        
+        _lockedBalance[_owner][_proposalId] += _amount;
     }
 
     /**
     * @dev unlock vote tokens
-    * @param _account owner address of vote tokens
+    * @param _owner owner address of vote tokens
     * @param _amount the amount of vote tokens to lock
     * @param _proposalId proposal Id
     */
     function unlockTokens(
-        address _account,
+        address _owner,
         uint256 _amount,
         uint256 _proposalId
     ) public {
         require(
-            _amount <= _lockedBalance[_account][_proposalId],
+            _amount <= _lockedBalance[_owner][_proposalId],
             "VoteToken: not enough tokens locked"
         );
 
-        _lockedBalance[_account][_proposalId] -= _amount;
+        _lockedBalance[_owner][_proposalId] -= _amount;
     }
 
     /**
