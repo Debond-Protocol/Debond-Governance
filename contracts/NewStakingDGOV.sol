@@ -16,8 +16,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IVoteToken.sol";
+import "./interfaces/INewStaking.sol";
 
-contract NewStakingDGOV {
+contract NewStakingDGOV is INewStaking {
     /**
     * @dev structure that stores information on stacked dGoV
     */
@@ -27,10 +28,11 @@ contract NewStakingDGOV {
         uint256 duration;
     }
 
-    mapping(address => StackedDGOV) internal stackedDGOV;
+    mapping(address => mapping(uint256 => StackedDGOV)) internal stackedDGOV;
+    mapping(address => uint256) stakingCounter;
 
-    event dgovStacked(address _staker, uint256 _amount);
-    event dgovUnstacked(address _staker, uint256 _amount);
+    event dgovStacked(address staker, uint256 amount, uint256 counter);
+    event dgovUnstacked(address staker, uint256 amount, uint256 counter);
 
     address public dGov;
     address public voteToken; 
@@ -62,26 +64,31 @@ contract NewStakingDGOV {
         uint256 stakerBalance = IdGov.balanceOf(_staker);
         require(_amount <= stakerBalance, "Debond: not enough dGov");
 
-        stackedDGOV[_staker].startTime = block.timestamp;
-        stackedDGOV[_staker].duration = _duration;
-        stackedDGOV[_staker].amountDGOV += _amount;
+        uint256 counter = stakingCounter[_staker];
+
+        stackedDGOV[_staker][counter + 1].startTime = block.timestamp;
+        stackedDGOV[_staker][counter + 1].duration = _duration;
+        stackedDGOV[_staker][counter + 1].amountDGOV += _amount;
+        stakingCounter[_staker] = counter + 1;
 
         IdGov.transferFrom(_staker, address(this), _amount);
         Ivote.mintVoteToken(_staker, _amount);
 
-        emit dgovStacked(_staker, _amount);
+        emit dgovStacked(_staker, _amount, counter + 1);
     }
 
     /**
     * @dev unstack dGoV tokens
     * @param _staker the address of the staker
     * @param _amount the amount of dGoV tokens to unstak
+    * @param _stakingCounter the staking rank
     */
     function unstakeDgovToken(
         address _staker,
-        uint256 _amount
+        uint256 _amount,
+        uint256 _stakingCounter
     ) external {
-        StackedDGOV memory _stacked = stackedDGOV[_staker];
+        StackedDGOV memory _stacked = stackedDGOV[_staker][_stakingCounter];
 
         require(
             block.timestamp >= _stacked.startTime + _stacked.duration,
@@ -96,6 +103,16 @@ contract NewStakingDGOV {
         Ivote.burnVoteToken(_staker, _amount);
         IdGov.transfer(_staker, _amount);
 
-        emit dgovUnstacked(_staker, _amount);
+        emit dgovUnstacked(_staker, _amount, _stakingCounter);
+    }
+
+    /**
+    * @dev get the amount of dGoV staked by a user
+    * @param _staker address of the staker
+    * @param _stakingCounter the staking rank
+    * @param _stakedAmount amount of dGoV staked by the user
+    */
+    function getStakedDGOV(address _staker, uint256 _stakingCounter) external view returns(uint256 _stakedAmount) {
+        _stakedAmount = stackedDGOV[_staker][_stakingCounter].amountDGOV;
     }
 }

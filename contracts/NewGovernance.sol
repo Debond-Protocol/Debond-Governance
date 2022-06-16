@@ -21,7 +21,7 @@ import "./NewGovStorage.sol";
 import "./utils/VoteCounting.sol";
 import "./interfaces/IVoteToken.sol";
 import "./interfaces/IGovSettings.sol";
-import "./interfaces/IStakingDGOV.sol";
+import "./interfaces/INewStaking.sol";
 import "./interfaces/IGovernance.sol";
 import "./interfaces/INewGovernance.sol";
 import "./test/DBIT.sol";
@@ -198,13 +198,14 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         uint256 _proposalId,
         address _tokenOwner,
         uint8 _userVote,
-        uint256 _amountVoteTokens
+        uint256 _amountVoteTokens,
+        uint256 _stakingCounter
     ) public {
         address voter = _msgSender();
         uint128 class = proposalClass[_proposalId];
         uint128 nonce = proposalNonce[class];
 
-        uint256 _dgovStaked = IStakingDGOV(stakingContract).getStakedDGOV(_tokenOwner);
+        uint256 _dgovStaked = INewStaking(stakingContract).getStakedDGOV(_tokenOwner, _stakingCounter);
         uint256 approvedToSpend = IERC20(dgovContract).allowance(_tokenOwner, voter);
 
         require(
@@ -222,6 +223,17 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         IVoteToken(voteTokenContract).lockTokens(_tokenOwner, voter, _amountVoteTokens, _proposalId);
 
         _vote(class, nonce, voter, _userVote, _amountVoteTokens);
+    }
+
+    function stakeDGOV(
+        uint256 _amount,
+        uint256 _duration
+    ) public returns(bool staked) {
+        address staker = _msgSender();
+
+        INewStaking(stakingContract).stakeDgovToken(staker, _amount, _duration);
+
+        staked = true;
     }
 
     /**
@@ -246,7 +258,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         );
         
         uint256 _amount = IVoteToken(voteTokenContract).lockedBalanceOf(tokenOwner, _proposalId);
-        _unlockVoteTokens(_proposalId, _amount);
+        _unlockVoteTokens(_proposalId, tokenOwner, _amount);
 
         // transfer the rewards earned for this vote
         _transferDBITInterest(_proposalId, tokenOwner);
@@ -285,10 +297,10 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
     * @dev internal unlockVoteTokens function
     * @param _proposalId proposal Id
     * @param _amount amount of vote tokes to unlock
+    * @param _tokenOwner owner of the vote tokens
     */
-    function _unlockVoteTokens(uint256 _proposalId, uint256 _amount) internal {
-        address tokenOwner = _msgSender();
-        IVoteToken(voteTokenContract).unlockTokens(tokenOwner, _amount, _proposalId);
+    function _unlockVoteTokens(uint256 _proposalId, address _tokenOwner, uint256 _amount) internal {
+        IVoteToken(voteTokenContract).unlockTokens(_tokenOwner, _amount, _proposalId);
     }
 
     /**
@@ -353,7 +365,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
     }
 
     /**
-    * @dev set the vote quorum for a given class
+    * @dev set the vote quorum for a given class (it's a percentage)
     * @param _class proposal class
     * @param _quorum the vote quorum
     */
@@ -373,6 +385,15 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         uint128 _class
     ) public view returns(uint256 quorum) {
         quorum = proposalClassInfo[_class][1];
+    }
+
+    /**
+    * @dev get the user voting date
+    * @param _proposalId proposal Id
+    * @param day voting day
+    */
+    function getVotingDay(uint256 _proposalId) public view returns(uint256 day) {
+        day = _proposalVotes[_proposalId].user[_msgSender()].votingDay;
     }
 
     /**
