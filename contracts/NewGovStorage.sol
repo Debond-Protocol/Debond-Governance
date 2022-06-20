@@ -26,33 +26,12 @@ abstract contract NewGovStorage is INewGovernance {
     address public voteTokenContract;
     address public govSettingsContract;
 
+    uint256 internal benchmarkInterestRate;
     uint256 public interestRateForStakingDGOV;
-    uint256 constant public NUMBER_OF_SECONDS_IN_DAY = 1 days;
-
+    uint256 internal _proposalThreshold;
+    uint256 constant public NUMBER_OF_SECONDS_IN_DAY = 31536000;
 
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
-
-    /**
-     * @dev Emitted when a proposal is created.
-     */
-     event ProposalCreated(
-        uint128 class,
-        uint128 nonce,
-        uint256 proposalId,
-        uint256 startVoteTime,
-        uint256 endVoteTime,
-        address proposer,
-        address[] targets,
-        uint256[] values,
-        bytes[] calldatas,
-        string description,
-        ProposalApproval approval
-    );
-
-    /**
-    * @dev Emitted when a proposal is executed
-    */
-    event ProposalExecuted(uint256 proposalId);
 
     modifier onlyDebondOperator {
         require(msg.sender == debondOperator, "Gov: Need rights");

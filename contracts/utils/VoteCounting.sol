@@ -95,7 +95,7 @@ contract VoteCounting is GovSharedStorage {
     ) internal view returns(bool reached) {
         ProposalVote storage proposalVote = _proposalVotes[_proposalId];
 
-        reached = _quorum(_proposalId) <= proposalVote.forVotes + proposalVote.abstainVotes;
+        reached =  proposalVote.forVotes + proposalVote.abstainVotes >= _quorum(_proposalId);
     }
 
     /**

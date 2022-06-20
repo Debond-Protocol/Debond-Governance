@@ -38,6 +38,28 @@ interface INewGovernance {
         VoteAndVeto
     }
 
+        /**
+     * @dev Emitted when a proposal is created.
+     */
+     event ProposalCreated(
+        uint128 class,
+        uint128 nonce,
+        uint256 proposalId,
+        uint256 startVoteTime,
+        uint256 endVoteTime,
+        address proposer,
+        address[] targets,
+        uint256[] values,
+        bytes[] calldatas,
+        string description,
+        ProposalApproval approval
+    );
+
+    /**
+    * @dev Emitted when a proposal is executed
+    */
+    event ProposalExecuted(uint256 proposalId);
+
     /**
     * @dev create a proposal onchain
     * @param _class proposal class
@@ -76,6 +98,4 @@ interface INewGovernance {
     * @dev return the governance address
     */
     function getGovernance() external view returns(address);
-
-
 }

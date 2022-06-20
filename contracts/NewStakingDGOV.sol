@@ -30,7 +30,7 @@ contract NewStakingDGOV is INewStaking {
 
     // key1: staker address, key2: staking rank of the staker
     mapping(address => mapping(uint256 => StackedDGOV)) internal stackedDGOV;
-    mapping(address => uint256) stakingCounter;
+    mapping(address => uint256) public stakingCounter;
 
     event dgovStacked(address staker, uint256 amount, uint256 counter);
     event dgovUnstacked(address staker, uint256 amount, uint256 counter);
@@ -38,7 +38,7 @@ contract NewStakingDGOV is INewStaking {
     uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
 
     address public dGov;
-    address public voteToken; 
+    address public voteToken;
     
     IERC20 IdGov;
     IVoteToken Ivote;
@@ -112,7 +112,7 @@ contract NewStakingDGOV is INewStaking {
     * @dev calculate the interest earned by DGOV staker
     * @param _staker DGOV staker
     * @param _stakingCounter the staking rank
-    * @param _interestRate interest rate
+    * @param _interestRate interest rate (in ether unit: 1E+18)
     */
     function calculateInterestEarned(
         address _staker,
@@ -122,7 +122,7 @@ contract NewStakingDGOV is INewStaking {
         StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
         require(_staked.amountDGOV > 0, "Staking: not dGoV staked");
 
-        interest = (_interestRate * _staked.duration * 1 ether) / NUMBER_OF_SECONDS_IN_YEAR;
+        interest = (_interestRate * _staked.duration * 1 ether) / (100 * NUMBER_OF_SECONDS_IN_YEAR);
     }
 
     /**

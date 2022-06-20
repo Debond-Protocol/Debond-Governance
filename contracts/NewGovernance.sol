@@ -23,6 +23,7 @@ import "./interfaces/IVoteToken.sol";
 import "./interfaces/IGovSettings.sol";
 import "./interfaces/INewStaking.sol";
 import "./interfaces/IGovernance.sol";
+import "./interfaces/INewExecutable.sol";
 import "./interfaces/INewGovernance.sol";
 import "./test/DBIT.sol";
 import "./Pausable.sol";
@@ -30,7 +31,7 @@ import "./Pausable.sol";
 /**
 * @author Samuel Gwlanold Edoumou (Debond Organization)
 */
-contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable {
+contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, ReentrancyGuard, Pausable {
     constructor(
         address _dgovContract,
         address _dbitContract,
@@ -44,7 +45,13 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         voteTokenContract = _voteTokenContract;
         govSettingsContract = _govSettingsContract;
 
+        // in percent
+        benchmarkInterestRate = 5;
+        // in percent
         interestRateForStakingDGOV = 5;
+
+        // proposal threshold for proposer
+        _proposalThreshold = 10 ether;
 
         // proposal class info
         proposalClassInfo[0][0] = 3;
@@ -86,13 +93,18 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         string memory _description
     ) public returns(uint128 nonce, uint256 proposalId) {
         require(
+            IVoteToken(voteTokenContract).availableBalance(_msgSender()) >= 10 ether,
+            "Gov: insufficient vote tokens"
+        );
+
+        require(
             _targets.length == _values.length &&
             _values.length == _calldatas.length,
             "Gov: invalid proposal"
         );
 
         nonce = _generateNewNonce(_class);
-        ProposalApproval approval = _approvalMode(_class);
+        ProposalApproval approval = getApprovalMode(_class);
 
         proposalId = _hashProposal(
             _class,
@@ -168,6 +180,37 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
 
         _execute(_targets, _values, _calldatas);
     }
+
+    function cancelProposition(
+        uint128 _class,
+        uint128 _nonce,
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        bytes32 _descriptionHash
+    ) public {
+        uint256 proposalId = _hashProposal(
+            _class,
+            _nonce,
+            _targets,
+            _values,
+            _calldatas,
+            _descriptionHash
+        );
+
+        ProposalStatus status = getProposalStatus(
+            _class,
+            _nonce,
+            proposalId
+        );
+
+        require(
+            status != ProposalStatus.Canceled &&
+            status != ProposalStatus.Executed
+        );
+
+        proposal[_class][_nonce].status = ProposalStatus.Canceled;
+    }
     
     /**
     * @dev internal execution mechanism
@@ -208,13 +251,15 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         uint128 nonce = proposalNonce[class];
 
         uint256 _dgovStaked = INewStaking(stakingContract).getStakedDGOV(_tokenOwner, _stakingCounter);
+        /* ToDo: Check this part
         uint256 approvedToSpend = IERC20(dgovContract).allowance(_tokenOwner, voter);
-
+        
         require(
             _amountVoteTokens <= _dgovStaked &&
             _amountVoteTokens <= approvedToSpend,
             "Gov: not approved or not enough dGoV staked"
         );
+        */
         require(
             _amountVoteTokens <= 
             IERC20(voteTokenContract).balanceOf(_tokenOwner) - 
@@ -253,14 +298,18 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
             _stakingCounter
         );
 
+        // the interest calculated from this function is in ether unit
         uint256 interest = INewStaking(stakingContract).calculateInterestEarned(
             staker,
             _stakingCounter,
             interestRateForStakingDGOV
         );
 
-        // transfer DBIT interests to the staker
-        IERC20(dbitContract).transferFrom(dbitContract, staker, amountStaked * interest);
+        // CHECK WITH YU THE ORIGIN OF DBIT TO TRANSFER
+        // ToDo: CHAGE THIS
+        // transfer DBIT interests to the staker - the interest is in ether unit
+        //IERC20(dbitContract).transferFrom(dbitContract, staker, amountStaked * interest / 1 ether);
+        IERC20(dbitContract).transfer(staker, amountStaked * interest / 1 ether);
 
         unstaked = true;
     }
@@ -357,6 +406,18 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
     }
 
     /**
+    * @dev return a proposal structure
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    */
+    function getProposal(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(Proposal memory) {
+        return proposal[_class][_nonce];
+    }
+
+    /**
     * @dev return the proposal status
     * @param _class proposal class
     * @param _nonce proposal nonce
@@ -378,11 +439,11 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
             return ProposalStatus.Executed;
         }
 
-        if (_proposal.startTime >= block.timestamp) {
+        if (block.timestamp < _proposal.startTime) {
             return ProposalStatus.Pending;
         }
 
-        if (_proposal.endTime >= block.timestamp) {
+        if (block.timestamp <= _proposal.endTime) {
             return ProposalStatus.Active;
         }
 
@@ -392,6 +453,15 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
             return ProposalStatus.Defeated;
         }
     }
+
+    //=========================
+    //REMOVE THIS TEST FUNCTION
+    //=========================
+    uint256 count;
+    function test() public {
+        count = count + 1;
+    }
+    //=========================
 
     /**
     * @dev set the vote quorum for a given class (it's a percentage)
@@ -417,6 +487,21 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
     }
 
     /**
+    * @dev change the proposal proposal threshold
+    * @param _newThreshold new proposal threshold
+    */
+    function setProposalThreshold(uint256 _newThreshold) public {
+        _proposalThreshold = _newThreshold;
+    }
+
+    /**
+    * @dev return the proposal threshold
+    */
+    function getProposalThreshold() public view returns(uint256) {
+        return _proposalThreshold;
+    }
+
+    /**
     * @dev get the user voting date
     * @param _proposalId proposal Id
     * @param day voting day
@@ -435,7 +520,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         uint256 _amount,
         uint256 _duration
     ) external view returns(uint256 interest) {
-        interest = _amount * (interestRateForStakingDGOV * _duration / NUMBER_OF_SECONDS_IN_DAY);
+        interest = (_amount * interestRateForStakingDGOV * _duration) / (100 * NUMBER_OF_SECONDS_IN_DAY);
     }
 
     /**
@@ -481,9 +566,9 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
     * @dev returns the proposal approval mode according to the proposal class
     * @param _class proposal class
     */
-    function _approvalMode(
+    function getApprovalMode(
         uint128 _class
-    ) internal pure returns(ProposalApproval unsassigned) {
+    ) public pure returns(ProposalApproval unsassigned) {
         if (_class == 0 || _class == 1) {
             return ProposalApproval.Approve;
         }
@@ -494,10 +579,21 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
     }
 
     /**
+    * @dev initialise all contracts
+    */
+    function initialize(address _governance) public {
+        governance = _governance;
+    }
+
+    /**
     * @dev return the governance contract address
     */
     function getGovernance() public view returns(address) {
         return governance;
+    }
+
+    function getBenchmarkIR() public view returns(uint256) {
+        return benchmarkInterestRate;
     }
 
     /**
@@ -533,6 +629,18 @@ contract NewGovernance is NewGovStorage, VoteCounting, ReentrancyGuard, Pausable
         uint256 votingDay = _proposalVotes[_proposal.id].user[_voter].votingDay;
 
         numberOfDay = (proposalDurationInDay - votingDay) + 1;
+    }
+
+    
+    /****************************************************************************
+    *                          Executable functions
+    ****************************************************************************/
+    function updateBenchmarkInterestRate(
+        uint256 _newBenchmarkInterestRate
+    ) public returns(bool) {
+        benchmarkInterestRate = _newBenchmarkInterestRate;
+
+        return true;
     }
 
 }

@@ -34,12 +34,12 @@ contract Proposal {
         require(gov.getGovernance() == governance, "Proposal: invalid Gov");
 
         gov.createProposal(
-            _class, _targets,
+            _class,
+            _targets,
             _values,
             _calldatas,
             _description
         );
-        
     }
 
     function execute(
@@ -54,8 +54,10 @@ contract Proposal {
         require(gov.getGovernance() == governance, "Proposal: invalid Gov");
 
         gov.executeProposal(
-            _class, _nonce,
-            _targets, _values,
+            _class,
+            _nonce,
+            _targets,
+            _values,
             _calldatas,
             _descriptionHash
         );

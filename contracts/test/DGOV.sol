@@ -19,7 +19,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 
-interface IDebondToken  {
+interface IDebondTokenDGOV  {
     function totalSupply() external view returns (uint256);
 
     function airdropedSupply() external view returns (uint256);
@@ -50,12 +50,12 @@ interface IDebondToken  {
     function setAirdroppedSupply(uint256 new_supply) external returns(bool); 
 }
 
-interface ICollateral {
+interface ICollateralDGOV {
     function collaterisedSupply() external view returns (uint);
 }
 
 
-contract DGOV is ERC20, IDebondToken, AccessControl, ICollateral {
+contract DGOV is ERC20, IDebondTokenDGOV, AccessControl, ICollateralDGOV {
     // this minter role will be for airdropToken , bank or the governance Contract
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     uint256 public _collateralisedSupply;
@@ -86,7 +86,7 @@ contract DGOV is ERC20, IDebondToken, AccessControl, ICollateral {
         public
         view
         virtual
-        override(ERC20, IDebondToken)
+        override(ERC20, IDebondTokenDGOV)
         returns (uint256)
     {
         return
@@ -137,7 +137,7 @@ contract DGOV is ERC20, IDebondToken, AccessControl, ICollateral {
     function collaterisedSupply()
         external
         view
-        override(ICollateral, IDebondToken)
+        override(ICollateralDGOV, IDebondTokenDGOV)
         returns (uint256)
     {
         return _collateralisedSupply;

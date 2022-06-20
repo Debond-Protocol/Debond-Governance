@@ -85,4 +85,11 @@ interface IVoteToken {
         uint256 _amount,
         uint256 _proposalId
     ) external;
+
+    /**
+    * @dev return the available vote token balance of an account
+    */
+    function availableBalance(
+        address _account
+    ) external view returns(uint256);
 }

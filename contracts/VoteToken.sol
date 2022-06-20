@@ -21,6 +21,7 @@ import "./interfaces/IVoteToken.sol";
 contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     // key1: user address, key2: proposalId
     mapping(address => mapping(uint256 => uint256)) private _lockedBalance;
+    mapping(address => uint256) private _availableBalance;
 
     address debondOperator;
     address govAddress;
@@ -54,6 +55,14 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     }
 
     /**
+    * @dev return the available vote token balance of an account:
+    *      available = balanOf(_account) - sum of lockedBalanceOf(_account, id)
+    */
+    function availableBalance(address _account) public view returns(uint256) {
+        return _availableBalance[_account];
+    }
+
+    /**
     * @dev lock vote tokens
     * @param _owner owner address of vote tokens
     * @param _spender spender address of vote tokens
@@ -71,11 +80,12 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
             "VoteToken: not enough tokens"
         );
 
-        if (_owner == _spender) {
+        if (_owner != _spender) {
             _spendAllowance(_owner, _spender, _amount);
         }
         
         _lockedBalance[_owner][_proposalId] += _amount;
+        _availableBalance[_owner] = balanceOf(_owner) - _amount;
     }
 
     /**
@@ -95,6 +105,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         );
 
         _lockedBalance[_owner][_proposalId] -= _amount;
+        _availableBalance[_owner] = balanceOf(_owner) + _amount;
     }
 
     /**
@@ -110,6 +121,8 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
 
         address owner = _msgSender();
         _transfer(owner, _to, _amount);
+        _availableBalance[owner] = balanceOf(owner);
+        _availableBalance[_to] = balanceOf(_to);
         return true;
     }
 
@@ -132,6 +145,8 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         address spender = _msgSender();
         _spendAllowance(_from, spender, _amount);
         _transfer(_from, _to, _amount);
+        _availableBalance[_from] = balanceOf(_from);
+        _availableBalance[_to] = balanceOf(_to);
         return true;
     }
 
@@ -142,6 +157,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     */
     function mintVoteToken(address _user, uint256 _amount) external nonReentrant() {
         _mint(_user, _amount);
+        _availableBalance[_user] = balanceOf(_user);
     }
 
     /**
@@ -151,6 +167,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     */
     function burnVoteToken(address _user, uint256 _amount) external nonReentrant() {
         _burn(_user, _amount);
+        _availableBalance[_user] = balanceOf(_user);
     }
 
     /**
