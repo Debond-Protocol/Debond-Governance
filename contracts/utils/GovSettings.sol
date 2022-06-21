@@ -31,19 +31,19 @@ contract GovSettings is IGovSettings {
         _votingPeriod = _initialVotingPeriod;
     }
 
-    function votingDelay() public view returns(uint256) {
+    function votingDelay() public view override returns(uint256) {
         return _votingDelay;
     }
 
-    function votingPeriod() public view returns(uint256) {
+    function votingPeriod() public view override returns(uint256) {
         return _votingPeriod;
     }
 
-    function setVotingDelay(uint256 _newDelay) public {
+    function setVotingDelay(uint256 _newDelay) public override {
         _setVotingDelay(_newDelay);
     }
 
-    function setVotingPeriod(uint256 _newPeriod) public {
+    function setVotingPeriod(uint256 _newPeriod) public override {
         _setVotingPeriod(_newPeriod);
     }
 

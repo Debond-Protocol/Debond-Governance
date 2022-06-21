@@ -98,12 +98,12 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
     /**
     * @dev return the the total allocated supplly
     */
-    function allocatedSupply() public view returns (uint256) {
+    function allocatedSupply() public view override returns (uint256) {
         return _allocatedSupply;
     }
 
     // just an contract for formality given that current version doesnt have to be minted for DBIT.
-    function airdropedSupply() public view returns (uint256) {
+    function airdropedSupply() public view override returns (uint256) {
         return _airdroppedSupply;
     }
 
@@ -112,7 +112,7 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
     * @param _user the user address
     * @param balance collateralized balance of `_user`
     */
-    function collateralisedBalance(address _user) public view returns(uint256 balance) {
+    function collateralisedBalance(address _user) public view override returns(uint256 balance) {
         balance = _collateralisedBalance[_user];
     }
 
@@ -121,7 +121,7 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
     * @param _user the user address
     * @param balance airdrop balance of `_user`
     */
-    function airdroppedBalance(address _user) public view returns(uint256 balance) {
+    function airdroppedBalance(address _user) public view override returns(uint256 balance) {
         balance = _airdroppedBalance[_user];
     }
 
@@ -130,7 +130,7 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
     * @param _user the user address
     * @param balance allocated balance of `_user`
     */
-    function allocatedBalance(address _user) public view returns(uint256 balance) {
+    function allocatedBalance(address _user) public view override returns(uint256 balance) {
         balance = _allocatedBalance[_user];
     }
 
@@ -238,7 +238,7 @@ contract DBIT is ERC20, IDebondToken, AccessControl, ICollateral {
     return (true);
 }
 
-     function setAirdroppedSupply(uint256 new_supply) public returns (bool) {
+     function setAirdroppedSupply(uint256 new_supply) public override returns (bool) {
         require(
             hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
             "DBIT: ACCESS DENIED "

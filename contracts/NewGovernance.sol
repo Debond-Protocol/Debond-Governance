@@ -91,7 +91,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
         uint256[] memory _values,
         bytes[] memory _calldatas,
         string memory _description
-    ) public returns(uint128 nonce, uint256 proposalId) {
+    ) public override returns(uint128 nonce, uint256 proposalId) {
         require(
             IVoteToken(voteTokenContract).availableBalance(_msgSender()) >= 10 ether,
             "Gov: insufficient vote tokens"
@@ -153,7 +153,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
         uint256[] memory _values,
         bytes[] memory _calldatas,
         bytes32 _descriptionHash
-    ) public returns(uint256 proposalId) {
+    ) public override returns(uint256 proposalId) {
         proposalId = _hashProposal(
             _class,
             _nonce,
@@ -251,15 +251,14 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
         uint128 nonce = proposalNonce[class];
 
         uint256 _dgovStaked = INewStaking(stakingContract).getStakedDGOV(_tokenOwner, _stakingCounter);
-        /* ToDo: Check this part
         uint256 approvedToSpend = IERC20(dgovContract).allowance(_tokenOwner, voter);
-        
+
         require(
             _amountVoteTokens <= _dgovStaked &&
             _amountVoteTokens <= approvedToSpend,
             "Gov: not approved or not enough dGoV staked"
         );
-        */
+
         require(
             _amountVoteTokens <= 
             IERC20(voteTokenContract).balanceOf(_tokenOwner) - 
@@ -439,7 +438,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
             return ProposalStatus.Executed;
         }
 
-        if (block.timestamp < _proposal.startTime) {
+        if (block.timestamp <= _proposal.startTime) {
             return ProposalStatus.Pending;
         }
 
@@ -588,7 +587,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
     /**
     * @dev return the governance contract address
     */
-    function getGovernance() public view returns(address) {
+    function getGovernance() public view override returns(address) {
         return governance;
     }
 
@@ -637,7 +636,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
     ****************************************************************************/
     function updateBenchmarkInterestRate(
         uint256 _newBenchmarkInterestRate
-    ) public returns(bool) {
+    ) public override returns(bool) {
         benchmarkInterestRate = _newBenchmarkInterestRate;
 
         return true;

@@ -63,7 +63,7 @@ contract NewStakingDGOV is INewStaking {
         address _staker,
         uint256 _amount,
         uint256 _duration
-    ) external {
+    ) external override {
         uint256 stakerBalance = IdGov.balanceOf(_staker);
         require(_amount <= stakerBalance, "Debond: not enough dGov");
 
@@ -88,7 +88,7 @@ contract NewStakingDGOV is INewStaking {
     function unstakeDgovToken(
         address _staker,
         uint256 _stakingCounter
-    ) external returns(uint256 unstakedAmount) {
+    ) external override returns(uint256 unstakedAmount) {
         StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
 
         require(
@@ -118,7 +118,7 @@ contract NewStakingDGOV is INewStaking {
         address _staker,
         uint256 _stakingCounter,
         uint256 _interestRate
-    ) external view returns(uint256 interest) {
+    ) external view override returns(uint256 interest) {
         StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
         require(_staked.amountDGOV > 0, "Staking: not dGoV staked");
 
@@ -131,7 +131,7 @@ contract NewStakingDGOV is INewStaking {
     * @param _stakingCounter the staking rank
     * @param _stakedAmount amount of dGoV staked by the user
     */
-    function getStakedDGOV(address _staker, uint256 _stakingCounter) external view returns(uint256 _stakedAmount) {
+    function getStakedDGOV(address _staker, uint256 _stakingCounter) external view override returns(uint256 _stakedAmount) {
         _stakedAmount = stackedDGOV[_staker][_stakingCounter].amountDGOV;
     }
 }

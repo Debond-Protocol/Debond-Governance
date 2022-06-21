@@ -50,7 +50,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @param _account user account address
     * @param _proposalId proposal Id
     */
-    function lockedBalanceOf(address _account, uint256 _proposalId) public view returns(uint256) {
+    function lockedBalanceOf(address _account, uint256 _proposalId) public view override returns(uint256) {
         return _lockedBalance[_account][_proposalId];
     }
 
@@ -58,7 +58,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @dev return the available vote token balance of an account:
     *      available = balanOf(_account) - sum of lockedBalanceOf(_account, id)
     */
-    function availableBalance(address _account) public view returns(uint256) {
+    function availableBalance(address _account) public view override returns(uint256) {
         return _availableBalance[_account];
     }
 
@@ -74,7 +74,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         address _spender,
         uint256 _amount,
         uint256 _proposalId
-    ) public {
+    ) public override {
         require(
             _amount <= balanceOf(_owner),
             "VoteToken: not enough tokens"
@@ -98,7 +98,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         address _owner,
         uint256 _amount,
         uint256 _proposalId
-    ) public {
+    ) public override {
         require(
             _amount <= _lockedBalance[_owner][_proposalId],
             "VoteToken: not enough tokens locked"
@@ -155,7 +155,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @param _user the user address
     * @param _amount the amount of tokens to mint
     */
-    function mintVoteToken(address _user, uint256 _amount) external nonReentrant() {
+    function mintVoteToken(address _user, uint256 _amount) external override nonReentrant() {
         _mint(_user, _amount);
         _availableBalance[_user] = balanceOf(_user);
     }
@@ -165,7 +165,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @param _user the user address
     * @param _amount the amount of tokens to burn
     */
-    function burnVoteToken(address _user, uint256 _amount) external nonReentrant() {
+    function burnVoteToken(address _user, uint256 _amount) external override nonReentrant() {
         _burn(_user, _amount);
         _availableBalance[_user] = balanceOf(_user);
     }
@@ -174,7 +174,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @dev set the governance contract address
     * @param _governance governance contract address
     */
-    function setGovernanceContract(address _governance) external onlyDebondOperator {
+    function setGovernanceContract(address _governance) external override onlyDebondOperator {
         govAddress = _governance;
     }
 
@@ -190,7 +190,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @dev set the stakingDGOV contract address
     * @param _stakingDGOV stakingDGOV contract address
     */
-    function setStakingDGOVContract(address _stakingDGOV) external {
+    function setStakingDGOVContract(address _stakingDGOV) external override {
         stakingDGOV = _stakingDGOV;
     }
 

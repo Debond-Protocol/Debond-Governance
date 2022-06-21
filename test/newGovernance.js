@@ -10,6 +10,7 @@ const VoteToken = artifacts.require("VoteToken");
 const NewStakingDGOV = artifacts.require("NewStakingDGOV");
 const GovSettings = artifacts.require("GovSettings");
 const NewGovernance = artifacts.require("NewGovernance");
+const VoteCounting = artifacts.require("VoteCounting");
 
 contract("Governance", async (accounts) => {
     let dbit;
@@ -18,6 +19,7 @@ contract("Governance", async (accounts) => {
     let vote;
     let settings;
     let gov;
+    let count;
     let proposal;
 
     let operator = accounts[0];
@@ -30,6 +32,7 @@ contract("Governance", async (accounts) => {
     beforeEach(async () => {
         dbit = await DBIT.new();
         dgov = await DGOV.new();
+        count = await VoteCounting.new();
         vote = await VoteToken.new("Debond Vote Token", "DVT", operator);
         stak = await NewStakingDGOV.new(dgov.address, vote.address);
         settings = await GovSettings.new(2, 3);
@@ -242,26 +245,41 @@ contract("Governance", async (accounts) => {
         );
 
         let event = res.logs[0].args;
-        let nonce = res.logs[0].args.nonce;
-        let proposal = await gov.getProposal(_class, nonce);
+        let proposalId = event.proposalId;
 
-        console.log('t1', proposal.startTime.toString());
-        console.log('t2', proposal.endTime.toString());
-
-        //await wait(3000);
-        //let status = await gov.getProposalStatus(_class, event.nonce, event.proposalId);
-
+        await gov.test();
         await wait(3000);
         await gov.test();
-        await gov.vote(event.proposalId, user1, 0, amountToStake, 1, {from: user1});
-        await gov.vote(event.proposalId, user2, 1, amountToStake, 1, {from: user2});
-        await gov.vote(event.proposalId, user3, 0, amountToStake, 1, {from: user3});
-        await wait(4000);
-        await gov.test();
-        let status = await gov.getProposalStatus(_class, event.nonce, event.proposalId);
 
-        console.log(status.toString());
-    })
+        await gov.vote(proposalId, user1, 0, amountToStake, 1, {from: user1});
+        await gov.vote(proposalId, user2, 1, amountToStake, 1, {from: user2});
+        await gov.vote(proposalId, user3, 0, amountToStake, 1, {from: user3});
+        
+        await wait(3000);
+        await gov.test();
+        
+        let status = await gov.getProposalStatus(_class, event.nonce, event.proposalId);
+        let benchmark = await gov.getBenchmarkIR();
+
+        // Execute a proposal
+        let descHash = web3.utils.keccak256(desc);
+        console.log("benchmark bef:", benchmark.toString());
+
+        await gov.executeProposal(
+            _class,
+            event.nonce,
+            [gov.address],
+            [0],
+            [callData],
+            descHash,
+            {from: operator}
+        );
+
+        benchmark = await gov.getBenchmarkIR();
+        console.log("benchmark aft:", benchmark.toString());
+
+        expect(status.toString()).to.equal(4 + '');
+    });
 })
 
 

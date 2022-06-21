@@ -79,10 +79,22 @@ contract VoteCounting is GovSharedStorage {
 
         (forVotes, againstVotes, abstainVotes) = 
         (
-            proposalVote.forVotes,
+            _proposalVotes[_proposalId].forVotes,
             proposalVote.againstVotes,
             proposalVote.abstainVotes
         );
+    }
+
+    /**
+    * @dev return the User struct
+    * @param _proposalId proposal Id
+    * @param _account user account address
+    */
+    function getUserInfo(
+        uint256 _proposalId,
+        address _account
+    ) public view returns(User memory) {
+        return _proposalVotes[_proposalId].user[_account];
     }
 
     /**
@@ -132,6 +144,7 @@ contract VoteCounting is GovSharedStorage {
         );
 
         proposalVote.user[_account].hasVoted = true;
+        proposalVote.user[_account].weight = uint8(_weight);
 
         if (_vote == uint8(VoteType.For)) {
             proposalVote.forVotes += _weight;
@@ -142,8 +155,6 @@ contract VoteCounting is GovSharedStorage {
         } else {
             revert("VoteCounting: invalid vote");
         }
-
-        proposalVote.user[_account].weight = uint8(_weight);
     }
 
     function _quorum(
@@ -158,9 +169,5 @@ contract VoteCounting is GovSharedStorage {
             proposalVote.againstVotes +
             proposalVote.abstainVotes
         ) / 100;
-    }
-
-    function _getVotingDay(uint256 _proposalId) internal view returns(uint256 day) {
-
     }
 }
