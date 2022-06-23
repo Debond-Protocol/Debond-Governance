@@ -17,8 +17,17 @@ pragma solidity ^0.8.0;
 import "./interfaces/INewGovernance.sol";
 
 abstract contract NewGovStorage is INewGovernance {
+    struct AllocatedToken {
+        uint256 allocatedDBITMinted;
+        uint256 allocatedDGOVMinted;
+        uint256 dbitAllocationPPM;
+        uint256 dgovAllocationPPM;
+    }
+
     address public debondOperator;
+    address public debondTeam;
     address public governance;
+    address public exchangeContract;
     address public bankContract;
     address public dgovContract;
     address public dbitContract;
@@ -26,12 +35,18 @@ abstract contract NewGovStorage is INewGovernance {
     address public voteTokenContract;
     address public govSettingsContract;
 
+    uint256 public dbitBudgetPPM;
+    uint256 public dgovBudgetPPM;
+    uint256 public dbitAllocationDistibutedPPM;
+    uint256 public dgovAllocationDistibutedPPM;
+
     uint256 internal benchmarkInterestRate;
     uint256 public interestRateForStakingDGOV;
     uint256 internal _proposalThreshold;
     uint256 constant public NUMBER_OF_SECONDS_IN_DAY = 31536000;
 
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
+    mapping(address => AllocatedToken) allocatedToken;
 
     modifier onlyDebondOperator {
         require(msg.sender == debondOperator, "Gov: Need rights");

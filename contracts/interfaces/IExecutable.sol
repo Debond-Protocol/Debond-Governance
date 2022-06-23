@@ -91,10 +91,10 @@ interface IExecutable {
 
     //change the percentage of token that can be minted as allocation, start from 10%,
     function changeCommunityFundSize(
-        uint128 poposalClass,
-        uint128 proposalNonce,
-        uint256 newDBITBudgetPPM,
-        uint256 newDGOVBudgetPPM
+        uint128 _poposalClass,
+        uint128 _proposalNonce,
+        uint256 _newDBITBudgetPPM,
+        uint256 _newDGOVBudgetPPM
     ) external returns(bool);
 
     //Update benchmark intrest rate

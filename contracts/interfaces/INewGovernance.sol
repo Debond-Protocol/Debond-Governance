@@ -19,6 +19,7 @@ interface INewGovernance {
         uint256 id;
         uint256 startTime;
         uint256 endTime;
+        address proposer;
         ProposalStatus status;
         ProposalApproval approvalMode;
     }

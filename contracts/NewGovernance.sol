@@ -37,13 +37,21 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
         address _dbitContract,
         address _stakingContract,
         address _voteTokenContract,
-        address _govSettingsContract
+        address _govSettingsContract,
+        address _debondTeam
     ) {
         dgovContract = _dgovContract;
         dbitContract = _dbitContract;
         stakingContract = _stakingContract;
         voteTokenContract = _voteTokenContract;
         govSettingsContract = _govSettingsContract;
+
+        debondTeam = _debondTeam;
+
+        dbitBudgetPPM = 1e5 * 1 ether;
+        dgovBudgetPPM = 1e5 * 1 ether;
+        allocatedToken[debondTeam].dbitAllocationPPM = 4e4 * 1 ether;
+        allocatedToken[debondTeam].dgovAllocationPPM = 8e4 * 1 ether;
 
         // in percent
         benchmarkInterestRate = 5;
@@ -122,6 +130,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
         proposal[_class][nonce].id = proposalId;
         proposal[_class][nonce].startTime = _start;
         proposal[_class][nonce].endTime = _end;
+        proposal[_class][nonce].proposer = _msgSender();
         proposal[_class][nonce].approvalMode = approval;
 
         proposalClass[proposalId] = _class;
@@ -132,7 +141,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
             proposalId,
             _start,
             _end,
-            msg.sender,
+            _msgSender(),
             _targets,
             _values,
             _calldatas,
@@ -154,6 +163,11 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
         bytes[] memory _calldatas,
         bytes32 _descriptionHash
     ) public override returns(uint256 proposalId) {
+        require(
+            _msgSender() == proposal[_class][_nonce].proposer,
+            "Gov: permission denied"
+        );
+
         proposalId = _hashProposal(
             _class,
             _nonce,
@@ -453,14 +467,14 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
         }
     }
 
-    //=========================
-    //REMOVE THIS TEST FUNCTION
-    //=========================
+    //============================
+    //REMOVE THIS TESTING FUNCTION
+    //============================
     uint256 count;
     function test() public {
         count = count + 1;
     }
-    //=========================
+    //============================
 
     /**
     * @dev set the vote quorum for a given class (it's a percentage)
@@ -634,6 +648,46 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
     /****************************************************************************
     *                          Executable functions
     ****************************************************************************/
+    /**
+    * @dev update the governance contract
+    * @param _newGovernanceAddress new address for the Governance contract
+    */
+    function updateGovernanceContract(
+        address _newGovernanceAddress
+    ) public returns(bool) {
+        governance = _newGovernanceAddress;
+
+        return true;
+    }
+
+    /**
+    * @dev update the exchange contract
+    * @param _newExchangeAddress new address for the Exchange contract
+    */
+    function updateExchangeContract(
+        address _newExchangeAddress
+    ) public returns(bool) {
+        exchangeContract = _newExchangeAddress;
+
+        return true;
+    }
+
+    /**
+    * @dev update the bank contract
+    * @param _newBankAddress new address for the Bank contract
+    */
+    function updateBankContract(
+        address _newBankAddress
+    ) public returns(bool) {
+        bankContract = _newBankAddress;
+
+        return true;
+    }
+
+    /**
+    * @dev update the benchmark interest rate
+    * @param _newBenchmarkInterestRate new benchmark interest rate
+    */
     function updateBenchmarkInterestRate(
         uint256 _newBenchmarkInterestRate
     ) public override returns(bool) {
@@ -641,5 +695,55 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
 
         return true;
     }
+
+    /**
+    * @dev change the community fund size (DBIT, DGOV)
+    * @param _newDBITBudgetPPM new DBIT budget for community
+    * @param _newDGOVBudgetPPM new DGOV budget for community
+    */
+    function changeCommunityFundSize(
+        uint256 _newDBITBudgetPPM,
+        uint256 _newDGOVBudgetPPM
+    ) public returns(bool) {
+        dbitBudgetPPM = _newDBITBudgetPPM;
+        dgovBudgetPPM = _newDGOVBudgetPPM;
+
+        return true;
+    }
+
+    /**
+    * @dev change the team allocation - (DBIT, DGOV)
+    * @param _to the address that should receive the allocation tokens
+    * @param _newDBITPPM the new DBIT allocation
+    * @param _newDGOVPPM the new DGOV allocation
+    */
+    function changeTeamAllocation(
+        address _to,
+        uint256 _newDBITPPM,
+        uint256 _newDGOVPPM
+    ) public returns(bool) {
+        AllocatedToken memory _allocatedToken = allocatedToken[_to];
+        uint256 dbitAllocDistributedPPM = dbitAllocationDistibutedPPM;
+        uint256 dgovAllocDistributedPPM = dgovAllocationDistibutedPPM;
+
+        require(
+            dbitAllocDistributedPPM - _allocatedToken.dbitAllocationPPM + _newDBITPPM <= dbitBudgetPPM,
+            "Gov: too much"
+        );
+
+        require(
+            dgovAllocDistributedPPM - _allocatedToken.dgovAllocationPPM + _newDGOVPPM <= dgovBudgetPPM,
+            "Gov: too much"
+        );
+
+        dbitAllocationDistibutedPPM = dbitAllocDistributedPPM - allocatedToken[_to].dbitAllocationPPM + _newDBITPPM;
+        allocatedToken[_to].dbitAllocationPPM = _newDBITPPM;
+
+        dgovAllocationDistibutedPPM = dgovAllocDistributedPPM - allocatedToken[_to].dgovAllocationPPM + _newDGOVPPM;
+        allocatedToken[_to].dgovAllocationPPM = _newDGOVPPM;
+
+        return true;
+    }
+    //**************************************************************************/
 
 }
