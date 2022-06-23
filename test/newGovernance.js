@@ -304,6 +304,70 @@ contract("Governance", async (accounts) => {
         
     });
 
+    it.only("change the budget ppm", async () => {
+        let newDBITBudget = await web3.utils.toWei(web3.utils.toBN(5000000), 'ether');
+        let newDGOVBudget = await web3.utils.toWei(web3.utils.toBN(7000000), 'ether');
+
+        // create a proposal
+        let _class = 0;
+        let desc = "Propsal-1: Update the benchMark interest rate";
+        let callData = await gov.contract.methods.changeCommunityFundSize(
+            newDBITBudget,
+            newDGOVBudget
+        ).encodeABI();
+
+        await gov.initialize(gov.address);
+
+        let res = await gov.createProposal(
+            _class,
+            [gov.address],
+            [0],
+            [callData],
+            desc,
+            {from: operator}
+        );
+
+        let event = res.logs[0].args;
+        let proposalId = event.proposalId;
+
+        await gov.test();
+        await wait(3000);
+        await gov.test();
+
+        await gov.vote(proposalId, user1, 0, amountToStake, 1, {from: user1});
+        await gov.vote(proposalId, user2, 1, amountToStake, 1, {from: user2});
+        await gov.vote(proposalId, user3, 0, amountToStake, 1, {from: user3});
+
+        await wait(3000);
+        await gov.test();
+
+        let descHash = web3.utils.keccak256(desc);
+
+        await gov.executeProposal(
+            _class,
+            event.nonce,
+            [gov.address],
+            [0],
+            [callData],
+            descHash,
+            {from: operator}
+        );
+
+        let budget = await gov.getBudget();
+
+        console.log("dbit budget:", budget[0].toString());
+        console.log("dgov budget:", budget[1].toString());
+
+    });
+
+
+
+
+
+
+
+
+
     it("check a proposal didn't pass", async () => {
         // create a proposal
         let _class = 0;

@@ -644,6 +644,10 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
         numberOfDay = (proposalDurationInDay - votingDay) + 1;
     }
 
+    function getBudget() public view returns(uint256, uint256) {
+        return (dbitBudgetPPM, dgovBudgetPPM);
+    }
+
     
     /****************************************************************************
     *                          Executable functions
