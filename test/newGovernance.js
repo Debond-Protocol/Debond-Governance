@@ -25,6 +25,11 @@ contract("Governance", async (accounts) => {
     let amountToMint;
     let amountToStake;
 
+    let balanceUser1BeforeStake;
+    let balanceUser2BeforeStake;
+    let balanceUser3BeforeStake;
+    let balanceStakingContractBeforeStake;
+
     let operator = accounts[0];
     let debondTeam = accounts[1];
     let user1 = accounts[2];
@@ -75,6 +80,9 @@ contract("Governance", async (accounts) => {
         // set the bank contract address in DGOV
         await dgov.setBankContract(operator);
 
+        let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
+        await dbit.mintCollateralisedSupply(debondTeam, amount, {from: operator});
+        await dbit.transfer(gov.address, amount, {from: debondTeam});
 
         amountToMint = await web3.utils.toWei(web3.utils.toBN(200), 'ether');
         amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
@@ -92,6 +100,11 @@ contract("Governance", async (accounts) => {
         await dgov.approve(user2, amountToStake, {from: user2});
         await dgov.approve(user3, amountToStake, {from: user3});
         await dgov.approve(operator, amountToStake, {from: operator});
+
+        balanceUser1BeforeStake = await dgov.balanceOf(user1);
+        balanceUser2BeforeStake = await dgov.balanceOf(user1);
+        balanceUser3BeforeStake = await dgov.balanceOf(user1);
+        balanceStakingContractBeforeStake = await dgov.balanceOf(stak.address);
 
         await gov.stakeDGOV(amountToStake, 10, {from: user1});
         await gov.stakeDGOV(amountToStake, 10, {from: user2});
@@ -149,53 +162,38 @@ contract("Governance", async (accounts) => {
     });
 
     it("Stake DGOV tokens", async () => {
-        let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
-        let amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
+        let balanceUser1AfterStake = await dgov.balanceOf(user1);
+        let balanceStakingContractAfterStake = await dgov.balanceOf(stak.address);
 
-        await dgov.mintCollateralisedSupply(debondTeam, amount, {from: operator});
-        await dgov.transfer(user1, amount, {from: debondTeam});
-        await dgov.approve(stak.address, amountToStake, {from: user1});
-
-        let balanceBefore = await dgov.balanceOf(user1);
-        let balBefore = await dgov.balanceOf(stak.address);
-
-        await gov.stakeDGOV(amountToStake, 5, {from: user1});
-
-        let balanceAfter = await dgov.balanceOf(user1);
-        let balAfter = await dgov.balanceOf(stak.address);
-
-        expect(balanceAfter.toString())
-            .to.equal(
-                balanceBefore.sub(amountToStake).toString()
-            );
-
-        expect(balAfter.toString())
-            .to.equal(
-                balBefore.add(amountToStake).toString()
-            );
+        expect(
+            balanceUser1AfterStake.toString()
+        ).to.equal(
+            balanceUser1BeforeStake.sub(amountToStake).toString()
+        );
+            
+        expect(
+            Number(
+                balanceStakingContractAfterStake.toString()
+            )
+        ).to.equal(
+            Number(
+                balanceStakingContractBeforeStake
+                .add(
+                    amountToStake
+                ).toString()
+            ) * 4  
+        );
     });
 
     it("Ustake DGOV tokens", async () => {
-        let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
-        let amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
-
-        await dgov.mintCollateralisedSupply(debondTeam, amount, {from: operator});
-        await dgov.transfer(user1, amount, {from: debondTeam});
-        await dgov.approve(stak.address, amountToStake, {from: user1});
-
-        await dbit.mintCollateralisedSupply(debondTeam, amount, {from: operator});
-        await dbit.transfer(gov.address, amount, {from: debondTeam});
-
-        await gov.stakeDGOV(amountToStake, 2, {from: user1});
-
-        await wait(3000);
-
-        let balanceBefore = await dbit.balanceOf(user1);
         let balBefore = await dgov.balanceOf(user1);
         let balContractBefore = await dgov.balanceOf(stak.address);
 
+        await wait(12000);
+
         await gov.unstakeDGOV(1, {from: user1});
-        let estimate = await gov.estimateInterestEarned(amountToStake, 2);
+        let estimate = await gov.estimateInterestEarned(amountToStake, 10);
+
 
         let balanceAfter = await dbit.balanceOf(user1);
 
@@ -220,18 +218,6 @@ contract("Governance", async (accounts) => {
     });
 
     it('Cannot unstake DGOV before staking ends', async () => {
-        let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
-        let amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
-
-        await dgov.mintCollateralisedSupply(debondTeam, amount, {from: operator});
-        await dgov.transfer(user1, amount, {from: debondTeam});
-        await dgov.approve(stak.address, amountToStake, {from: user1});
-
-        await dbit.mintCollateralisedSupply(debondTeam, amount, {from: operator});
-        await dbit.transfer(gov.address, amount, {from: debondTeam});
-
-        await gov.stakeDGOV(amountToStake, 2, {from: user1});
-
         expect(gov.unstakeDGOV(1, {from: user1}))
             .to.rejectedWith(
                 Error,
@@ -239,7 +225,7 @@ contract("Governance", async (accounts) => {
             );
     });
 
-    it.only("let users vote for a proposal", async () => {
+    it("Chenge the benchmark interest rate", async () => {
         // create a proposal
         let _class = 0;
         let desc = "Propsal-1: Update the benchMark interest rate";
@@ -304,7 +290,7 @@ contract("Governance", async (accounts) => {
         
     });
 
-    it.only("change the budget ppm", async () => {
+    it("change the budget ppm", async () => {
         let newDBITBudget = await web3.utils.toWei(web3.utils.toBN(5000000), 'ether');
         let newDGOVBudget = await web3.utils.toWei(web3.utils.toBN(7000000), 'ether');
 
@@ -343,6 +329,12 @@ contract("Governance", async (accounts) => {
 
         let descHash = web3.utils.keccak256(desc);
 
+        let oldBudget = await web3.utils.toWei(web3.utils.toBN(100000), 'ether');
+        let budget = await gov.getBudget();
+
+        expect(budget[0].toString()).to.equal(oldBudget.toString());
+        expect(budget[1].toString()).to.equal(oldBudget.toString());
+
         await gov.executeProposal(
             _class,
             event.nonce,
@@ -353,20 +345,11 @@ contract("Governance", async (accounts) => {
             {from: operator}
         );
 
-        let budget = await gov.getBudget();
+        budget = await gov.getBudget();
 
-        console.log("dbit budget:", budget[0].toString());
-        console.log("dgov budget:", budget[1].toString());
-
+        expect(budget[0].toString()).to.equal(newDBITBudget.toString());
+        expect(budget[1].toString()).to.equal(newDGOVBudget.toString());
     });
-
-
-
-
-
-
-
-
 
     it("check a proposal didn't pass", async () => {
         // create a proposal
