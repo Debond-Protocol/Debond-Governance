@@ -32,21 +32,9 @@ import "./Pausable.sol";
 * @author Samuel Gwlanold Edoumou (Debond Organization)
 */
 contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, ReentrancyGuard, Pausable {
-    constructor(
-        address _dgovContract,
-        address _dbitContract,
-        address _stakingContract,
-        address _voteTokenContract,
-        address _govSettingsContract,
-        address _debondTeam
-    ) {
-        dgovContract = _dgovContract;
-        dbitContract = _dbitContract;
-        stakingContract = _stakingContract;
-        voteTokenContract = _voteTokenContract;
-        govSettingsContract = _govSettingsContract;
-
+    constructor(address _debondTeam) {
         debondTeam = _debondTeam;
+        debondOperator = _msgSender();
 
         dbitBudgetPPM = 1e5 * 1 ether;
         dgovBudgetPPM = 1e5 * 1 ether;
@@ -477,6 +465,16 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
     //============================
 
     /**
+    * @dev set a new address for debond operator
+    * @param _newDebondOperator new debond operator address
+    */
+    function setNewDebondOperator(address _newDebondOperator) public returns(bool) {
+        debondOperator = _newDebondOperator;
+
+        return true;
+    }
+
+    /**
     * @dev set the vote quorum for a given class (it's a percentage)
     * @param _class proposal class
     * @param _quorum the vote quorum
@@ -593,9 +591,37 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
 
     /**
     * @dev initialise all contracts
+    * @param _governance governance contract address
+    * @param _dgovContract dgov contract address
+    * @param _dbitContract dbit contract address
+    * @param _stakingContract staking contract address
+    * @param _voteContract vote contract address
+    * @param _settingsContrats governance settings contract address
+    * @param _bankContract bank contract address
+    * @param _exchangeContract exchange contract address
     */
-    function initialize(address _governance) public {
+    function initialize(
+        address _governance,
+        address _dgovContract,
+        address _dbitContract,
+        address _stakingContract,
+        address _voteContract,
+        address _settingsContrats,
+        address _bankContract,
+        address _exchangeContract
+    ) public onlyDebondOperator returns(bool) {
+        require(!initialized, "Gov: Already initialized");
+
         governance = _governance;
+        dgovContract = _dgovContract;
+        dbitContract = _dbitContract;
+        stakingContract = _stakingContract;
+        voteTokenContract = _voteContract;
+        govSettingsContract = _settingsContrats;
+        exchangeContract = _bankContract;
+        bankContract = _exchangeContract;
+
+        return true;
     }
 
     /**

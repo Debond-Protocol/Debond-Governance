@@ -53,14 +53,7 @@ contract("Governance", async (accounts) => {
         vote = await VoteToken.new("Debond Vote Token", "DVT", operator);
         stak = await NewStakingDGOV.new(dgov.address, vote.address);
         settings = await GovSettings.new(2, 3);
-        gov = await NewGovernance.new(
-            dgov.address,
-            dbit.address,
-            stak.address,
-            vote.address,
-            settings.address,
-            operator
-        );
+        gov = await NewGovernance.new(operator);
 
         // set the stakingDGOV contract address in Vote Token
         await vote.setStakingDGOVContract(stak.address);
@@ -79,6 +72,19 @@ contract("Governance", async (accounts) => {
 
         // set the bank contract address in DGOV
         await dgov.setBankContract(operator);
+
+        // initialize all contracts
+        await gov.initialize(
+            gov.address,
+            dgov.address,
+            dbit.address,
+            stak.address,
+            vote.address,
+            settings.address,
+            operator,
+            operator,
+            {from: operator}
+        );
 
         let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
         await dbit.mintCollateralisedSupply(debondTeam, amount, {from: operator});
@@ -118,8 +124,6 @@ contract("Governance", async (accounts) => {
         let callData = await gov.contract.methods.updateBenchmarkInterestRate(
             '10'
         ).encodeABI();
-
-        await gov.initialize(gov.address);
 
         let res = await gov.createProposal(
             _class,
@@ -233,8 +237,6 @@ contract("Governance", async (accounts) => {
             '10'
         ).encodeABI();
 
-        await gov.initialize(gov.address);
-
         let res = await gov.createProposal(
             _class,
             [gov.address],
@@ -302,8 +304,6 @@ contract("Governance", async (accounts) => {
             newDGOVBudget
         ).encodeABI();
 
-        await gov.initialize(gov.address);
-
         let res = await gov.createProposal(
             _class,
             [gov.address],
@@ -358,8 +358,6 @@ contract("Governance", async (accounts) => {
         let callData = await gov.contract.methods.updateBenchmarkInterestRate(
             '10'
         ).encodeABI();
-
-        await gov.initialize(gov.address);
 
         let res = await gov.createProposal(
             _class,

@@ -24,6 +24,8 @@ abstract contract NewGovStorage is INewGovernance {
         uint256 dgovAllocationPPM;
     }
 
+    bool public initialized;
+
     address public debondOperator;
     address public debondTeam;
     address public governance;
