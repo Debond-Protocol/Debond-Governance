@@ -18,26 +18,25 @@ interface IVoteToken {
     /**
     * @dev emitted when new virtual `voteToken` tokens are created
     */
-    event tokenMinted(address _user, uint256 _amount);
+    function mintVoteToken(
+        address _user,
+        uint256 _amount
+    ) external;
+
     /**
     * @dev emitted when new virtual `voteToken` tokens are burned
     */
-    event tokenBurned(address _user, uint256 _amount);
+    function burnVoteToken(
+        address _user,
+        uint256 _amount
+    ) external;
+
     /**
     * @dev emitted when new virtual `voteToken` tokens is transfered
     */
-    event voteTokenTransfered(address _from, address _to, uint256 _amount);
-    
-    /**
-    * @dev emitted when a new proposal is created
-    */
-    /**
-    * @dev mints  vote  tokens to the address of a user (those staking dGOV )
-    * @notice  to be called only by the stakingContract.stakedGOV() to mint tokens after calculation of rewards
-    * @param _user address of the user intended to get VoteToken
-    * @param _amount is the amount of tokens to be received
-    */
-    function mintVoteToken(address _user, uint256 _amount) external;
+    function setGovernanceContract(
+        address _governance
+    ) external;
 
     /**
     * @dev burns vote Token tokens from the address of a user . 
@@ -45,7 +44,9 @@ interface IVoteToken {
     * @param _user address of the user intended to get dGOV token . 
     * @param _amount is the amount of tokens to be received
     */
-    function burnVoteToken(address _user, uint256 _amount) external;
+    function setStakingDGOVContract(
+        address _stakingSGOV
+    ) external;
 
   
     /**
@@ -54,7 +55,10 @@ interface IVoteToken {
     * @param _to is the destination staking Contract address deployed by d/bond 
     * @param _amount is the amount of the tokens to be transferred
     */
-    function transfer(address _to, uint256 _amount) external returns (bool);
+    function transfer(
+        address _to,
+        uint256 _amount
+    ) external returns (bool);
 
      /**
     * @dev transfer _amount vote tokens from '_from' address   to  '_to' address.
@@ -68,4 +72,38 @@ interface IVoteToken {
         address _to,
         uint256 _amount
     ) external returns (bool);
+
+    /**
+    * @dev return the locked balance of an account
+    */
+    function lockedBalanceOf(
+        address _account,
+        uint256 _proposalId
+    ) external view returns(uint256);
+
+    /**
+    * @dev lock vote tokens
+    */
+    function lockTokens(
+        address _owner,
+        address _spender,
+        uint256 _amount,
+        uint256 _proposalId
+    ) external;
+
+    /**
+    * @dev unlock vote tokens
+    */
+    function unlockTokens(
+        address _owner,
+        uint256 _amount,
+        uint256 _proposalId
+    ) external;
+
+    /**
+    * @dev return the available vote token balance of an account
+    */
+    function availableBalance(
+        address _account
+    ) external view returns(uint256);
 }

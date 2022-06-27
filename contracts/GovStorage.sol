@@ -59,6 +59,10 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
     address public DBIT;
     address public dGoV;
     address public bank;
+    address public exchange;
+    address public debondBond;
+    address public debondToken;
+    address public voteToken;
     address public governance;
     address public stakingContract;
 
@@ -69,6 +73,16 @@ contract GovStorage is AccessControl, GovernanceOwnable, IGovStorage {
     uint256 public constant NUMBER_OF_SECONDS_IN_DAY = 1 days;
     uint256 private stakingDgoVDuration;
     uint256 private _lockTime;
+
+    uint256 public dbitBudgetPPM;
+    uint256 public dgovBudgetPPM;
+    uint256 public dbitAllocationDistibutedPPM;
+    uint256 public dgovAllocationDistibutedPPM;
+    uint256 public dbitTotalAllocationDistributed;
+    uint256 public dgovTotalAllocationDistributed;
+
+    bool public initialized;
+    bool public contractIsActive;
 
     mapping(bytes32 => Vote) votes;
     mapping(uint256 => ProposalClass) proposalClass;

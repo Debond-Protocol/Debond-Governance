@@ -5,4 +5,5 @@ pragma solidity ^0.8.0;
 interface IActivable {
 
     function setIsActive(bool _isActive) external;
+    function contractIsActive() external view returns(bool);
 }

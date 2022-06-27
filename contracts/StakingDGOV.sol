@@ -72,17 +72,11 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard, GovernanceOwnable  {
     }
 
     constructor (
-        address _dbit,
         address _dGovToken,
         address _voteToken,
         address _debondOperator,
-        uint256 _interestRate,
-        address GovStorage,
-        address _governanceAddress
-    ) GovernanceOwnable(_governanceAddress)
-    
-    {
-        dbit = _dbit;
+        uint256 _interestRate
+    ) {
         dGov = _dGovToken;
         voteToken = _voteToken;
         debondOperator = _debondOperator;
@@ -104,11 +98,12 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard, GovernanceOwnable  {
         address _staker,
         uint256 _amount,
         uint256 _duration
-    ) external onlyGov nonReentrant() {
-       
-        // getting only the unlockedSupply : thats (allocated + airdropped + minted supply ).
-        uint256 stakerBalance = IdGov.balance(_staker);
-        require(_amount <= stakerBalance, "Debond: not enough dGov unlocked supply");
+    ) external onlyGov nonReentrant {
+        IERC20 IdGov = IERC20(dGov);
+        IVoteToken Ivote = IVoteToken(voteToken);
+        
+        uint256 stakerBalance = IdGov.balanceOf(_staker);
+        require(_amount <= stakerBalance, "Debond: not enough dGov");
 
         stackedDGOV[_staker].startTime = block.timestamp;
         stackedDGOV[_staker].duration = _duration;
@@ -129,7 +124,7 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard, GovernanceOwnable  {
         address _staker,
         address _to,
         uint256 _amount
-    ) internal   nonReentrant() {
+    ) external onlyGov nonReentrant {
         StackedDGOV memory _stacked = stackedDGOV[_staker];
         require(
             block.timestamp >= _stacked.startTime + _stacked.duration,
@@ -182,26 +177,6 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard, GovernanceOwnable  {
         _stakedAmount = stackedDGOV[_user].amountDGOV;
     }
 
-    /** TODO:  : set by the staking parameters  
-    * @dev returns the amount of DBIT to get for one vote token
-    * @param dbitAmount DBIT amount
-    */
-    function getDBITAmountForOneVote(uint128 _class, uint128 _nonce) public view returns(uint256 dbitAmount) {
-        dbitAmount = _dbitAmountForOneVote;
-    }
-
-
-    /** TODO: will go to ProposalFactory contract.
-    * @dev sets the amount of DBIT to get for one vote token
-    * @param _dbitAmount the new amount of the tokens needed by the standard.
-    */
-    function setDBITAmountForOneVote(uint256 _dbitAmount) public onlyDebondOperator   returns(bool) {
-        _dbitAmountForOneVote = _dbitAmount;
-        return(true);
-    }
-
-
-
     /**
     * @dev calculate the interest earned in DBIT
     * @param _staker the address of the dGoV staker
@@ -220,7 +195,7 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard, GovernanceOwnable  {
 
     /**
     * @dev Estimate how much Interest the user has gained since he staked dGoV
-    * @param _amount the amount of DBIT staked
+    * @param _amount the amount of DGOV staked
     * @param _duration staking duration to estimate interest from
     * @param interest the estimated interest earned so far
     */

@@ -15,8 +15,12 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IVoteToken.sol";
-import "./utils/GovernanceOwnable.sol";
-contract VoteToken is ERC20, ReentrancyGuard, IVoteToken , GovernanceOwnable{
+
+contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
+    // key1: user address, key2: proposalId
+    mapping(address => mapping(uint256 => uint256)) private _lockedBalance;
+    mapping(address => uint256) private _availableBalance;
+
     address debondOperator;
     address govAddress;
 
@@ -35,6 +39,74 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken , GovernanceOwnable{
         debondOperator = _debondOperator;
     }
 
+    /**
+    * @dev return the locked balance of an account
+    * @param _account user account address
+    * @param _proposalId proposal Id
+    */
+    function lockedBalanceOf(address _account, uint256 _proposalId) public view override returns(uint256) {
+        return _lockedBalance[_account][_proposalId];
+    }
+
+    /**
+    * @dev return the available vote token balance of an account:
+    *      available = balanOf(_account) - sum of lockedBalanceOf(_account, id)
+    */
+    function availableBalance(address _account) public view override returns(uint256) {
+        return _availableBalance[_account];
+    }
+
+    /**
+    * @dev lock vote tokens
+    * @param _owner owner address of vote tokens
+    * @param _spender spender address of vote tokens
+    * @param _amount the amount of vote tokens to lock
+    * @param _proposalId proposal Id
+    */
+    function lockTokens(
+        address _owner,
+        address _spender,
+        uint256 _amount,
+        uint256 _proposalId
+    ) public override {
+        require(
+            _amount <= balanceOf(_owner),
+            "VoteToken: not enough tokens"
+        );
+
+        if (_owner != _spender) {
+            _spendAllowance(_owner, _spender, _amount);
+        }
+        
+        _lockedBalance[_owner][_proposalId] += _amount;
+        _availableBalance[_owner] = balanceOf(_owner) - _amount;
+    }
+
+    /**
+    * @dev unlock vote tokens
+    * @param _owner owner address of vote tokens
+    * @param _amount the amount of vote tokens to lock
+    * @param _proposalId proposal Id
+    */
+    function unlockTokens(
+        address _owner,
+        uint256 _amount,
+        uint256 _proposalId
+    ) public override {
+        require(
+            _amount <= _lockedBalance[_owner][_proposalId],
+            "VoteToken: not enough tokens locked"
+        );
+
+        _lockedBalance[_owner][_proposalId] -= _amount;
+        _availableBalance[_owner] = balanceOf(_owner) + _amount;
+    }
+
+    /**
+    * @dev transfer _amount vote tokens to `_to`
+    * @param _to adrress to send tokens to
+    * @param _amount the amount to transfer
+    */
     function transfer(address _to, uint256 _amount) public override(ERC20, IVoteToken) returns (bool) {
         require(
             _to == govAddress || _to == stakingDGOV,
@@ -43,6 +115,8 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken , GovernanceOwnable{
 
         address owner = _msgSender();
         _transfer(owner, _to, _amount);
+        _availableBalance[owner] = balanceOf(owner);
+        _availableBalance[_to] = balanceOf(_to);
         return true;
     }
 
@@ -65,6 +139,8 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken , GovernanceOwnable{
         address spender = _msgSender();
         _spendAllowance(_from, spender, _amount);
         _transfer(_from, _to, _amount);
+        _availableBalance[_from] = balanceOf(_from);
+        _availableBalance[_to] = balanceOf(_to);
         return true;
     }
 
@@ -73,26 +149,41 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken , GovernanceOwnable{
     * @param _user the user address
     * @param _amount the amount of tokens to mint
     */
-    function mintVoteToken(address _user, uint256 _amount) external nonReentrant() {
-        require(msg.sender == stakingDGOV, "VoteToken:  only staking contract");
+    function mintVoteToken(address _user, uint256 _amount) external override nonReentrant() {
         _mint(_user, _amount);
+        _availableBalance[_user] = balanceOf(_user);
     }
     /**
     * @dev burns vote tokens
     * @param _user the user address
     * @param _amount the amount of tokens to burn
     */
-    function burnVoteToken(address _user, uint256 _amount) external nonReentrant() {
-        require(msg.sender == stakingDGOV,"VoteToken:  only staking contract");
+    function burnVoteToken(address _user, uint256 _amount) external override nonReentrant() {
         _burn(_user, _amount);
+        _availableBalance[_user] = balanceOf(_user);
     }
+
+    /**
+    * @dev set the governance contract address
+    * @param _governance governance contract address
+    */
+    function setGovernanceContract(address _governance) external override onlyDebondOperator {
+        govAddress = _governance;
+    }
+
     /**
     * @dev get the governance contract address    */
     function getGovernanceContract() external view returns(address) {
          return  govAddress;
    }
 
- 
+    /**
+    * @dev set the stakingDGOV contract address
+    * @param _stakingDGOV stakingDGOV contract address
+    */
+    function setStakingDGOVContract(address _stakingDGOV) external override {
+        stakingDGOV = _stakingDGOV;
+    }
 
     /**
     * @dev get the stakingDGOV contract address

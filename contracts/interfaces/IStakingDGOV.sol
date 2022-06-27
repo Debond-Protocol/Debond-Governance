@@ -61,16 +61,4 @@ interface IStakingDGOV {
     * @param _interestRate interest rate
     */
     function getInterestRate() external view returns(uint256 _interestRate);
-
-    /**
-    * @dev set the DBIT contract address
-    */
-    function setDBITContract(address _dbit) external;
-
-
-    function unstakeAndPayDBIT(
-        address _staker,
-        address _to,
-        uint256 _amount
-    ) external returns(bool unstaked);
 }

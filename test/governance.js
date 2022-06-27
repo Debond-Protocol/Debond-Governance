@@ -167,7 +167,7 @@ contract("governance", async (accounts) => {
     });
 
     it("Register two proposals to check nonce generation", async () => {
-        let startTime = Date.now()
+        let startTime = Date.now();
         let endTime = startTime + 100;
 
         let proposalHash1 = '0x321';
