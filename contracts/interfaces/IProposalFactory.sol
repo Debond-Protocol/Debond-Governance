@@ -196,4 +196,35 @@ interface IProposalFactory {
         uint256 _amountDGOV
     ) external   returns(bool);
 
+/** for setting max supply of dGOV if needed to be changed
+@param _maxSupplyDGOV is the max supply of DGOV.
+@notice that for the proposal the require class needed > 2 with veto status and approvalMode is canApprove.
+
+ */
+
+      
+function setDovVMaxSupply(uint _maxSupplyDGOV) external returns(bool); 
+
+
+/**
+setting  benchmark rate of interest for calculation of the redemption of bond .
+@param proposalClass is class of proposal.
+@param proposalNonce is the nonce corresponding to given proposal.
+ */
+
+
+function setBenchmarkInterestRate(uint proposalClass , uint proposalNonce , uint _newRate) external;
+
+/**
+allows the transfer of the tokens from the governance contract BETWEEN THE USEERSOU@ the given destination address given the proposal is approved 
+ */
+
+function updateTokenContract(uint256 poposal_class, uint256 proposal_nonce, uint256 new_token_class, address new_token_address) external override returns(bool){
+
+
+
+
+ function createBondClass(uint256 poposal_class, uint256 proposal_nonce, uint256 bond_class, string memory bond_symbol, uint256 Fibonacci_number, uint256 Fibonacci_epoch) external  returns (bool);
+
+
 }
