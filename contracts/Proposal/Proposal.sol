@@ -44,22 +44,11 @@ contract Proposal {
 
     function execute(
         uint128 _class,
-        uint128 _nonce,
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
-        bytes32 _descriptionHash
+        uint128 _nonce
     ) public {
         INewGovernance gov = INewGovernance(governance);
         require(gov.getGovernance() == governance, "Proposal: invalid Gov");
 
-        gov.executeProposal(
-            _class,
-            _nonce,
-            _targets,
-            _values,
-            _calldatas,
-            _descriptionHash
-        );
-    }
+        gov.executeProposal(_class, _nonce);
+    } 
 }

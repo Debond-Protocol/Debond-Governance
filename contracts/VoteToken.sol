@@ -20,7 +20,7 @@ import "./interfaces/IVoteToken.sol";
 
 contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     // key1: user address, key2: proposalId
-    mapping(address => mapping(uint256 => uint256)) private _lockedBalance;
+    mapping(address => mapping(uint128 => mapping(uint128 => uint256))) private _lockedBalance;
     mapping(address => uint256) private _availableBalance;
 
     address debondOperator;
@@ -48,10 +48,15 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     /**
     * @dev return the locked balance of an account
     * @param _account user account address
-    * @param _proposalId proposal Id
+    * @param _class proposal class
+    * @param _nonce proposal nonce
     */
-    function lockedBalanceOf(address _account, uint256 _proposalId) public view override returns(uint256) {
-        return _lockedBalance[_account][_proposalId];
+    function lockedBalanceOf(
+        address _account,
+        uint128 _class,
+        uint128 _nonce
+    ) public view override returns(uint256) {
+        return _lockedBalance[_account][_class][_nonce];
     }
 
     /**
@@ -67,24 +72,27 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @param _owner owner address of vote tokens
     * @param _spender spender address of vote tokens
     * @param _amount the amount of vote tokens to lock
-    * @param _proposalId proposal Id
+    * @param _class proposal class
+    * @param _nonce proposal nonce
     */
     function lockTokens(
         address _owner,
         address _spender,
         uint256 _amount,
-        uint256 _proposalId
+        uint128 _class,
+        uint128 _nonce
     ) public override {
         require(
             _amount <= balanceOf(_owner),
             "VoteToken: not enough tokens"
         );
 
-        if (_owner != _spender) {
-            _spendAllowance(_owner, _spender, _amount);
-        }
+        require(
+            allowance(_owner, _spender) <= _amount,
+            "VoteToken: insufficient allowance"
+        );
         
-        _lockedBalance[_owner][_proposalId] += _amount;
+        _lockedBalance[_owner][_class][_nonce] += _amount;
         _availableBalance[_owner] = balanceOf(_owner) - _amount;
     }
 
@@ -92,19 +100,21 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @dev unlock vote tokens
     * @param _owner owner address of vote tokens
     * @param _amount the amount of vote tokens to lock
-    * @param _proposalId proposal Id
+    * @param _class proposal class
+    * @param _nonce proposal nonce
     */
     function unlockTokens(
         address _owner,
         uint256 _amount,
-        uint256 _proposalId
+        uint128 _class,
+        uint128 _nonce
     ) public override {
         require(
-            _amount <= _lockedBalance[_owner][_proposalId],
+            _amount <= _lockedBalance[_owner][_class][_nonce],
             "VoteToken: not enough tokens locked"
         );
 
-        _lockedBalance[_owner][_proposalId] -= _amount;
+        _lockedBalance[_owner][_class][_nonce] -= _amount;
         _availableBalance[_owner] = balanceOf(_owner) + _amount;
     }
 

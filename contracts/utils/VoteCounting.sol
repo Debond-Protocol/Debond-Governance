@@ -37,49 +37,55 @@ contract VoteCounting is GovSharedStorage {
         Abstain
     }
 
-    mapping(uint256 => ProposalVote) internal _proposalVotes;
+    mapping(uint128 => mapping(uint128 => ProposalVote)) internal _proposalVotes;
 
     /**
     * @dev check if an account has voted for a proposal
-    * @param _proposalId proposal id
+    * @param _class proposal class
+    * @param _nonce proposal nonce
     * @param _account voter account address
     * @param voted true if the account has already voted, false otherwise
     */
     function hasVoted(
-        uint256 _proposalId,
+        uint128 _class,
+        uint128 _nonce,
         address _account
     ) public view returns(bool voted) {
-        voted = _proposalVotes[_proposalId].user[_account].hasVoted;
+        voted = _proposalVotes[_class][_nonce].user[_account].hasVoted;
     }
 
     /**
     * @dev returns the number of vote tokens used by an account
-    * @param _proposalId proposal id
+    * @param _class proposal class
+    * @param _nonce proposal nonce
     * @param _account voter account address
     * @param amountTokens amount of vote tokens
     */
     function numberOfVoteTokens(
-        uint256 _proposalId,
+        uint128 _class,
+        uint128 _nonce,
         address _account
     ) public view returns(uint256 amountTokens) {
-        amountTokens = _proposalVotes[_proposalId].user[_account].weight;
+        amountTokens = _proposalVotes[_class][_nonce].user[_account].weight;
     }
 
     /**
     * @dev return number of votes of a proposal for each votre type
-    * @param _proposalId proposal id
+    * @param _class proposal class
+    * @param _nonce proposal nonce
     * @param forVotes number or FOR votes
     * @param againstVotes number or AGAINST votes
     * @param abstainVotes number abstains
     */
     function getProposalVotes(
-        uint256 _proposalId
+        uint128 _class,
+        uint128 _nonce
     ) public view returns(uint256 forVotes, uint256 againstVotes, uint256 abstainVotes) {
-        ProposalVote storage proposalVote = _proposalVotes[_proposalId];
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
         (forVotes, againstVotes, abstainVotes) = 
         (
-            _proposalVotes[_proposalId].forVotes,
+            _proposalVotes[_class][_nonce].forVotes,
             proposalVote.againstVotes,
             proposalVote.abstainVotes
         );
@@ -87,56 +93,64 @@ contract VoteCounting is GovSharedStorage {
 
     /**
     * @dev return the User struct
-    * @param _proposalId proposal Id
+    * @param _class proposal class
+    * @param _nonce proposal nonce
     * @param _account user account address
     */
     function getUserInfo(
-        uint256 _proposalId,
+        uint128 _class,
+        uint128 _nonce,
         address _account
     ) public view returns(User memory) {
-        return _proposalVotes[_proposalId].user[_account];
+        return _proposalVotes[_class][_nonce].user[_account];
     }
 
     /**
     * @dev check if the quorum has been reached
-    * @param _proposalId proposal id
+    * @param _class proposal class
+    * @param _nonce proposal nonce
     * @param reached true if quorum has been reached, false otherwise
     */
     function _quorumReached(
-        uint256 _proposalId
+        uint128 _class,
+        uint128 _nonce
     ) internal view returns(bool reached) {
-        ProposalVote storage proposalVote = _proposalVotes[_proposalId];
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
-        reached =  proposalVote.forVotes + proposalVote.abstainVotes >= _quorum(_proposalId);
+        reached =  proposalVote.forVotes + proposalVote.abstainVotes >= _quorum(_class, _nonce);
     }
 
     /**
     * @dev check if the vote is successful or not
-    * @param _proposalId proposal id
+    * @param _class proposal class
+    * @param _nonce proposal nonce
     * @param succeeded true if FOR votes are greater than AGAINST vote
     */
     function _voteSucceeded(
-        uint256 _proposalId
+        uint128 _class,
+        uint128 _nonce
     ) internal view returns(bool succeeded) {
-        ProposalVote storage proposalVote = _proposalVotes[_proposalId];
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
         succeeded = proposalVote.forVotes > proposalVote.againstVotes;
     }
 
     /**
     * @dev update the user vote when he votes
-    * @param _proposalId proposal id
+    * @param _class proposal class
+    * @param _nonce proposal nonce
     * @param _account user account address
     * @param _vote user vote (0: For, 1: Against, 2: Abstain)
     * @param _weight the amount of vote tokens used to vote
     */
     function _countVote(
-        uint256 _proposalId,
+        uint128 _class,
+        uint128 _nonce,
         address _account,
         uint8 _vote,
         uint256 _weight
     ) internal virtual {
-        ProposalVote storage proposalVote = _proposalVotes[_proposalId];
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
         require(
             !proposalVote.user[_account].hasVoted,
@@ -157,14 +171,18 @@ contract VoteCounting is GovSharedStorage {
         }
     }
 
+    /**
+    * @dev return the proposal quorum
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    */
     function _quorum(
-        uint256 _proposalId
+        uint128 _class,
+        uint128 _nonce
     ) internal view returns(uint256 quorum) {
-        uint128 class = proposalClass[_proposalId];
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
-        ProposalVote storage proposalVote = _proposalVotes[_proposalId];
-
-        quorum =  proposalClassInfo[class][1] * (
+        quorum =  proposalClassInfo[_class][1] * (
             proposalVote.forVotes +
             proposalVote.againstVotes +
             proposalVote.abstainVotes
