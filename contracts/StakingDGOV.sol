@@ -12,21 +12,17 @@ pragma solidity ^0.8.0;
     See the License for the specific language governing permissions and
     limitations under the License.
 */
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IStakingDGOV.sol";
 import "./interfaces/IVoteToken.sol";
 
-import "debond-token/contracts/interfaces/IdGOV.sol";
-
-
-import "debond-token/contracts/interfaces/IDebondToken.sol";
+import "debond-token-contracts/interfaces/IDGOV.sol";
+import "debond-token-contracts/interfaces/IDBIT.sol";
 import "./interfaces/IGovStorage.sol";
 
 import "./utils/GovernanceOwnable.sol";
 
 import "./Pausable.sol";
-
 
 contract StakingDGOV is IStakingDGOV, ReentrancyGuard, GovernanceOwnable  {
    // sets the dbit amount for an vote.
@@ -49,14 +45,16 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard, GovernanceOwnable  {
     address public debondOperator;
     address public governance;
     address public govStorage;
-
+    address public voteToken;
+    address public GovStorage;
     uint256 private interestRate;
+    address public dbitAddress;
+
     uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
 
 
     IGovStorage Storage;
-    IDebondToken token;
-    IdGOV IdGov;
+    IDBIT token;
     IVoteToken IVote;
 
     mapping(address => StackedDGOV) public stackedDGOV;
@@ -76,16 +74,15 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard, GovernanceOwnable  {
         address _voteToken,
         address _debondOperator,
         uint256 _interestRate
-    ) {
+    ) GovernanceOwnable(_debondOperator) 
+    {
         dGov = _dGovToken;
         voteToken = _voteToken;
         debondOperator = _debondOperator;
         interestRate = _interestRate;
         govStorage = GovStorage;
         Storage = IGovStorage(govStorage);
-        IdGov = IdGOV(dGov);
         IVote = IVoteToken(voteToken);
-        token = IDebondToken(_dbit);
     }
 
     /**
@@ -99,17 +96,16 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard, GovernanceOwnable  {
         uint256 _amount,
         uint256 _duration
     ) external onlyGov nonReentrant {
-        IERC20 IdGov = IERC20(dGov);
         IVoteToken Ivote = IVoteToken(voteToken);
         
-        uint256 stakerBalance = IdGov.balanceOf(_staker);
+        uint256 stakerBalance = IDGOV(dGov).getTotalBalance(_staker);
         require(_amount <= stakerBalance, "Debond: not enough dGov");
 
         stackedDGOV[_staker].startTime = block.timestamp;
         stackedDGOV[_staker].duration = _duration;
         stackedDGOV[_staker].amountDGOV += _amount;
 
-        IdGov.transferFrom(_staker, address(this), _amount);
+        IDGOV(dGov).transfer(_staker, address(this), _amount);
         IVote.mintVoteToken(_staker, _amount);
         emit dgovStacked(_staker, _amount);
     }
@@ -120,11 +116,11 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard, GovernanceOwnable  {
     * @param _to the address to send the dGoV to
     * @param _amount the amount of dGoV tokens to unstak
     */
-    function _unstakeDgovToken(
+    function unstakeDgovToken(
         address _staker,
         address _to,
         uint256 _amount
-    ) external onlyGov nonReentrant {
+    ) public onlyGov nonReentrant {
         StackedDGOV memory _stacked = stackedDGOV[_staker];
         require(
             block.timestamp >= _stacked.startTime + _stacked.duration,
@@ -137,8 +133,7 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard, GovernanceOwnable  {
         Ivote.burnVoteToken(_staker, _amount);
 
         // transfer staked DGOV to the staker 
-        IdGOV _IdGov =IdGOV(dGov);
-        IdGov.transfer(_to, _amount);
+        IDGOV(dGov).transfer(_to, _amount);
 
         emit dgovUnstacked(_staker, _to, _amount);
     }
@@ -368,10 +363,10 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard, GovernanceOwnable  {
         uint256 _amount
     ) external returns(bool unstaked) {
         
-        _unstakeDgovToken(_staker, _to, _amount);
+        unstakeDgovToken(_staker, _to, _amount);
 
         uint256 interest = this.calculateInterestEarned(_staker);
-        require(this.updateStakedDGOV(_staker, _amount), "Gov: don't have enough DGOV");
+        require(this._updateStakedDGOV(_staker, _amount), "Gov: don't have enough DGOV");
           
         token.transfer( _to, _amount * interest);
 

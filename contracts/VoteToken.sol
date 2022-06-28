@@ -16,6 +16,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IVoteToken.sol";
 
+import "debond-governance-contracts/utils/GovernanceOwnable.sol";
+
 contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     // key1: user address, key2: proposalId
     mapping(address => mapping(uint256 => uint256)) private _lockedBalance;
@@ -23,6 +25,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
 
     address debondOperator;
     address govAddress;
+    address stakingDGOV;
 
    
 

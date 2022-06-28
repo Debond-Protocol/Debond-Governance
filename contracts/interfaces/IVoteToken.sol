@@ -14,7 +14,6 @@ pragma solidity ^0.8.0;
 */
 
 interface IVoteToken {
-   //TODO: transfer to the Vote token.sol
     /**
     * @dev emitted when new virtual `voteToken` tokens are created
     */
@@ -23,8 +22,11 @@ interface IVoteToken {
         uint256 _amount
     ) external;
 
-    /**
-    * @dev emitted when new virtual `voteToken` tokens are burned
+       /**
+    * @dev burns vote Token tokens from the address of a user . 
+    * @notice  to be called only by stakingContract.unstakedGOV() in order to recuperate the remaining Vote Tokens into DBIT.
+    * @param _user address of the user intended to get dGOV token . 
+    * @param _amount is the amount of tokens to be received
     */
     function burnVoteToken(
         address _user,
@@ -38,12 +40,7 @@ interface IVoteToken {
         address _governance
     ) external;
 
-    /**
-    * @dev burns vote Token tokens from the address of a user . 
-    * @notice  to be called only by stakingContract.unstakedGOV() in order to recuperate the remaining Vote Tokens into the 
-    * @param _user address of the user intended to get dGOV token . 
-    * @param _amount is the amount of tokens to be received
-    */
+
     function setStakingDGOVContract(
         address _stakingSGOV
     ) external;

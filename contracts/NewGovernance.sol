@@ -25,7 +25,7 @@ import "./interfaces/INewStaking.sol";
 import "./interfaces/IGovernance.sol";
 import "./interfaces/INewExecutable.sol";
 import "./interfaces/INewGovernance.sol";
-import "./test/DBIT.sol";
+import "debond-token-contracts/interfaces/IDBIT.sol";
 import "./Pausable.sol";
 
 /**

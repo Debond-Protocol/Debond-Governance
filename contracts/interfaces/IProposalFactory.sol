@@ -216,10 +216,11 @@ setting  benchmark rate of interest for calculation of the redemption of bond .
 function setBenchmarkInterestRate(uint proposalClass , uint proposalNonce , uint _newRate) external;
 
 /**
-allows the transfer of the tokens from the governance contract BETWEEN THE USEERSOU@ the given destination address given the proposal is approved 
- */
+updating the token contracts
 
-function updateTokenContract(uint256 poposal_class, uint256 proposal_nonce, uint256 new_token_class, address new_token_address) external override returns(bool){
+*/
+
+function updateTokenContract(uint256 poposal_class, uint256 proposal_nonce, uint256 new_token_class, address new_token_address) external  returns(bool);
 
 
 

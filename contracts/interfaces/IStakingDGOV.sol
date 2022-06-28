@@ -53,11 +53,6 @@ interface IStakingDGOV {
     function calculateInterestEarned(address _staker) external view returns(uint256 interest);
 
     /**
-    * @dev update the StakedDGOV struct when a user unstake their dGoV
-    */
-    function updateStakedDGOV(address _staker, uint256 _amount) external returns(bool updated);
-
-    /**
     * @param _interestRate interest rate
     */
     function getInterestRate() external view returns(uint256 _interestRate);

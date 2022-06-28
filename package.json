@@ -13,9 +13,8 @@
   "license": "ISC",
   "dependencies": {
     "@openzeppelin/contracts": "^4.5.0",
-    "debond-bank": "git+https://github.com/Debond-Protocol/Debond-Bank.git",
-    "debond-erc3475": "git+https://github.com/Debond-Protocol/Debond-ERC3475.git",
-    "debond-token": "git+https://github.com/Debond-Protocol/Debond-Token.git",
+    "debond-governance-contracts": "0.0.1",
+    "debond-token-contracts": "0.0.2",
     "dotenv": "^16.0.0",
     "prb-math": "^2.4.3"
   },
