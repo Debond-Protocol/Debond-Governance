@@ -37,6 +37,8 @@ abstract contract NewGovStorage is INewGovernance {
     address public voteTokenContract;
     address public govSettingsContract;
 
+    address public vetoOperator;
+
     uint256 public dbitBudgetPPM;
     uint256 public dgovBudgetPPM;
     uint256 public dbitAllocationDistibutedPPM;

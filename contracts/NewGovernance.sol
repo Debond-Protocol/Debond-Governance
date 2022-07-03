@@ -36,8 +36,9 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
     * @dev governance constructor
     * @param _debondTeam account address of Debond team
     */
-    constructor(address _debondTeam) {
+    constructor(address _debondTeam, address _vetoOperator) {
         debondTeam = _debondTeam;
+        vetoOperator = _vetoOperator;
         debondOperator = _msgSender();
 
         dbitBudgetPPM = 1e5 * 1 ether;
@@ -262,6 +263,31 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
     }
 
     /**
+    * @dev veto the proposal
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    * @param _approval veto type, yes if should pass, false otherwise
+    */
+    function veto(
+        uint128 _class,
+        uint128 _nonce,
+        bool _approval
+    ) public {
+        require(_msgSender() == vetoOperator, "Gov: permission denied");
+        require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
+        require(
+            getProposalStatus(_class, _nonce) == ProposalStatus.Active,
+            "Gov: vote not active"
+        );
+
+        if (_approval == true) {
+            _proposalVotes[_class][_nonce].vetoApproval = 1;
+        } else {
+            _proposalVotes[_class][_nonce].vetoApproval = 2;
+        }
+    }
+
+    /**
     * @dev stake DGOV tokens
     * @param _amount amount of DGOV to stake
     * @param _duration staking duration
@@ -443,11 +469,27 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
             return ProposalStatus.Active;
         }
 
+        if (_class == 2) {
+            if (_quorumReached(_class, _nonce) && _voteSucceeded(_class, _nonce)) {
+                return ProposalStatus.Succeeded;
+            } else {
+                return ProposalStatus.Defeated;
+            }
+        } else {
+            if (_vetoApproved(_class, _nonce)) {
+                return ProposalStatus.Succeeded;
+            } else {
+                return ProposalStatus.Defeated;
+            }
+        }
+        
+        /*
         if (_quorumReached(_class, _nonce) && _voteSucceeded(_class, _nonce)) {
             return ProposalStatus.Succeeded;
         } else {
             return ProposalStatus.Defeated;
         }
+        */
     }
 
     //============================

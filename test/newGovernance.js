@@ -20,14 +20,10 @@ contract("Governance", async (accounts) => {
     let vote;
     let settings;
     let gov;
-    let count;
-    let proposal;
     let amountToMint;
     let amountToStake;
 
     let balanceUser1BeforeStake;
-    let balanceUser2BeforeStake;
-    let balanceUser3BeforeStake;
     let balanceStakingContractBeforeStake;
 
     let operator = accounts[0];
@@ -36,6 +32,7 @@ contract("Governance", async (accounts) => {
     let user2 = accounts[3];
     let user3 = accounts[4];
     let user4 = accounts[5];
+    let user5 = accounts[6];
 
     let ProposalStatus = {
         Active: '0',
@@ -53,7 +50,7 @@ contract("Governance", async (accounts) => {
         vote = await VoteToken.new("Debond Vote Token", "DVT", operator);
         stak = await NewStakingDGOV.new(dgov.address, vote.address);
         settings = await GovSettings.new(2, 3);
-        gov = await NewGovernance.new(operator);
+        gov = await NewGovernance.new(operator, operator);
 
         // set the stakingDGOV contract address in Vote Token
         await vote.setStakingDGOVContract(stak.address);
@@ -228,7 +225,7 @@ contract("Governance", async (accounts) => {
             );
     });
 
-    it("Chenge the benchmark interest rate", async () => {
+    it.only("Chenge the benchmark interest rate", async () => {
         // create a proposal
         let _class = 0;
         let desc = "Propsal-1: Update the benchMark interest rate";
@@ -254,13 +251,15 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, {from: user1});
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, {from: user2});
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, {from: user3});
+
+        await gov.veto(event.class, event.nonce, true, {from: operator});
         
         await wait(3000);
         await gov.test();
         
         let status = await gov.getProposalStatus(event.class, event.nonce);
         let benchmarkBefore = await gov.getBenchmarkIR();
-
+       
         // Execute the proposal
         let descHash = web3.utils.keccak256(desc);
 
@@ -269,7 +268,7 @@ contract("Governance", async (accounts) => {
             event.nonce,
             {from: operator}
         );
-
+       
         let status1 = await gov.getProposalStatus(event.class, event.nonce);
 
         let benchmarkAfter = await gov.getBenchmarkIR();

@@ -28,6 +28,7 @@ contract VoteCounting is GovSharedStorage {
         uint256 forVotes;
         uint256 againstVotes;
         uint256 abstainVotes;
+        uint256 vetoApproval;
         mapping(address => User) user;
     }
 
@@ -133,6 +134,21 @@ contract VoteCounting is GovSharedStorage {
         ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
         succeeded = proposalVote.forVotes > proposalVote.againstVotes;
+    }
+
+    /**
+    * @dev check if the veto approve or not
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    * @param approved veto type: true if aggreed, else otherwise
+    */
+    function _vetoApproved(
+        uint128 _class,
+        uint128 _nonce
+    ) internal view returns(bool approved) {
+        uint256 veto = _proposalVotes[_class][_nonce].vetoApproval;
+
+        approved = veto == 1 ? true : false;
     }
 
     /**
