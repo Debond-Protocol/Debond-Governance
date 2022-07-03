@@ -1,0 +1,301 @@
+<?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="467pt" height="1748pt" viewBox="0.00 0.00 466.74 1748.00">
+<g id="graph0" class="graph" transform="translate(4,1744) scale(1)" data-name="G">
+
+<polygon fill="#2e3e56" stroke="transparent" points="-4,4 -4,-1744 462.74,-1744 462.74,4 -4,4" style=""/>
+<g id="clust1" class="cluster" data-name="cluster_01">
+
+<polygon fill="rgb(46,62,86)" stroke="rgb(41,55,77)" points="59.23,-1603 59.23,-1732 414.6,-1732 414.6,-1603 59.23,-1603" style=""/>
+<text text-anchor="middle" x="236.92" y="-1715.4" font-family="Times,serif" font-size="14.00" style="">Legend</text>
+</g>
+<!-- NewGovernance -->
+<g id="node1" class="node" pointer-events="visible" data-name="NewGovernance">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-18" rx="75.84" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-13.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">NewGovernance</text>
+</g>
+<!-- NewGovernance&#45;&gt;NewGovernance -->
+<g id="edge1" class="edge" data-name="NewGovernance-&gt;NewGovernance">
+
+<path fill="none" stroke="rgb(44,75,94)" stroke-width="2" d="M90.61,-33.17C78,-43.66 91.87,-54 132.23,-54 159.98,-54 175.21,-49.11 177.92,-42.65" style=""/>
+<polygon fill="rgb(44,75,94)" stroke="rgb(44,75,94)" stroke-width="2" points="181.01,-40.98 173.85,-33.17 174.58,-43.74 181.01,-40.98" style=""/>
+</g>
+<!-- Address -->
+<g id="node4" class="node" pointer-events="visible" data-name="Address">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="379.6" cy="-18" rx="42.87" ry="18" style=""/>
+<text text-anchor="middle" x="379.6" y="-13.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">Address</text>
+</g>
+<!-- NewGovernance&#45;&gt;Address -->
+<g id="edge2" class="edge" data-name="NewGovernance-&gt;Address">
+
+<path fill="none" stroke="rgb(66,81,102)" stroke-width="2" d="M208.19,-18C246.5,-18 292.18,-18 326.59,-18" style=""/>
+<polygon fill="rgb(66,81,102)" stroke="rgb(66,81,102)" stroke-width="2" points="326.89,-21.5 336.89,-18 326.89,-14.5 326.89,-21.5" style=""/>
+</g>
+<!-- GovSharedStorage -->
+<g id="node2" class="node" pointer-events="visible" data-name="GovSharedStorage">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-90" rx="83.96" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-85.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">GovSharedStorage</text>
+</g>
+<!-- VoteCounting -->
+<g id="node3" class="node" pointer-events="visible" data-name="VoteCounting">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-144" rx="65.52" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-139.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">VoteCounting</text>
+</g>
+<!-- VoteCounting&#45;&gt;VoteCounting -->
+<g id="edge3" class="edge" data-name="VoteCounting-&gt;VoteCounting">
+
+<path fill="none" stroke="rgb(44,75,94)" stroke-width="2" d="M91.81,-158.23C77.2,-169.04 90.67,-180 132.23,-180 162.76,-180 178.13,-174.09 178.36,-166.67" style=""/>
+<polygon fill="rgb(44,75,94)" stroke="rgb(44,75,94)" stroke-width="2" points="181.16,-164.56 172.66,-158.23 175.35,-168.48 181.16,-164.56" style=""/>
+</g>
+<!-- Address&#45;&gt;Address -->
+<g id="edge4" class="edge" data-name="Address-&gt;Address">
+
+<path fill="none" stroke="rgb(44,75,94)" stroke-width="2" d="M345.01,-28.69C321.95,-40.5 333.48,-54 379.6,-54 418.16,-54 432.54,-44.57 422.75,-34.57" style=""/>
+<polygon fill="rgb(44,75,94)" stroke="rgb(44,75,94)" stroke-width="2" points="424.42,-31.47 414.2,-28.69 420.45,-37.24 424.42,-31.47" style=""/>
+</g>
+<!-- IERC20 -->
+<g id="node5" class="node" pointer-events="visible" data-name="IERC20">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-216" rx="42.88" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-211.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IERC20</text>
+</g>
+<!-- ReentrancyGuard -->
+<g id="node6" class="node" pointer-events="visible" data-name="ReentrancyGuard">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-270" rx="79.28" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-265.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">ReentrancyGuard</text>
+</g>
+<!-- NewGovStorage -->
+<g id="node7" class="node" pointer-events="visible" data-name="NewGovStorage">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-324" rx="75.3" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-319.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">NewGovStorage</text>
+</g>
+<!-- INewGovernance -->
+<g id="node8" class="node" pointer-events="visible" data-name="INewGovernance">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="379.6" cy="-378" rx="79.27" ry="18" style=""/>
+<text text-anchor="middle" x="379.6" y="-373.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">INewGovernance</text>
+</g>
+<!-- IVoteToken -->
+<g id="node9" class="node" pointer-events="visible" data-name="IVoteToken">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="379.6" cy="-486" rx="57.89" ry="18" style=""/>
+<text text-anchor="middle" x="379.6" y="-481.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IVoteToken</text>
+</g>
+<!-- IGovSettings -->
+<g id="node10" class="node" pointer-events="visible" data-name="IGovSettings">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-531" rx="62.01" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-526.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IGovSettings</text>
+</g>
+<!-- INewStaking -->
+<g id="node11" class="node" pointer-events="visible" data-name="INewStaking">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-585" rx="61.99" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-580.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">INewStaking</text>
+</g>
+<!-- IGovernance -->
+<g id="node12" class="node" pointer-events="visible" data-name="IGovernance">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-639" rx="60.8" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-634.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IGovernance</text>
+</g>
+<!-- IGovStorage -->
+<g id="node13" class="node" pointer-events="visible" data-name="IGovStorage">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-693" rx="60.26" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-688.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IGovStorage</text>
+</g>
+<!-- INewExecutable -->
+<g id="node14" class="node" pointer-events="visible" data-name="INewExecutable">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-747" rx="75.26" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-742.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">INewExecutable</text>
+</g>
+<!-- IDBIT -->
+<g id="node15" class="node" pointer-events="visible" data-name="IDBIT">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="379.6" cy="-432" rx="36.57" ry="18" style=""/>
+<text text-anchor="middle" x="379.6" y="-427.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IDBIT</text>
+</g>
+<!-- IDebondToken -->
+<g id="node16" class="node" pointer-events="visible" data-name="IDebondToken">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-801" rx="69.49" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-796.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IDebondToken</text>
+</g>
+<!-- Pausable -->
+<g id="node17" class="node" pointer-events="visible" data-name="Pausable">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-855" rx="45.23" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-850.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">Pausable</text>
+</g>
+<!-- Ownable -->
+<g id="node18" class="node" pointer-events="visible" data-name="Ownable">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-909" rx="45.79" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-904.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">Ownable</text>
+</g>
+<!-- Ownable&#45;&gt;Ownable -->
+<g id="edge5" class="edge" data-name="Ownable-&gt;Ownable">
+
+<path fill="none" stroke="rgb(44,75,94)" stroke-width="2" d="M96.24,-920.43C75.07,-932.06 87.07,-945 132.23,-945 169.64,-945 184.29,-936.12 176.2,-926.47" style=""/>
+<polygon fill="rgb(44,75,94)" stroke="rgb(44,75,94)" stroke-width="2" points="178.31,-923.67 168.22,-920.43 174.08,-929.25 178.31,-923.67" style=""/>
+</g>
+<!-- Context -->
+<g id="node19" class="node" pointer-events="visible" data-name="Context">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-981" rx="41.73" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-976.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">Context</text>
+</g>
+<!-- IActivable -->
+<g id="node20" class="node" pointer-events="visible" data-name="IActivable">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-1035" rx="51.58" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-1030.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IActivable</text>
+</g>
+<!-- Proposal -->
+<g id="node21" class="node" pointer-events="visible" data-name="Proposal">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-378" rx="44.67" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-373.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">Proposal</text>
+</g>
+<!-- Proposal&#45;&gt;INewGovernance -->
+<g id="edge6" class="edge" data-name="Proposal-&gt;INewGovernance">
+
+<path fill="none" stroke="rgb(66,81,102)" stroke-width="2" d="M177.1,-378C208.48,-378 251.79,-378 290.22,-378" style=""/>
+<polygon fill="rgb(66,81,102)" stroke="rgb(66,81,102)" stroke-width="2" points="290.4,-381.5 300.4,-378 290.4,-374.5 290.4,-381.5" style=""/>
+</g>
+<!-- GovSettings -->
+<g id="node22" class="node" pointer-events="visible" data-name="GovSettings">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-1089" rx="58.58" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-1084.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">GovSettings</text>
+</g>
+<!-- GovSettings&#45;&gt;GovSettings -->
+<g id="edge7" class="edge" data-name="GovSettings-&gt;GovSettings">
+
+<path fill="none" stroke="rgb(44,75,94)" stroke-width="2" d="M92.87,-1102.48C76.59,-1113.53 89.71,-1125 132.23,-1125 164.79,-1125 180.11,-1118.27 178.2,-1110.16" style=""/>
+<polygon fill="rgb(44,75,94)" stroke="rgb(44,75,94)" stroke-width="2" points="180.77,-1107.79 171.6,-1102.48 175.46,-1112.35 180.77,-1107.79" style=""/>
+</g>
+<!-- types -->
+<g id="node23" class="node" pointer-events="visible" data-name="types">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-1161" rx="31.34" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-1156.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">types</text>
+</g>
+<!-- StakingDGOV -->
+<g id="node24" class="node" pointer-events="visible" data-name="StakingDGOV">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-459" rx="68.38" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-454.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">StakingDGOV</text>
+</g>
+<!-- StakingDGOV&#45;&gt;IVoteToken -->
+<g id="edge8" class="edge" data-name="StakingDGOV-&gt;IVoteToken">
+
+<path fill="none" stroke="rgb(66,81,102)" stroke-width="2" d="M195.79,-465.88C232.26,-469.9 278.14,-474.95 314.82,-478.98" style=""/>
+<polygon fill="rgb(66,81,102)" stroke="rgb(66,81,102)" stroke-width="2" points="314.58,-482.48 324.91,-480.09 315.35,-475.52 314.58,-482.48" style=""/>
+</g>
+<!-- StakingDGOV&#45;&gt;IDBIT -->
+<g id="edge10" class="edge" data-name="StakingDGOV-&gt;IDBIT">
+
+<path fill="none" stroke="rgb(66,81,102)" stroke-width="2" d="M195.79,-452.12C238.61,-447.4 294.43,-441.26 333.07,-437.01" style=""/>
+<polygon fill="rgb(66,81,102)" stroke="rgb(66,81,102)" stroke-width="2" points="333.93,-440.44 343.49,-435.86 333.16,-433.48 333.93,-440.44" style=""/>
+</g>
+<!-- StakingDGOV&#45;&gt;StakingDGOV -->
+<g id="edge9" class="edge" data-name="StakingDGOV-&gt;StakingDGOV">
+
+<path fill="none" stroke="rgb(44,75,94)" stroke-width="2" d="M91.08,-473.79C77.67,-484.42 91.39,-495 132.23,-495 160.95,-495 176.26,-489.77 178.16,-482.97" style=""/>
+<polygon fill="rgb(44,75,94)" stroke="rgb(44,75,94)" stroke-width="2" points="181.11,-481.05 173.39,-473.79 174.89,-484.28 181.11,-481.05" style=""/>
+</g>
+<!-- IStakingDGOV -->
+<g id="node25" class="node" pointer-events="visible" data-name="IStakingDGOV">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-1215" rx="71.81" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-1210.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IStakingDGOV</text>
+</g>
+<!-- IDGOV -->
+<g id="node26" class="node" pointer-events="visible" data-name="IDGOV">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-1269" rx="42.3" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-1264.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IDGOV</text>
+</g>
+<!-- GovernanceOwnable -->
+<g id="node27" class="node" pointer-events="visible" data-name="GovernanceOwnable">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-1323" rx="92.59" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-1318.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">GovernanceOwnable</text>
+</g>
+<!-- IGovernanceAddressUpdatable -->
+<g id="node28" class="node" pointer-events="visible" data-name="IGovernanceAddressUpdatable">
+
+<ellipse fill="none" stroke="#445773" stroke-width="3" cx="132.23" cy="-1377" rx="132.47" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-1372.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IGovernanceAddressUpdatable</text>
+</g>
+<!-- VoteToken -->
+<g id="node29" class="node" pointer-events="visible" data-name="VoteToken">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-1431" rx="54.46" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-1426.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">VoteToken</text>
+</g>
+<!-- VoteToken&#45;&gt;VoteToken -->
+<g id="edge11" class="edge" data-name="VoteToken-&gt;VoteToken">
+
+<path fill="none" stroke="rgb(44,75,94)" stroke-width="2" d="M93.72,-1443.92C76.15,-1455.13 88.99,-1467 132.23,-1467 166.02,-1467 181.24,-1459.76 177.91,-1451.24" style=""/>
+<polygon fill="rgb(44,75,94)" stroke="rgb(44,75,94)" stroke-width="2" points="180.24,-1448.62 170.75,-1443.92 175.24,-1453.51 180.24,-1448.62" style=""/>
+</g>
+<!-- ERC20 -->
+<g id="node30" class="node" pointer-events="visible" data-name="ERC20">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-1503" rx="39.45" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-1498.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">ERC20</text>
+</g>
+<!-- ERC20&#45;&gt;ERC20 -->
+<g id="edge12" class="edge" data-name="ERC20-&gt;ERC20">
+
+<path fill="none" stroke="rgb(44,75,94)" stroke-width="2" d="M99.13,-1512.95C74.11,-1524.93 85.15,-1539 132.23,-1539 172.33,-1539 186.29,-1528.8 174.1,-1518.37" style=""/>
+<polygon fill="rgb(44,75,94)" stroke="rgb(44,75,94)" stroke-width="2" points="175.69,-1515.24 165.34,-1512.95 172,-1521.19 175.69,-1515.24" style=""/>
+</g>
+<!-- IERC20Metadata -->
+<g id="node31" class="node" pointer-events="visible" data-name="IERC20Metadata">
+
+<ellipse fill="none" stroke="rgb(48,64,88)" stroke-width="3" cx="132.23" cy="-1575" rx="78.73" ry="18" style=""/>
+<text text-anchor="middle" x="132.23" y="-1570.8" font-family="Times,serif" font-size="14.00" fill="#f0f0f0" style="">IERC20Metadata</text>
+</g>
+<!-- key -->
+<g id="node32" class="node" pointer-events="visible" data-name="key">
+
+<polygon fill="rgb(65,73,86)" stroke="rgba(46,62,86,0.9)" stroke-width="3" points="197.23,-1699 67.23,-1699 67.23,-1611 197.23,-1611 197.23,-1699" style=""/>
+<text text-anchor="start" x="116.87" y="-1680.4" font-family="Times,serif" font-size="14.00" style="">Internal Call</text>
+<text text-anchor="start" x="112.98" y="-1660.4" font-family="Times,serif" font-size="14.00" style="">External Call</text>
+<text text-anchor="start" x="90.44" y="-1640.4" font-family="Times,serif" font-size="14.00" style="">Defined Contract</text>
+<text text-anchor="start" x="76.84" y="-1620.4" font-family="Times,serif" font-size="14.00" style="">Undefined Contract</text>
+</g>
+<!-- key2 -->
+<g id="node33" class="node" pointer-events="visible" data-name="key2">
+
+<polygon fill="rgb(65,73,86)" stroke="rgba(46,62,86,0.9)" stroke-width="3" points="406.6,-1699 352.6,-1699 352.6,-1611 406.6,-1611 406.6,-1699" style=""/>
+<text text-anchor="start" x="369.6" y="-1680.4" font-family="Times,serif" font-size="14.00" style="">   </text>
+<text text-anchor="start" x="369.6" y="-1660.4" font-family="Times,serif" font-size="14.00" style="">   </text>
+<polygon fill="rgb(48,64,88)" stroke="rgba(46,62,86,0.9)" points="367.6,-1635 367.6,-1655 392.6,-1655 392.6,-1635 367.6,-1635" style=""/>
+<text text-anchor="start" x="369.6" y="-1640.4" font-family="Times,serif" font-size="14.00" style="">   </text>
+<polygon fill="none" stroke="rgb(64,67,88)" points="369.6,-1617 369.6,-1633 390.6,-1633 390.6,-1617 369.6,-1617" style=""/>
+</g>
+<!-- key&#45;&gt;key2 -->
+<g id="edge13" class="edge" data-name="key-&gt;key2">
+
+<path fill="none" stroke="rgb(44,75,94)" stroke-width="2" d="M190.23,-1685C265.1,-1685 286.34,-1685 356.38,-1685" style=""/>
+<polygon fill="rgb(44,75,94)" stroke="rgb(44,75,94)" stroke-width="2" points="356.6,-1688.5 366.6,-1685 356.6,-1681.5 356.6,-1688.5" style=""/>
+</g>
+<!-- key&#45;&gt;key2 -->
+<g id="edge14" class="edge" data-name="key-&gt;key2">
+
+<path fill="none" stroke="rgb(66,81,102)" stroke-width="2" d="M190.23,-1665C265.1,-1665 286.34,-1665 356.38,-1665" style=""/>
+<polygon fill="rgb(66,81,102)" stroke="rgb(66,81,102)" stroke-width="2" points="356.6,-1668.5 366.6,-1665 356.6,-1661.5 356.6,-1668.5" style=""/>
+</g>
+</g>
+</svg>
