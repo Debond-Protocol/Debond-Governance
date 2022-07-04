@@ -44,19 +44,29 @@ there are two main  types of contracts present in the  debond governance:
 
 ## Contracts:
 
-1. GovSharedStorage: this stores the structures and mappings referred by  vote token for referring to the votes calculation process (explained in voteCounting contract)
+### storages: 
 
-2. GovSettings : and util contracts for 
+1. [VoteStorage](): This stores the structures and mappings referred by  vote token for referring to the votes calculation process (explained in voteCounting contract).
+
+2. [NewGovStorage](): This contract stores the mapping of the proposals issued by the governance participants 
+
+//TODO: merge this into one or rename 
+### utils: 
+1. [GovSettings](): Contract that defines the function for setting the delay of starting voting  period after  proposal creation.
 
 
+2. VoteCounting
+## Core contract.
+
+1. 
 
 
 
 
 ## Working process:
 
-1. Proposal creator (with DGOV tokens) adds all the values  for his proposal in the frontend .
-    - Proposal contract it inherits only the functions by inheriting from the interface of the governance contract. Example of the contract :[here](./contracts/Proposal/Proposal.sol). Then the Proposal time period starts and then voting starts  after the delay period (defined in govSettings by the   deployer/ governance) and rests till the `endTime`. 
+1. Proposal creator (with DGOV tokens) adds all the values for his proposal in the frontend .
+    - Proposal contract it inherits only the functions by inheriting from the interface of the governance contract. Example of the contract :[here](./contracts/Proposal/Proposal.sol). Then the Proposal time period starts and then voting starts after the delay period (defined in govSettings by the deployer/ governance) and rests till the `endTime`. 
 
     ```solidity
     function createProposal(
@@ -76,20 +86,40 @@ there are two main  types of contracts present in the  debond governance:
 
 4. And then eventually voters can redeem their unused VOTE token back to DGOV, and recovering the DBIT interest.  
 
-
-
-
-
-
-
 ## Security Considerations:
 
+- insure that governance veto address (debondOperator) should be set an cold wallet in order to avoid compromise of the protocol.
 
+
+
+## usage: 
+
+1. For the deployment
+    - Add .env private key for the deployment (and defining the `debondOperator`).
+    - define the [HDWallet](https://www.npmjs.com/package/@truffle/hdwallet-provider) in the core repo.
+    - then run
+    ```bash
+     $ truffle deploy 
+    ```
+2. for importing  the smart contracts package:
+    ```solidity
+    // for  defining the proposal smart contract.
+    import "debond-governance/contracts/INewExecutable.sol";
+    import "debond-governance/contracts/utils/IGovernanceOwnable.sol";
+    import "debond-governance/contracts/interfaces/INewGovernance.sol";
+    contract testProposal {
+    //... see example implementation in Proposal/Proposal.sol.
+
+    }
+    }
+
+    }
+    ```
 
 
 
 ## Contracts dependence  diagram:
 
-
+[](./contracts/UML/GovStorage.svg).
 
 

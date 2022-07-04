@@ -14,9 +14,9 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "../GovSharedStorage.sol";
+import "../VoteStorage.sol";
 
-contract VoteCounting is GovSharedStorage {
+contract VoteCounting is VoteStorage {
     struct User {
         bool hasVoted;
         bool hasBeenRewarded;

@@ -466,11 +466,12 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
 
     /**
     * @dev set a new address for debond operator
-    * @param _newDebondOperator new debond operator address
+    * @param _newDebondOperator new debond operator address.
+    * @dev this needs to be called only by present oeprators and also needs to change for every exchange.
     */
     function setNewDebondOperator(address _newDebondOperator) public returns(bool) {
         debondOperator = _newDebondOperator;
-
+        // TODO: this also needs to initialize inn the other contracts
         return true;
     }
 
