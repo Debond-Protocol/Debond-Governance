@@ -225,7 +225,7 @@ contract("Governance", async (accounts) => {
             );
     });
 
-    it.only("Chenge the benchmark interest rate", async () => {
+    it("Chenge the benchmark interest rate", async () => {
         // create a proposal
         let _class = 0;
         let desc = "Propsal-1: Update the benchMark interest rate";
@@ -261,8 +261,6 @@ contract("Governance", async (accounts) => {
         let benchmarkBefore = await gov.getBenchmarkIR();
        
         // Execute the proposal
-        let descHash = web3.utils.keccak256(desc);
-
         await gov.executeProposal(
             event.class,
             event.nonce,
@@ -283,13 +281,13 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it("change the budget ppm", async () => {
+    it("change the budget in Part Per Million", async () => {
         let newDBITBudget = await web3.utils.toWei(web3.utils.toBN(5000000), 'ether');
         let newDGOVBudget = await web3.utils.toWei(web3.utils.toBN(7000000), 'ether');
 
         // create a proposal
         let _class = 0;
-        let desc = "Propsal-1: Update the benchMark interest rate";
+        let desc = "Propsal-1: Update the budget part per million";
         let callData = await gov.contract.methods.changeCommunityFundSize(
             newDBITBudget,
             newDGOVBudget
@@ -313,6 +311,8 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, {from: user1});
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, {from: user2});
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, {from: user3});
+
+        await gov.veto(event.class, event.nonce, true, {from: operator});
 
         await wait(3000);
         await gov.test();
@@ -406,6 +406,59 @@ contract("Governance", async (accounts) => {
         expect(v4).to.be.true;
         expect(v2).to.be.true;
         expect(v3).to.be.true;
+    });
+
+    it.only('check proposal of class 2 passes', async () => {
+        let _class = 2;
+        let desc = "Propsal-1: Update the benchMark interest rate";
+        let callData = await gov.contract.methods.updateBenchmarkInterestRate(
+            '10'
+        ).encodeABI();
+
+        let res = await gov.createProposal(
+            _class,
+            [gov.address],
+            [0],
+            [callData],
+            desc,
+            {from: operator}
+        );
+
+        let event = res.logs[0].args;
+
+        await gov.test();
+        await wait(3000);
+        await gov.test();
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, {from: user1});
+        await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, {from: user2});
+        await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, {from: user3});
+        
+        await wait(3000);
+        await gov.test();
+        
+        let status = await gov.getProposalStatus(event.class, event.nonce);
+        let benchmarkBefore = await gov.getBenchmarkIR();
+       
+        // Execute the proposal
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            {from: operator}
+        );
+       
+        let status1 = await gov.getProposalStatus(event.class, event.nonce);
+
+        let benchmarkAfter = await gov.getBenchmarkIR();
+
+        expect(status.toString()).to.equal(ProposalStatus.Succeeded);
+        expect(status1.toString()).to.equal(ProposalStatus.Executed);
+        expect(
+            benchmarkAfter.toString()
+        )
+        .to.equal(
+            benchmarkBefore.add(web3.utils.toBN(5)).toString()
+        );
     });
 })
 

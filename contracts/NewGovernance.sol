@@ -482,14 +482,6 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
                 return ProposalStatus.Defeated;
             }
         }
-        
-        /*
-        if (_quorumReached(_class, _nonce) && _voteSucceeded(_class, _nonce)) {
-            return ProposalStatus.Succeeded;
-        } else {
-            return ProposalStatus.Defeated;
-        }
-        */
     }
 
     //============================
