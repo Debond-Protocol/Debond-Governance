@@ -634,7 +634,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
     * @param _bankContract bank contract address
     * @param _exchangeContract exchange contract address
     */
-    function initialize(
+    function firstSetUp(
         address _governance,
         address _dgovContract,
         address _dbitContract,
