@@ -1,5 +1,6 @@
 const chai = require("chai");
 const chaiAsPromised = require('chai-as-promised');
+const { Console } = require("console");
 const readline = require('readline');
 
 chai.use(chaiAsPromised);
@@ -408,7 +409,7 @@ contract("Governance", async (accounts) => {
         expect(v3).to.be.true;
     });
 
-    it.only('check proposal of class 2 passes', async () => {
+    it('check proposal of class 2 passes', async () => {
         let _class = 2;
         let desc = "Propsal-1: Update the benchMark interest rate";
         let callData = await gov.contract.methods.updateBenchmarkInterestRate(
@@ -460,6 +461,47 @@ contract("Governance", async (accounts) => {
             benchmarkBefore.add(web3.utils.toBN(5)).toString()
         );
     });
+
+    it('Check DBIT earned by voting', async () => {
+        let _class = 2;
+        let desc = "Propsal-1: Update the benchMark interest rate";
+        let callData = await gov.contract.methods.updateBenchmarkInterestRate(
+            '10'
+        ).encodeABI();
+
+        let res = await gov.createProposal(
+            _class,
+            [gov.address],
+            [0],
+            [callData],
+            desc,
+            {from: operator}
+        );
+
+        let event = res.logs[0].args;
+
+        await gov.test();
+        await wait(3000);
+        await gov.test();
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, {from: user1});
+        await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, {from: user2});
+        await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, {from: user3});
+        
+        await wait(3000);
+        await gov.test();
+ 
+        await gov.unlockVoteTokens(event.class, event.nonce, {from: user1});
+    
+        let balanceVoteAfter = await dbit.balanceOf(user1);
+        balanceVoteAfter = Number(balanceVoteAfter.toString()) / 1e18;
+        balanceVoteAfter = balanceVoteAfter.toFixed(15)
+
+        let reward = amountToStake * 5 / (3 * amountToStake);
+        reward = reward.toFixed(15);
+
+        expect(balanceVoteAfter).to.equal(reward);
+    })
 })
 
 

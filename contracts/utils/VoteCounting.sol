@@ -20,7 +20,7 @@ contract VoteCounting is GovSharedStorage {
     struct User {
         bool hasVoted;
         bool hasBeenRewarded;
-        uint8 weight;
+        uint256 weight;
         uint256 votingDay;
     }
 
@@ -174,7 +174,7 @@ contract VoteCounting is GovSharedStorage {
         );
 
         proposalVote.user[_account].hasVoted = true;
-        proposalVote.user[_account].weight = uint8(_weight);
+        proposalVote.user[_account].weight = _weight;
 
         if (_vote == uint8(VoteType.For)) {
             proposalVote.forVotes += _weight;

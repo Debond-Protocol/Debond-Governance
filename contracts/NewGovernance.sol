@@ -77,7 +77,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
         votingReward[1].numberOfVotingDays = 3;
         votingReward[1].numberOfDBITDistributedPerDay = 5;
 
-        votingReward[2].numberOfVotingDays = 3;
+        votingReward[2].numberOfVotingDays = 1; // 3
         votingReward[2].numberOfDBITDistributedPerDay = 5;
 
     }
@@ -376,19 +376,20 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
         ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
         require(
-            proposalVote.user[_tokenOwner].hasBeenRewarded = false,
+            proposalVote.user[_tokenOwner].hasBeenRewarded == false,
             "Gov: already rewarded"
         );
         proposalVote.user[_tokenOwner].hasBeenRewarded = true;
 
         uint256 _reward;
-
+        
         for(uint256 i = 1; i <= votingReward[_class].numberOfVotingDays; i++) {
-            _reward += 1 ether / totalVoteTokenPerDay[_class][_nonce][i];
+            _reward += (1 ether * 1 ether) / totalVoteTokenPerDay[_class][_nonce][i];
         }
 
-        _reward = _reward * proposalVote.user[_tokenOwner].weight * votingReward[_class].numberOfDBITDistributedPerDay;
-        IERC20(dbitContract).transferFrom(dbitContract, _tokenOwner, _reward);
+        _reward = _reward * proposalVote.user[_tokenOwner].weight * votingReward[_class].numberOfDBITDistributedPerDay / 1 ether;
+
+        IERC20(dbitContract).transfer(_tokenOwner, _reward);
     }
 
     /**
@@ -680,7 +681,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
         uint256 duration = _proposal.startTime > block.timestamp ?
             0: block.timestamp - _proposal.startTime;
         
-        day = (duration / NUMBER_OF_SECONDS_IN_DAY);
+        day = (duration / NUMBER_OF_SECONDS_IN_DAY) + 1;
     }
 
     /**

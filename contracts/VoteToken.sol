@@ -93,7 +93,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         );
         
         _lockedBalance[_owner][_class][_nonce] += _amount;
-        _availableBalance[_owner] = balanceOf(_owner) - _amount;
+        _availableBalance[_owner] = balanceOf(_owner) - _lockedBalance[_owner][_class][_nonce];
     }
 
     /**
@@ -115,7 +115,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         );
 
         _lockedBalance[_owner][_class][_nonce] -= _amount;
-        _availableBalance[_owner] = balanceOf(_owner) + _amount;
+        _availableBalance[_owner] = balanceOf(_owner) - _lockedBalance[_owner][_class][_nonce];
     }
 
     /**
