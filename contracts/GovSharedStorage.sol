@@ -25,6 +25,14 @@ abstract contract GovSharedStorage {
     }
 
     // link proposal class to class info
+    /**values stored on the given index as follows:
+    0: proposal timeLock
+    1: total vote.
+    2: Approve Vote.
+    3: Veto type (either value 0: No  veto required, 1: Proposal Approved (ie no meeting required))
+    4: bool isExecuted.
+    5:  proposal execution interval.
+     */
     mapping(uint128 => uint256[6]) public proposalClassInfo;
 
     // links proposal class to proposal nonce

@@ -42,7 +42,12 @@ there are two main  types of contracts present in the  debond governance:
         2. Approve: the proposal is approved the moment it gets sufficient pro votes.
         3. ApproveAndVeto: the veto condition (explained in **Working process**)
 
-    - targets 
+    - targets is the address array of the contract proposal that has been passed and will then be called by the given entity.
+
+    - values are the parameters of the functions that are to be executed based on the proposal.
+
+    - 
+
 
 ## Contracts:
 
@@ -101,6 +106,7 @@ there are two main  types of contracts present in the  debond governance:
 ## Security Considerations:
 
 - insure that governance veto address (debondOperator) should be secured by multisig as it has override on some parameters and proposals having `noVote` conditions.
+- also there is no standardised interface of proposals, thus for the proposals being introduced by the external community members (unless verified) needs to have more scrutiny about the implementation (like having verified contracts and having delay in the proposal execution after voting, etc).
 
 ## usage: 
 
@@ -110,8 +116,7 @@ there are two main  types of contracts present in the  debond governance:
     - then run
     ```bash
      $ truffle deploy --network .
-    - then define the address of the governance contracts in each of the other modules.
-
+    - then define the address of the governance contracts in each of the other contracts (from utils/governanceOwnable.sol).
 
     ```
 2. for importing the smart contracts package:
@@ -122,7 +127,7 @@ there are two main  types of contracts present in the  debond governance:
     import "debond-governance/contracts/interfaces/INewGovernance.sol";
     contract testProposal {
     //... see example implementation in Proposal/Proposal.sol.
-
+    
     }
     }
 
@@ -132,7 +137,13 @@ there are two main  types of contracts present in the  debond governance:
 
 
 ## Contracts dependence diagram:
+### 1. inheritance diagram: 
 
-[](./contracts/UML/GovStorage.svg).
+![](./contracts/docs/governance_inheritance_diagram.png)
+
+
+###  2. NewGovernance function call diagram: 
+
+![](./contracts/docs/governance_graph.png)
 
 
