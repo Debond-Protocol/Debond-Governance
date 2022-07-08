@@ -56,35 +56,6 @@ library DebondMath {
         }
     }
 
-
-        function fib(uint n) public pure returns(uint a) {
-            if (n == 0) {
-                return 0;
-            }
-            uint h = n / 2;
-            uint mask = 1;
-            // find highest set bit in n
-            while(mask <= h) {
-                mask <<= 1;
-            }
-            mask >>= 1;
-            a = 1;
-            uint b = 1;
-            uint c;
-            while(mask > 0) {
-                c = a * a+b * b;
-                if (n & mask > 0) {
-                    b = b * (b + 2 * a);
-                    a = c;
-                } else {
-                    a = a * (2 * b - a);
-                    b = c;
-                }
-                mask >>= 1;
-            }
-            return a;
-        }
-
     function inv(uint256 x) public pure returns (uint256 result) {
         return uint256(PRBMathSD59x18.inv(int256(x)));
     }
@@ -100,8 +71,8 @@ library DebondMath {
         return uint256(PRBMathSD59x18.pow(int256(x), int256(y)));
     }
 
-    function ln(uint256 x) public pure returns (uint256 result) {
-        return uint256(PRBMathSD59x18.ln(int256(x)));
+    function log2(uint256 x) public pure returns (uint256 result) {
+        return uint256(PRBMathSD59x18.log2(int256(x)));
     }
 
     /**
@@ -117,8 +88,8 @@ library DebondMath {
         uint256 _benchmarkIR
     ) public pure returns(uint256 floatingRate) {
         uint256 x = (_fixRateBond * 1 ether) / (_fixRateBond + _floatingRateBond);
-        int256 c = PRBMathSD59x18.inv(3 ether);
-        uint256 sig = sigmoid(x, uint256(c));
+        uint256 c = 200000000000000000; // c = 1/5
+        uint256 sig = sigmoid(x, c);
 
         floatingRate = 2 * _benchmarkIR * sig / 1 ether;
     }
@@ -185,13 +156,13 @@ library DebondMath {
         averageFlow = _sumOfLiquidityFlow * (1 ether + _benchmarkIR) / 1 ether;
     }
 
-    function estimateRedemptionTime(
+    function floatingETA(
         uint256 _maturityTime,
         uint256 _sumOfLiquidityFlow,
         uint256 _benchmarkIR,
         uint256 _sumOfLiquidityOfLastNonce,
         uint256 _nonceDuration,
-        uint256 _lastMontLiquidityFlow
+        uint256 _lastMonthLiquidityFlow
     ) external pure returns(uint256 redemptionTime) {
         int256 deficit = _deficitOfBond(
             _sumOfLiquidityFlow,
@@ -199,9 +170,9 @@ library DebondMath {
             _sumOfLiquidityOfLastNonce
         );
 
-        int256 sumOverLastMonth = (deficit / int256(_lastMontLiquidityFlow)) * 1 ether * int256(_nonceDuration);
+        int256 sumOverLastMonth = PRBMathSD59x18.div(deficit, int256(_lastMonthLiquidityFlow)) * int256(_nonceDuration);
 
-        redemptionTime = uint256(int256(_maturityTime * 1 ether) + sumOverLastMonth);
+        redemptionTime = uint256(int256(_maturityTime * 1 ether) + sumOverLastMonth) / 1 ether;
     }
 
     /**
@@ -216,9 +187,10 @@ library DebondMath {
         uint256 _benchmarkIR,
         uint256 _sumOfLiquidityOfLastNonce
     ) internal pure returns(int256 deficit) {
-        deficit = int256(_sumOfLiquidityFlow) *
-                  (1 + int256(_benchmarkIR)) -
-                  int256(_sumOfLiquidityOfLastNonce);
+        deficit =
+            (int256(_sumOfLiquidityFlow) * (1 ether + int256(_benchmarkIR))) /
+            1 ether -
+            int256(_sumOfLiquidityOfLastNonce);
     }
 
     /**
@@ -239,6 +211,6 @@ library DebondMath {
             _sumOfLiquidityOfLastNonce
         );
 
-        deficit > 0 ? crisis = true : crisis = false;
+        crisis = deficit > 0;
     }
 }
