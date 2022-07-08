@@ -75,9 +75,9 @@ there are two main  types of contracts present in the  debond governance:
 
 **2.Storage contracts**
 
-1. [GovStorage and govShared Storage]: These contracts store the  
+1. [GovStorage and govShared Storage](): These contracts store the  mapping information about the proposal details, voting parameters , token allocation etc.
 
-
+2. [VoteStorage](): consist of  mappings and structs that  stores the available vote tokens, accumulated interest in DBIT (based on number of the days voting participation, etc).
 
 
 ## Working process:
