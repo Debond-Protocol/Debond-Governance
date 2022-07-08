@@ -75,7 +75,8 @@ interface IVoteToken {
     */
     function lockedBalanceOf(
         address _account,
-        uint256 _proposalId
+        uint128 _class,
+        uint128 _nonce
     ) external view returns(uint256);
 
     /**
@@ -85,7 +86,8 @@ interface IVoteToken {
         address _owner,
         address _spender,
         uint256 _amount,
-        uint256 _proposalId
+        uint128 _class,
+        uint128 _nonce
     ) external;
 
     /**
@@ -94,7 +96,8 @@ interface IVoteToken {
     function unlockTokens(
         address _owner,
         uint256 _amount,
-        uint256 _proposalId
+        uint128 _class,
+        uint128 _nonce
     ) external;
 
     /**

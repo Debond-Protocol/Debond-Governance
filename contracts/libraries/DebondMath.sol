@@ -205,7 +205,7 @@ library DebondMath {
         uint256 _sumOfLiquidityOfLastNonce
     ) internal pure returns(int256 deficit) {
         deficit = int256(_sumOfLiquidityFlow) *
-                  (1 + int256(_benchmarkIR)) -
+                  (1e18 + int256(_benchmarkIR) / 100) / 1e18 -
                   int256(_sumOfLiquidityOfLastNonce);
     }
 
@@ -227,6 +227,6 @@ library DebondMath {
             _sumOfLiquidityOfLastNonce
         );
 
-        deficit > 0 ? crisis = true : crisis = false;
+        crisis = deficit > 0 ? true : false;
     }
 }
