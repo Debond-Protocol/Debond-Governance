@@ -17,6 +17,7 @@ pragma solidity ^0.8.0;
 interface INewExecutable {
     //Update benchmark intrest rate
     function updateBenchmarkInterestRate(
-        uint256 _newBenchmarkInterestRate
+        uint256 _newBenchmarkInterestRate,
+        address _executor
     ) external returns(bool);
 }

@@ -72,7 +72,7 @@ contract("Governance", async (accounts) => {
         await dgov.setBankContract(operator);
 
         // initialize all contracts
-        await gov.initialize(
+        await gov.firstSetUp(
             gov.address,
             dgov.address,
             dbit.address,
@@ -122,7 +122,8 @@ contract("Governance", async (accounts) => {
         let _class = 0;
         let desc = "Propsal-1: Update the benchMark interest rate";
         let callData = await gov.contract.methods.updateBenchmarkInterestRate(
-            '10'
+            '10',
+            operator
         ).encodeABI();
 
         let res = await gov.createProposal(
@@ -231,7 +232,8 @@ contract("Governance", async (accounts) => {
         let _class = 0;
         let desc = "Propsal-1: Update the benchMark interest rate";
         let callData = await gov.contract.methods.updateBenchmarkInterestRate(
-            '10'
+            '10',
+            operator
         ).encodeABI();
 
         let res = await gov.createProposal(
@@ -291,7 +293,8 @@ contract("Governance", async (accounts) => {
         let desc = "Propsal-1: Update the budget part per million";
         let callData = await gov.contract.methods.changeCommunityFundSize(
             newDBITBudget,
-            newDGOVBudget
+            newDGOVBudget,
+            operator
         ).encodeABI();
 
         let res = await gov.createProposal(
@@ -341,7 +344,8 @@ contract("Governance", async (accounts) => {
         let _class = 0;
         let desc = "Propsal-1: Update the benchMark interest rate";
         let callData = await gov.contract.methods.updateBenchmarkInterestRate(
-            '10'
+            '10',
+            operator
         ).encodeABI();
 
         let res = await gov.createProposal(
@@ -376,7 +380,8 @@ contract("Governance", async (accounts) => {
         let _class = 0;
         let desc = "Propsal-1: Update the benchMark interest rate";
         let callData = await gov.contract.methods.updateBenchmarkInterestRate(
-            '10'
+            '10',
+            operator
         ).encodeABI();
 
         let res = await gov.createProposal(
@@ -413,7 +418,8 @@ contract("Governance", async (accounts) => {
         let _class = 2;
         let desc = "Propsal-1: Update the benchMark interest rate";
         let callData = await gov.contract.methods.updateBenchmarkInterestRate(
-            '10'
+            '10',
+            operator
         ).encodeABI();
 
         let res = await gov.createProposal(
@@ -466,7 +472,8 @@ contract("Governance", async (accounts) => {
         let _class = 2;
         let desc = "Propsal-1: Update the benchMark interest rate";
         let callData = await gov.contract.methods.updateBenchmarkInterestRate(
-            '10'
+            '10',
+            operator
         ).encodeABI();
 
         let res = await gov.createProposal(

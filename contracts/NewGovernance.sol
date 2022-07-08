@@ -713,10 +713,17 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
     /**
     * @dev update the governance contract
     * @param _newGovernanceAddress new address for the Governance contract
+    * @param _executor address of the executor
     */
     function updateGovernanceContract(
-        address _newGovernanceAddress
+        address _newGovernanceAddress,
+        address _executor
     ) public returns(bool) {
+        require(
+            _executor == debondTeam || _executor == debondOperator,
+            "Gov: can't execute this task"
+        );
+
         governance = _newGovernanceAddress;
 
         return true;
@@ -725,10 +732,17 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
     /**
     * @dev update the exchange contract
     * @param _newExchangeAddress new address for the Exchange contract
+    * @param _executor address of the executor
     */
     function updateExchangeContract(
-        address _newExchangeAddress
+        address _newExchangeAddress,
+        address _executor
     ) public returns(bool) {
+        require(
+            _executor == debondTeam || _executor == debondOperator,
+            "Gov: can't execute this task"
+        );
+
         exchangeContract = _newExchangeAddress;
 
         return true;
@@ -737,10 +751,17 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
     /**
     * @dev update the bank contract
     * @param _newBankAddress new address for the Bank contract
+    * @param _executor address of the executor
     */
     function updateBankContract(
-        address _newBankAddress
+        address _newBankAddress,
+        address _executor
     ) public returns(bool) {
+        require(
+            _executor == debondTeam || _executor == debondOperator,
+            "Gov: can't execute this task"
+        );
+
         bankContract = _newBankAddress;
 
         return true;
@@ -749,10 +770,17 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
     /**
     * @dev update the benchmark interest rate
     * @param _newBenchmarkInterestRate new benchmark interest rate
+    * @param _executor address of the executor
     */
     function updateBenchmarkInterestRate(
-        uint256 _newBenchmarkInterestRate
+        uint256 _newBenchmarkInterestRate,
+        address _executor
     ) public override returns(bool) {
+        require(
+            _executor == debondTeam || _executor == debondOperator,
+            "Gov: can't execute this task"
+        );
+
         benchmarkInterestRate = _newBenchmarkInterestRate;
 
         return true;
@@ -762,11 +790,18 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
     * @dev change the community fund size (DBIT, DGOV)
     * @param _newDBITBudgetPPM new DBIT budget for community
     * @param _newDGOVBudgetPPM new DGOV budget for community
+    * @param _executor address of the executor
     */
     function changeCommunityFundSize(
         uint256 _newDBITBudgetPPM,
-        uint256 _newDGOVBudgetPPM
+        uint256 _newDGOVBudgetPPM,
+        address _executor
     ) public returns(bool) {
+        require(
+            _executor == debondTeam || _executor == debondOperator,
+            "Gov: can't execute this task"
+        );
+
         dbitBudgetPPM = _newDBITBudgetPPM;
         dgovBudgetPPM = _newDGOVBudgetPPM;
 
@@ -778,12 +813,19 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
     * @param _to the address that should receive the allocation tokens
     * @param _newDBITPPM the new DBIT allocation
     * @param _newDGOVPPM the new DGOV allocation
+    * @param _executor address of the executor
     */
     function changeTeamAllocation(
         address _to,
         uint256 _newDBITPPM,
-        uint256 _newDGOVPPM
+        uint256 _newDGOVPPM,
+        address _executor
     ) public returns(bool) {
+        require(
+            _executor == debondTeam || _executor == debondOperator,
+            "Gov: can't execute this task"
+        );
+
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
         uint256 dbitAllocDistributedPPM = dbitAllocationDistibutedPPM;
         uint256 dgovAllocDistributedPPM = dgovAllocationDistibutedPPM;
