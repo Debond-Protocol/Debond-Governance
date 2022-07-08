@@ -1,6 +1,6 @@
 ## Debond Governance:
 
-Contracts that handle the upgradation of the protocol parameters and capital allocation  by allowing the DGOV holders to participate in the process either via adding the proposal to be considered for voting or voting itself for the already existing proposal. the contracts  definition are inspired  from  the modified version of[openzeppelin governance]() that is efficient in storing 
+Contracts that handle the upgradation of the protocol parameters and capital allocation  by allowing the DGOV holders to participate in the process either via adding the proposal to be considered for voting or voting itself for the already existing proposal. the contracts  definition are inspired  from  the modified version of[openzeppelin governance](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/governance).  
 
 there are two main  types of contracts present in the  debond governance:
     - Core governance contract : it consist of the main governance contract, GovernanceSharedStorage and Executable contract that holds the logic for the lifecycle of proposals for debond protocol (explained further in contracts section). 
@@ -9,7 +9,7 @@ there are two main  types of contracts present in the  debond governance:
 
 
 
-## structures: 
+## Structures: 
 
 - the proposals are divided into several classes, each class stores information about the proposal lifecycle: 
     - timelock: Is the time period after issuance proposal, during which vote are to be locked. 
@@ -25,22 +25,24 @@ there are two main  types of contracts present in the  debond governance:
 
 - each proposal stores the following information: 
     ```solidity
-    struct  Proposal {
-        uint256 id;
+ struct  Proposal {
         uint256 startTime;
         uint256 endTime;
         address proposer;
         ProposalStatus status;
         ProposalApproval approvalMode;
-    }    
+        address[] targets;
+        uint256[] values;
+        bytes[] calldatas;
+        bytes32 descriptionHash;
+    }
     ```
     where most of the information is self explanatory, and ProposalStatus is an enum that represents the state of the proposal (Active,Canceled,Pending,Defeated,Succeeded,Executed) and ProposalApproval enum determines the nature of the evaluation of the proposal. this is defined by the following conditions: 
         1. NoVote : for the proposal by  core address of debond 
         2. Approve: the proposal is approved the moment it gets sufficient pro votes.
         3. ApproveAndVeto: the veto condition (explained in **Working process**)
 
-
-
+    - targets 
 
 ## Contracts:
 
@@ -52,13 +54,23 @@ there are two main  types of contracts present in the  debond governance:
 
 //TODO: merge this into one or rename 
 ### utils: 
-1. [GovSettings](): Contract that defines the function for setting the delay of starting voting  period after  proposal creation.
+1. [GovSettings](): Contract that defines the function for setting the delay of starting voting period after proposal creation. 
+
+2. [VoteCounting](): This stores the function for storing the votes by participant for proposal, along with function to find the sufficient quorum for the functions.
+## Contract.
+
+**1. Core contracts**
+
+1. [NewGovernance](): Core contract with the functions to issue the setup of the proposal,  proposal and vote cr creation, cancellation  etc. internally it interacts with the storage , staking and vote token to provide the main functionalities for governance along with the different projects.
+2. [StakingDGOV](): manages the staking process of the DGOV token in order to generate the Vote Token along with accumulated interest when the voting period is completed.
+
+3. [Vote](): ERC20 token issued for the participation the the voting process, when user stakes their DGOV token. they are not P2P transferrable (only within the voting process). 
 
 
-2. VoteCounting
-## Core contract.
 
-1. 
+**2.Storage contracts**
+
+1. [GovStorage and govShared Storage]: These contracts store the  
 
 
 
@@ -88,9 +100,7 @@ there are two main  types of contracts present in the  debond governance:
 
 ## Security Considerations:
 
-- insure that governance veto address (debondOperator) should be set an cold wallet in order to avoid compromise of the protocol.
-
-
+- insure that governance veto address (debondOperator) should be secured by multisig as it has override on some parameters and proposals having `noVote` conditions.
 
 ## usage: 
 
@@ -99,11 +109,14 @@ there are two main  types of contracts present in the  debond governance:
     - define the [HDWallet](https://www.npmjs.com/package/@truffle/hdwallet-provider) in the core repo.
     - then run
     ```bash
-     $ truffle deploy 
+     $ truffle deploy --network .
+    - then define the address of the governance contracts in each of the other modules.
+
+
     ```
-2. for importing  the smart contracts package:
+2. for importing the smart contracts package:
     ```solidity
-    // for  defining the proposal smart contract.
+    // for defining the proposal smart contract.
     import "debond-governance/contracts/INewExecutable.sol";
     import "debond-governance/contracts/utils/IGovernanceOwnable.sol";
     import "debond-governance/contracts/interfaces/INewGovernance.sol";
@@ -118,7 +131,7 @@ there are two main  types of contracts present in the  debond governance:
 
 
 
-## Contracts dependence  diagram:
+## Contracts dependence diagram:
 
 [](./contracts/UML/GovStorage.svg).
 
