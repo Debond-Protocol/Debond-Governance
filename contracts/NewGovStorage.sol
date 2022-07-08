@@ -43,6 +43,8 @@ abstract contract NewGovStorage is INewGovernance {
     uint256 public dgovBudgetPPM;
     uint256 public dbitAllocationDistibutedPPM;
     uint256 public dgovAllocationDistibutedPPM;
+    uint256 public dbitTotalAllocationDistributed;
+    uint256 public dgovTotalAllocationDistributed;
 
     uint256 internal benchmarkInterestRate;
     uint256 public interestRateForStakingDGOV;
