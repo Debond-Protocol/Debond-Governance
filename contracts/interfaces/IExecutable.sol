@@ -110,4 +110,38 @@ interface IExecutable {
         uint128 _proposalNonce,
         uint256 _newDGOVMaxSupply
     ) external returns(bool);
+
+    // adding th remaining functions from each of the contract modules:
+
+    //Debond-Bank Parameters: 
+
+    /**
+    @dev updating the bankData contract.
+
+     */
+
+    function setBankData(uint128 _proposalClass, uint128 _proposalNonce,address _newBankData) external ;
+    /** 
+    @dev changes the permission of the token pair to be bought in the given pool for the bonds.
+    @param classIdIn is the bond class for the incoming token.
+    @param classIdOut is the bond id (of token type debondBond) .
+    @param _canPurchase is the new status (true/false) to be set by the user. 
+    */
+
+    function updateCanPurchase(uint128 _proposalClass, uint128 _proposalNonce,classIdIn, uint classIdOut, bool _canPurchase) external;
+
+    //debond-Token 
+
+    /**
+    sets the max token allocation percentage of the unlocked supply.
+    */
+
+    function setMaxAllocationPercentage(uint128 _proposalClass, uint128 _proposalNonce,uint256 newPercentage) external returns (bool);
+ 
+
+
+
+
+
+
 }
