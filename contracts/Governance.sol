@@ -17,20 +17,20 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./NewGovStorage.sol";
+import "./GovStorage.sol";
 import "./utils/VoteCounting.sol";
 import "./interfaces/IVoteToken.sol";
 import "./interfaces/IGovSettings.sol";
-import "./interfaces/INewStaking.sol";
-import "./interfaces/INewExecutable.sol";
-import "./interfaces/INewGovernance.sol";
+import "./interfaces/IStaking.sol";
+import "./interfaces/IExecutable.sol";
+import "./interfaces/IGovernance.sol";
 import "./test/DBIT.sol";
 import "./Pausable.sol";
 
 /**
 * @author Samuel Gwlanold Edoumou (Debond Organization)
 */
-contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, ReentrancyGuard, Pausable {
+contract Governance is GovStorage, VoteCounting, IExecutable, ReentrancyGuard, Pausable {
     /**
     * @dev governance constructor
     * @param _debondTeam account address of Debond team
@@ -240,7 +240,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
 
         require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
 
-        uint256 _dgovStaked = INewStaking(stakingContract).getStakedDGOV(_tokenOwner, _stakingCounter);
+        uint256 _dgovStaked = IStaking(stakingContract).getStakedDGOV(_tokenOwner, _stakingCounter);
         uint256 approvedToSpend = IERC20(dgovContract).allowance(_tokenOwner, voter);
 
         require(
@@ -298,7 +298,7 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
     ) public returns(bool staked) {
         address staker = _msgSender();
 
-        INewStaking(stakingContract).stakeDgovToken(staker, _amount, _duration);
+        IStaking(stakingContract).stakeDgovToken(staker, _amount, _duration);
 
         staked = true;
     }
@@ -313,13 +313,13 @@ contract NewGovernance is NewGovStorage, VoteCounting, INewExecutable, Reentranc
     ) public returns(bool unstaked) {
         address staker = _msgSender();
 
-        uint256 amountStaked = INewStaking(stakingContract).unstakeDgovToken(
+        uint256 amountStaked = IStaking(stakingContract).unstakeDgovToken(
             staker,
             _stakingCounter
         );
 
         // the interest calculated from this function is in ether unit
-        uint256 interest = INewStaking(stakingContract).calculateInterestEarned(
+        uint256 interest = IStaking(stakingContract).calculateInterestEarned(
             staker,
             _stakingCounter,
             interestRateForStakingDGOV

@@ -14,9 +14,9 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "./interfaces/INewGovernance.sol";
+import "./interfaces/IGovernance.sol";
 
-abstract contract NewGovStorage is INewGovernance {
+abstract contract GovStorage is IGovernance {
     struct AllocatedToken {
         uint256 allocatedDBITMinted;
         uint256 allocatedDGOVMinted;

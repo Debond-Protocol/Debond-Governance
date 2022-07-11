@@ -14,7 +14,7 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-interface INewGovernance {
+interface IGovernance {
     struct  Proposal {
         uint256 startTime;
         uint256 endTime;

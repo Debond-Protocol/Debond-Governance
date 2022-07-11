@@ -9,9 +9,9 @@ const expect = chai.expect;
 const DBIT = artifacts.require("DBIT");
 const DGOV = artifacts.require("DGOV");
 const VoteToken = artifacts.require("VoteToken");
-const NewStakingDGOV = artifacts.require("NewStakingDGOV");
+const NewStakingDGOV = artifacts.require("StakingDGOV");
 const GovSettings = artifacts.require("GovSettings");
-const NewGovernance = artifacts.require("NewGovernance");
+const NewGovernance = artifacts.require("Governance");
 const VoteCounting = artifacts.require("VoteCounting");
 
 contract("Governance", async (accounts) => {
@@ -227,7 +227,7 @@ contract("Governance", async (accounts) => {
             );
     });
 
-    it("Chenge the benchmark interest rate", async () => {
+    it("Change the benchmark interest rate", async () => {
         // create a proposal
         let _class = 0;
         let desc = "Propsal-1: Update the benchMark interest rate";
@@ -248,7 +248,7 @@ contract("Governance", async (accounts) => {
         let event = res.logs[0].args;
 
         await gov.test();
-        await wait(3000);
+        await wait(4000);
         await gov.test();
 
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, {from: user1});

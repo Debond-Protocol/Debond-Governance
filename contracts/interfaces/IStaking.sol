@@ -14,10 +14,26 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-interface INewExecutable {
-    //Update benchmark intrest rate
-    function updateBenchmarkInterestRate(
-        uint256 _newBenchmarkInterestRate,
-        address _executor
-    ) external returns(bool);
+interface IStaking {
+    function stakeDgovToken(
+        address _staker,
+        uint256 _amount,
+        uint256 _duration
+    ) external;
+
+    function unstakeDgovToken(
+        address _staker,
+        uint256 _stakingCounter
+    ) external returns(uint256 unstakedAmount);
+
+    function getStakedDGOV(
+        address _staker,
+        uint256 _stakingCounter
+    ) external view returns(uint256 _stakedAmount);
+
+    function calculateInterestEarned(
+        address _staker,
+        uint256 _stakingCounter,
+        uint256 _interestRate
+    ) external view returns(uint256 interest);
 }

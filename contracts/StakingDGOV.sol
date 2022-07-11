@@ -16,9 +16,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IVoteToken.sol";
-import "./interfaces/INewStaking.sol";
+import "./interfaces/IStaking.sol";
 
-contract NewStakingDGOV is INewStaking {
+contract StakingDGOV is IStaking {
     /**
     * @dev structure that stores information on stacked dGoV
     */
