@@ -22,7 +22,6 @@ import "./utils/VoteCounting.sol";
 import "./interfaces/IVoteToken.sol";
 import "./interfaces/IGovSettings.sol";
 import "./interfaces/INewStaking.sol";
-import "./interfaces/IGovernance.sol";
 import "./interfaces/INewExecutable.sol";
 import "./interfaces/INewGovernance.sol";
 import "./test/DBIT.sol";

@@ -292,6 +292,7 @@ contract("Governance", async (accounts) => {
         let _class = 0;
         let desc = "Propsal-1: Update the budget part per million";
         let callData = await gov.contract.methods.changeCommunityFundSize(
+            _class,
             newDBITBudget,
             newDGOVBudget,
             operator
