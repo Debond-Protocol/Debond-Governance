@@ -50,7 +50,7 @@ contract("Governance", async (accounts) => {
         count = await VoteCounting.new();
         vote = await VoteToken.new("Debond Vote Token", "DVT", operator);
         stak = await NewStakingDGOV.new(dgov.address, vote.address);
-        settings = await GovSettings.new(2, 5);
+        settings = await GovSettings.new(2, 4);
         gov = await NewGovernance.new(operator, operator);
 
         // set the stakingDGOV contract address in Vote Token
