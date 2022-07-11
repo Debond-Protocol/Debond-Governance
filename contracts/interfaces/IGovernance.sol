@@ -15,114 +15,82 @@ pragma solidity ^0.8.0;
 */
 
 interface IGovernance {
-    /**
-    * @dev emitted when new virtual `voteToken` tokens are created
-    */
-    event tokenMinted(address _user, uint256 _amount);
+    struct  Proposal {
+        uint256 startTime;
+        uint256 endTime;
+        address proposer;
+        ProposalStatus status;
+        ProposalApproval approvalMode;
+        address[] targets;
+        uint256[] values;
+        bytes[] calldatas;
+        bytes32 descriptionHash;
+    }
 
-    /**
-    * @dev emitted when new virtual `voteToken` tokens are burned
-    */
-    event tokenBurned(address _user, uint256 _amount);
+    enum ProposalStatus {
+        Active,
+        Canceled,
+        Pending,
+        Defeated,
+        Succeeded,
+        Executed
+    }
 
-    /**
-    * @dev emitted when new virtual `voteToken` tokens is transfered
-    */
-    event voteTokenTransfered(address _from, address _to, uint256 _amount);
-    
-    /**
-    * @dev emitted when a new proposal is created
-    */
-    event proposalRegistered(
-        uint128 _class,
-        uint128 _nonce,
-        uint256 _endTime,
-        address _contractAddress
+    enum ProposalApproval {
+        NoVote,
+        Approve,
+        VoteAndVeto
+    }
+
+        /**
+     * @dev Emitted when a proposal is created.
+     */
+     event ProposalCreated(
+        uint128 class,
+        uint128 nonce,
+        uint256 startVoteTime,
+        uint256 endVoteTime,
+        address proposer,
+        address[] targets,
+        uint256[] values,
+        bytes[] calldatas,
+        string description,
+        ProposalApproval approval
     );
 
     /**
-    * @dev emitted when a new proposal is revoked
+    * @dev Emitted when a proposal is executed
     */
-    event proposalRevoked(
+    event ProposalExecuted(uint128, uint128);
+
+    /**
+    * @dev create a proposal onchain
+    * @param _class proposal class
+    * @param _targets array of target contracts
+    * @param _values array of ether send
+    * @param _calldatas array of calldata to be executed
+    * @param _description proposal description
+    */
+    function createProposal(
+        uint128 _class,
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        string memory _description
+    ) external returns(uint128 nonce);
+
+    /**
+    * @dev execute a proposal
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    */
+    function executeProposal(
         uint128 _class,
         uint128 _nonce
-    );
+    ) external returns(bool);
 
     /**
-    * @dev emitted when a proposal is paused
+    * @dev return the governance address
     */
-    event proposalPaused(
-        uint128 _class,
-        uint128 _nonce
-    );
-
-    /**
-    * @dev emitted when a proposal is unpaused
-    */
-    event proposalUnpaused(
-        uint128 _class,
-        uint128 _nonce
-    );
-
-    /**
-    * @dev emitted when a proposal is ended
-    */
-    event proposalEnded(
-        uint128 _class,
-        uint128 _nonce
-    );
-
-    /**
-    * @dev emitted when a user vote
-    */
-    event userVoted(
-        uint128 _class,
-        uint128 _nonce,
-        address _proposalContractAddress,
-        uint256 _amountVoteTokens
-    );
-
-    /**
-    * @dev emitted when vote tokens are redeemed
-    */
-    event voteTokenRedeemed(
-        address _voter,
-        address _to,
-        uint128 _class,
-        uint128 _nonce,
-        address _contractAddress
-    );
-
-    /**
-    * @dev register a proposal
-    *
-    function registerProposal(
-        uint128 _class,
-        address _owner,
-        uint256 _endTime,
-        uint256 _dbitRewards,
-        address _contractAddress,
-        uint256[] memory _dbitDistributedPerDay
-    ) external;
-    */
-
-    /**
-    * @dev revoke a proposal
-    */
-    function revokeProposal(
-        uint128 _class,
-        uint128 _nonce,
-        uint128 _revokeClass
-    ) external;
-
-    /**
-    * @dev redeem vote tokens for DBIT interests gained
-    */
-    function redeemVoteTokenForDBIT(
-        address _voter,
-        address _to,
-        uint128 _class,
-        uint128 _nonce,
-        address _contractAddress
-    ) external;
+    function getGovernance() external view returns(address);
 }

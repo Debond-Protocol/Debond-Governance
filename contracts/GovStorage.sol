@@ -14,50 +14,9 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-contract GovStorage {
-    struct Proposal {
-        address owner;
-        uint256 startTime;
-        uint256 endTime;
-        uint256 forVotes;
-        uint256 againstVotes;
-        uint256 numberOfVoters;
-        uint256 minimumNumberOfVotes;
-        uint256 dbitRewards;
-        uint256 executionNonce;
-        uint256 executionInterval;
-        address contractAddress;
-        uint256[] dbitDistributedPerDay;
-        uint256[] totalVoteTokensPerDay;
-        ProposalApproval approvalMode;
-        bytes32 proposalHash;
-        ProposalStatus status;
-    }
+import "./interfaces/IGovernance.sol";
 
-    struct Vote {
-        uint128 class;
-        uint128 nonce;
-        address contractAddress;
-        bool voted;
-        VoteChoice vote;
-        uint256 amountTokens;
-        uint256 votingDay;
-    }
-
-    struct ProposalClass {
-        uint128 nonce;
-    }
-
-    struct ProposalClassInfo {
-        uint128[] nonces;
-        uint256 timelock;
-        uint256 minimumApproval;
-        uint256 minimumVote;
-        uint256 architectVeto;
-        uint256 maximumExecutionTime;
-        uint256 minimumExecutionInterval;
-    }
-
+abstract contract GovStorage is IGovernance {
     struct AllocatedToken {
         uint256 allocatedDBITMinted;
         uint256 allocatedDGOVMinted;
@@ -65,22 +24,20 @@ contract GovStorage {
         uint256 dgovAllocationPPM;
     }
 
-    address public debondOperator;  // entities with Veto access for the proposal
+    bool public initialized;
+
+    address public debondOperator;
     address public debondTeam;
-    address public DBIT;
-    address public dGoV;
-    address public bank;
-    address public voteToken;
     address public governance;
+    address public exchangeContract;
+    address public bankContract;
+    address public dgovContract;
+    address public dbitContract;
     address public stakingContract;
+    address public voteTokenContract;
+    address public govSettingsContract;
 
-    uint256 public _totalVoteTokenSupply;
-    uint256 public _totalVoteTokenMinted;
-    uint256 public _dbitAmountForOneVote;
-
-    uint256 constant public NUMBER_OF_SECONDS_IN_DAY = 1 days;
-    uint256 private stakingDgoVDuration;
-    uint256 private _lockTime;
+    address public vetoOperator;
 
     uint256 public dbitBudgetPPM;
     uint256 public dgovBudgetPPM;
@@ -89,66 +46,16 @@ contract GovStorage {
     uint256 public dbitTotalAllocationDistributed;
     uint256 public dgovTotalAllocationDistributed;
 
-    mapping(bytes32 => Vote) votes;
-    mapping(uint128 => ProposalClass) proposalClass;
-    mapping(address => AllocatedToken) allocatedToken;
-    mapping(address => uint256) internal voteTokenBalance;
+    uint256 internal benchmarkInterestRate;
+    uint256 public interestRateForStakingDGOV;
+    uint256 internal _proposalThreshold;
+    uint256 constant public NUMBER_OF_SECONDS_IN_DAY = 31536000;
+
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
-    mapping(uint128 => ProposalClassInfo) proposalClassInfo;
-
-    enum ProposalStatus {Approved, Paused, Revoked, Ended}
-    enum ProposalApproval {Both, ShouldApprove, CanVeto}
-    enum VoteChoice {For, Against, Abstain}
-
-    modifier onlyGov {
-        require(msg.sender == governance, "Gov: not governance");
-        _;
-    }
+    mapping(address => AllocatedToken) allocatedToken;
 
     modifier onlyDebondOperator {
         require(msg.sender == debondOperator, "Gov: Need rights");
         _;
     }
-
-    modifier canClaimTokens(uint128 _class, uint128 _nonce) {
-        Proposal memory _proposal = proposal[_class][_nonce];
-        require(_proposal.endTime + _lockTime <= block.timestamp, "");
-        _;
-    }
-
-    modifier onlyActiveProposal(uint128 _class, uint128 _nonce) {
-        Proposal memory _proposal = proposal[_class][_nonce];
-        require(
-            _proposal.endTime >= block.timestamp,
-            "Gov: proposal not found"
-        );
-        require(_proposal.status == ProposalStatus.Approved);
-        _;
-    }
-
-    modifier onlyActiveOrPausedProposal(uint128 _class, uint128 _nonce) {
-        Proposal memory _proposal = proposal[_class][_nonce];
-        require(
-            (
-                _proposal.endTime >= block.timestamp &&
-                _proposal.status == ProposalStatus.Approved
-            ) || _proposal.status == ProposalStatus.Paused,
-            "Gov: not active or paused"
-        );
-        _;
-    }
-
-    modifier onlyPausedProposal(uint128 _class, uint128 _nonce) {
-        Proposal memory _proposal = proposal[_class][_nonce];
-        require(
-            _proposal.status == ProposalStatus.Paused,
-            "Gov: proposal not paused"
-        );
-        _;
-    }
-
-    modifier onlyCorrectOwner(bytes32 proposalHash,uint128 classId, uint128 proposalId) {
-        require(proposalHash == proposal[classId][proposalId].proposalHash, "proposal executed is not mentioned corresponding to proposal");
-        _;
-    }  
 }

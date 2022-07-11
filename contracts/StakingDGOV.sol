@@ -15,13 +15,12 @@ pragma solidity ^0.8.0;
 */
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./interfaces/IStakingDGOV.sol";
 import "./interfaces/IVoteToken.sol";
+import "./interfaces/IStaking.sol";
 
-contract StakingDGOV is IStakingDGOV, ReentrancyGuard {
+contract StakingDGOV is IStaking {
     /**
-    * @dev structure that stores information on the stacked dGoV
+    * @dev structure that stores information on stacked dGoV
     */
     struct StackedDGOV {
         uint256 amountDGOV;
@@ -29,41 +28,31 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard {
         uint256 duration;
     }
 
-    address public dbit;
-    address public dGov;
-    address public voteToken;
-    address public debondOperator;
-    address public governance;
+    // key1: staker address, key2: staking rank of the staker
+    mapping(address => mapping(uint256 => StackedDGOV)) internal stackedDGOV;
+    mapping(address => uint256) public stakingCounter;
 
-    uint256 private interestRate;
+    event dgovStacked(address staker, uint256 amount, uint256 counter);
+    event dgovUnstacked(address staker, uint256 amount, uint256 counter);
+
     uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
 
-    mapping(address => StackedDGOV) public stackedDGOV;
-
-    modifier onlyGov {
-        require(msg.sender == governance, "Gov: not governance");
-        _;
-    }
-
-    modifier onlyDebondOperator {
-        require(msg.sender == debondOperator, "Gov: not governance");
-        _;
-    }
+    address public dGov;
+    address public voteToken;
+    
+    IERC20 IdGov;
+    IVoteToken Ivote;
 
     constructor (
-        address _dbit,
-        address _dGovToken,
-        address _voteToken,
-        address _debondOperator,
-        uint256 _interestRate
+        address _dgovToken,
+        address _voteToken
     ) {
-        dbit = _dbit;
-        dGov = _dGovToken;
+        dGov = _dgovToken;
         voteToken = _voteToken;
-        debondOperator = _debondOperator;
-        interestRate = _interestRate;
+        IdGov = IERC20(_dgovToken);
+        Ivote = IVoteToken(_voteToken);
     }
-
+    
     /**
     * @dev stack dGoV tokens
     * @param _staker the address of the staker
@@ -74,143 +63,75 @@ contract StakingDGOV is IStakingDGOV, ReentrancyGuard {
         address _staker,
         uint256 _amount,
         uint256 _duration
-    ) external onlyGov nonReentrant() {
-        IERC20 IdGov = IERC20(dGov);
-        IVoteToken Ivote = IVoteToken(voteToken);
-        
+    ) external override {
         uint256 stakerBalance = IdGov.balanceOf(_staker);
         require(_amount <= stakerBalance, "Debond: not enough dGov");
 
-        stackedDGOV[_staker].startTime = block.timestamp;
-        stackedDGOV[_staker].duration = _duration;
-        stackedDGOV[_staker].amountDGOV += _amount;
+        uint256 counter = stakingCounter[_staker];
+
+        stackedDGOV[_staker][counter + 1].startTime = block.timestamp;
+        stackedDGOV[_staker][counter + 1].duration = _duration;
+        stackedDGOV[_staker][counter + 1].amountDGOV += _amount;
+        stakingCounter[_staker] = counter + 1;
 
         IdGov.transferFrom(_staker, address(this), _amount);
         Ivote.mintVoteToken(_staker, _amount);
 
-        emit dgovStacked(_staker, _amount);
+        emit dgovStacked(_staker, _amount, counter + 1);
     }
 
     /**
     * @dev unstack dGoV tokens
     * @param _staker the address of the staker
-    * @param _to the address to send the dGoV to
-    * @param _amount the amount of dGoV tokens to unstak
+    * @param _stakingCounter the staking rank
     */
     function unstakeDgovToken(
         address _staker,
-        address _to,
-        uint256 _amount
-    ) external onlyGov nonReentrant() {
-        StackedDGOV memory _stacked = stackedDGOV[_staker];
+        uint256 _stakingCounter
+    ) external override returns(uint256 unstakedAmount) {
+        StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
+
         require(
-            block.timestamp >= _stacked.startTime + _stacked.duration,
+            block.timestamp >= _staked.startTime + _staked.duration,
             "Staking: still staking"
         );
-        require(_amount <= _stacked.amountDGOV, "Staking: Not enough dGoV staked");
 
-        // burn the vote tokens owned by the user
-        IVoteToken Ivote = IVoteToken(voteToken);
-        Ivote.burnVoteToken(_staker, _amount);
+        require(_staked.amountDGOV > 0, "Staking: no dGoV staked");
 
-        // transfer staked DGOV to the staker 
-        IERC20 IdGov = IERC20(dGov);
-        IdGov.transfer(_to, _amount);
+        unstakedAmount = _staked.amountDGOV;
+        _staked.amountDGOV = 0;
 
-        emit dgovUnstacked(_staker, _to, _amount);
+        // burn vote tokens and transfer back dGoV to the staker
+        Ivote.burnVoteToken(_staker, unstakedAmount);
+        IdGov.transfer(_staker, unstakedAmount);
+
+        emit dgovUnstacked(_staker, unstakedAmount, _stakingCounter);
     }
 
     /**
-    * @dev set the governance contract address
-    * @param _governance governance contract address
+    * @dev calculate the interest earned by DGOV staker
+    * @param _staker DGOV staker
+    * @param _stakingCounter the staking rank
+    * @param _interestRate interest rate (in ether unit: 1E+18)
     */
-    function setGovernanceContract(address _governance) external onlyDebondOperator {
-        governance = _governance;
-    }
+    function calculateInterestEarned(
+        address _staker,
+        uint256 _stakingCounter,
+        uint256 _interestRate
+    ) external view override returns(uint256 interest) {
+        StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
+        require(_staked.amountDGOV > 0, "Staking: not dGoV staked");
 
-    /**
-    * @dev get the governance contract address
-    * @param gov governance contract address
-    */
-    function getGovernanceContract() external view returns(address gov) {
-        gov = governance;
-    }
-
-    /**
-    * @dev set the interest rate of DBIT to gain when unstaking dGoV
-    * @param _interest The new interest rate
-    */
-    function setInterestRate(uint256 _interest) external onlyDebondOperator {
-        interestRate = _interest;
-    }
-
-    /**
-    * @dev get the interest rate of DBIT to gain when unstaking dGoV
-    * @param _interestRate The interest rate
-    */
-    function getInterestRate() public view returns(uint256 _interestRate) {
-        _interestRate = interestRate;
+        interest = (_interestRate * _staked.duration * 1 ether) / (100 * NUMBER_OF_SECONDS_IN_YEAR);
     }
 
     /**
     * @dev get the amount of dGoV staked by a user
-    * @param _user address of the user
+    * @param _staker address of the staker
+    * @param _stakingCounter the staking rank
     * @param _stakedAmount amount of dGoV staked by the user
     */
-    function getStakedDGOV(address _user) external view returns(uint256 _stakedAmount) {
-        _stakedAmount = stackedDGOV[_user].amountDGOV;
-    }
-
-    /**
-    * @dev set the DBIT contract address
-    * @param _dbit DBIT address
-    */
-    function setDBITContract(address _dbit) external {
-        dbit = _dbit;
-    }
-
-    /**
-    * @dev calculate the interest earned in DBIT
-    * @param _staker the address of the dGoV staker
-    * @param interest interest earned
-    */
-    function calculateInterestEarned(
-        address _staker
-    ) external view onlyGov returns(uint256 interest) {
-        StackedDGOV memory staked = stackedDGOV[_staker];
-        require(staked.amountDGOV > 0, "Staking: no dGoV staked");
-
-        uint256 _interestRate = getInterestRate();
-
-        interest = _interestRate * staked.duration / NUMBER_OF_SECONDS_IN_YEAR;
-    }
-
-    /**
-    * @dev Estimate how much Interest the user has gained since he staked dGoV
-    * @param _amount the amount of DBIT staked
-    * @param _duration staking duration to estimate interest from
-    * @param interest the estimated interest earned so far
-    */
-    function estimateInterestEarned(
-        uint256 _amount,
-        uint256 _duration
-    ) external view returns(uint256 interest) {
-        uint256 _interestRate = getInterestRate();
-        interest = _amount * (_interestRate * _duration / NUMBER_OF_SECONDS_IN_YEAR);
-    }
-
-    /**
-    * @dev update the stakedDGOV struct after a staker unstake dGoV
-    * @param _staker the address of the staker
-    * @param _amount the amount of dGoV token that have been unstake
-    * @param updated true if the struct has been updated, false otherwise
-    */
-    function updateStakedDGOV(
-        address _staker,
-        uint256 _amount
-    ) external onlyGov returns(bool updated) {
-        stackedDGOV[_staker].amountDGOV -= _amount;
-
-        updated = true;
+    function getStakedDGOV(address _staker, uint256 _stakingCounter) external view override returns(uint256 _stakedAmount) {
+        _stakedAmount = stackedDGOV[_staker][_stakingCounter].amountDGOV;
     }
 }

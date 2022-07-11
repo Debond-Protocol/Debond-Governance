@@ -19,7 +19,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 
-interface IDebondToken  {
+interface IDebondTokenDGOV  {
     function totalSupply() external view returns (uint256);
 
     function airdropedSupply() external view returns (uint256);
@@ -50,12 +50,12 @@ interface IDebondToken  {
     function setAirdroppedSupply(uint256 new_supply) external returns(bool); 
 }
 
-interface ICollateral {
+interface ICollateralDGOV {
     function collaterisedSupply() external view returns (uint);
 }
 
 
-contract DGOV is ERC20, IDebondToken, AccessControl, ICollateral {
+contract DGOV is ERC20, IDebondTokenDGOV, AccessControl, ICollateralDGOV {
     // this minter role will be for airdropToken , bank or the governance Contract
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     uint256 public _collateralisedSupply;
@@ -86,7 +86,7 @@ contract DGOV is ERC20, IDebondToken, AccessControl, ICollateral {
         public
         view
         virtual
-        override(ERC20, IDebondToken)
+        override(ERC20, IDebondTokenDGOV)
         returns (uint256)
     {
         return
@@ -98,12 +98,12 @@ contract DGOV is ERC20, IDebondToken, AccessControl, ICollateral {
     /**
     * @dev return the the total allocated supplly
     */
-    function allocatedSupply() public view returns (uint256) {
+    function allocatedSupply() public view override returns (uint256) {
         return _allocatedSupply;
     }
 
     // just an contract for formality given that current version doesnt have to be minted for DBIT.
-    function airdropedSupply() public view returns (uint256) {
+    function airdropedSupply() public view override returns (uint256) {
         return _airdroppedSupply;
     }
 
@@ -112,7 +112,7 @@ contract DGOV is ERC20, IDebondToken, AccessControl, ICollateral {
     * @param _user the user address
     * @param balance collateralized balance of `_user`
     */
-    function collateralisedBalance(address _user) public view returns(uint256 balance) {
+    function collateralisedBalance(address _user) public view override returns(uint256 balance) {
         balance = _collateralisedBalance[_user];
     }
 
@@ -121,7 +121,7 @@ contract DGOV is ERC20, IDebondToken, AccessControl, ICollateral {
     * @param _user the user address
     * @param balance airdrop balance of `_user`
     */
-    function airdroppedBalance(address _user) public view returns(uint256 balance) {
+    function airdroppedBalance(address _user) public view override returns(uint256 balance) {
         balance = _airdroppedBalance[_user];
     }
 
@@ -130,14 +130,14 @@ contract DGOV is ERC20, IDebondToken, AccessControl, ICollateral {
     * @param _user the user address
     * @param balance allocated balance of `_user`
     */
-    function allocatedBalance(address _user) public view returns(uint256 balance) {
+    function allocatedBalance(address _user) public view override returns(uint256 balance) {
         balance = _allocatedBalance[_user];
     }
 
     function collaterisedSupply()
         external
         view
-        override(ICollateral, IDebondToken)
+        override(ICollateralDGOV, IDebondTokenDGOV)
         returns (uint256)
     {
         return _collateralisedSupply;
@@ -238,7 +238,7 @@ contract DGOV is ERC20, IDebondToken, AccessControl, ICollateral {
     return (true);
 }
 
-     function setAirdroppedSupply(uint256 new_supply) public returns (bool) {
+     function setAirdroppedSupply(uint256 new_supply) public override returns (bool) {
         require(
             hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
             "DBIT: ACCESS DENIED "
