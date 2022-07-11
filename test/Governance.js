@@ -50,7 +50,7 @@ contract("Governance", async (accounts) => {
         count = await VoteCounting.new();
         vote = await VoteToken.new("Debond Vote Token", "DVT", operator);
         stak = await NewStakingDGOV.new(dgov.address, vote.address);
-        settings = await GovSettings.new(2, 3);
+        settings = await GovSettings.new(2, 5);
         gov = await NewGovernance.new(operator, operator);
 
         // set the stakingDGOV contract address in Vote Token
@@ -227,7 +227,7 @@ contract("Governance", async (accounts) => {
             );
     });
 
-    it("Change the benchmark interest rate", async () => {
+    it("Chenge the benchmark interest rate", async () => {
         // create a proposal
         let _class = 0;
         let desc = "Propsal-1: Update the benchMark interest rate";
@@ -248,7 +248,7 @@ contract("Governance", async (accounts) => {
         let event = res.logs[0].args;
 
         await gov.test();
-        await wait(4000);
+        await wait(3000);
         await gov.test();
 
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, {from: user1});
@@ -509,7 +509,7 @@ contract("Governance", async (accounts) => {
         reward = reward.toFixed(15);
 
         expect(balanceVoteAfter).to.equal(reward);
-    })
+    });
 })
 
 
