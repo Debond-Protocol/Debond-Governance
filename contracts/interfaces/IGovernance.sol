@@ -62,35 +62,4 @@ interface IGovernance {
     * @dev Emitted when a proposal is executed
     */
     event ProposalExecuted(uint128, uint128);
-
-    /**
-    * @dev create a proposal onchain
-    * @param _class proposal class
-    * @param _targets array of target contracts
-    * @param _values array of ether send
-    * @param _calldatas array of calldata to be executed
-    * @param _description proposal description
-    */
-    function createProposal(
-        uint128 _class,
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
-        string memory _description
-    ) external returns(uint128 nonce);
-
-    /**
-    * @dev execute a proposal
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    */
-    function executeProposal(
-        uint128 _class,
-        uint128 _nonce
-    ) external returns(bool);
-
-    /**
-    * @dev return the governance address
-    */
-    function getGovernance() external view returns(address);
 }

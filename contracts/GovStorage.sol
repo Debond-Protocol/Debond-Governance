@@ -36,6 +36,7 @@ abstract contract GovStorage is IGovernance {
     address public stakingContract;
     address public voteTokenContract;
     address public govSettingsContract;
+    address public executable;
 
     address public vetoOperator;
 
@@ -46,9 +47,9 @@ abstract contract GovStorage is IGovernance {
     uint256 public dbitTotalAllocationDistributed;
     uint256 public dgovTotalAllocationDistributed;
 
-    uint256 internal benchmarkInterestRate;
+    uint256 public benchmarkInterestRate;
     uint256 public interestRateForStakingDGOV;
-    uint256 internal _proposalThreshold;
+    uint256 public _proposalThreshold;
     uint256 constant public NUMBER_OF_SECONDS_IN_DAY = 31536000;
 
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;

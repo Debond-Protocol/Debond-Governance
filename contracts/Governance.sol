@@ -23,30 +23,26 @@ import "./interfaces/IVoteToken.sol";
 import "./interfaces/IGovSettings.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IExecutable.sol";
-import "./interfaces/IGovernance.sol";
 import "./test/DBIT.sol";
 import "./Pausable.sol";
 
 /**
 * @author Samuel Gwlanold Edoumou (Debond Organization)
 */
-contract Governance is GovStorage, VoteCounting, IExecutable, ReentrancyGuard, Pausable {
+contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
+
     /**
     * @dev governance constructor
     * @param _debondTeam account address of Debond team
     */
-    constructor(address _debondTeam, address _vetoOperator) {
+    constructor(
+        address _debondTeam,
+        address _vetoOperator
+    ) {
         debondTeam = _debondTeam;
         vetoOperator = _vetoOperator;
         debondOperator = _msgSender();
 
-        dbitBudgetPPM = 1e5 * 1 ether;
-        dgovBudgetPPM = 1e5 * 1 ether;
-        allocatedToken[debondTeam].dbitAllocationPPM = 4e4 * 1 ether;
-        allocatedToken[debondTeam].dgovAllocationPPM = 8e4 * 1 ether;
-
-        // in percent
-        benchmarkInterestRate = 5;
         // in percent
         interestRateForStakingDGOV = 5;
 
@@ -96,7 +92,7 @@ contract Governance is GovStorage, VoteCounting, IExecutable, ReentrancyGuard, P
         uint256[] memory _values,
         bytes[] memory _calldatas,
         string memory _description
-    ) public override returns(uint128 nonce) {
+    ) public returns(uint128 nonce) {
         require(
             IVoteToken(voteTokenContract).availableBalance(_msgSender()) >= _proposalThreshold,
             "Gov: insufficient vote tokens"
@@ -145,7 +141,7 @@ contract Governance is GovStorage, VoteCounting, IExecutable, ReentrancyGuard, P
     function executeProposal(
         uint128 _class,
         uint128 _nonce
-    ) public override returns(bool) {
+    ) public returns(bool) {
         require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
 
         Proposal storage _proposal = proposal[_class][_nonce];
@@ -427,7 +423,7 @@ contract Governance is GovStorage, VoteCounting, IExecutable, ReentrancyGuard, P
 
         totalVoteTokenPerDay[_class][_nonce][day] = dayVoteTokens + _amountVoteTokens;
         _proposalVotes[_class][_nonce].user[_voter].votingDay = day;
-        _countVote(_class, _nonce, _voter, _userVote, _amountVoteTokens);
+        countVote(_class, _nonce, _voter, _userVote, _amountVoteTokens);
     }
 
     /**
@@ -470,13 +466,13 @@ contract Governance is GovStorage, VoteCounting, IExecutable, ReentrancyGuard, P
         }
 
         if (_class == 2) {
-            if (_quorumReached(_class, _nonce) && _voteSucceeded(_class, _nonce)) {
+            if (quorumReached(_class, _nonce) && voteSucceeded(_class, _nonce)) {
                 return ProposalStatus.Succeeded;
             } else {
                 return ProposalStatus.Defeated;
             }
         } else {
-            if (_vetoApproved(_class, _nonce)) {
+            if (vetoApproved(_class, _nonce)) {
                 return ProposalStatus.Succeeded;
             } else {
                 return ProposalStatus.Defeated;
@@ -640,6 +636,7 @@ contract Governance is GovStorage, VoteCounting, IExecutable, ReentrancyGuard, P
         address _stakingContract,
         address _voteContract,
         address _settingsContrats,
+        address _executable,
         address _bankContract,
         address _exchangeContract
     ) public onlyDebondOperator returns(bool) {
@@ -651,6 +648,7 @@ contract Governance is GovStorage, VoteCounting, IExecutable, ReentrancyGuard, P
         stakingContract = _stakingContract;
         voteTokenContract = _voteContract;
         govSettingsContract = _settingsContrats;
+        executable = _executable;
         exchangeContract = _bankContract;
         bankContract = _exchangeContract;
 
@@ -660,13 +658,37 @@ contract Governance is GovStorage, VoteCounting, IExecutable, ReentrancyGuard, P
     /**
     * @dev return the governance contract address
     */
-    function getGovernance() public view override returns(address) {
+    function getGovernance() public view returns(address) {
         return governance;
     }
 
+    /**
+    * @dev return the benchmark interest rate
+    */
     function getBenchmarkIR() public view returns(uint256) {
-        return benchmarkInterestRate;
+        return IExecutable(executable).getBenchmarkInterestRate();
     }
+
+    /**
+    * @dev return DBIT and DGOV budgets in PPM (part per million)
+    */
+    function getBudget() public view returns(uint256, uint256) {
+        return IExecutable(executable).getBudget();
+    }
+
+    /**
+    * @dev return DBIT and DGOV allocation distributed
+    */
+    function getAllocationDistributed() public view returns(uint256, uint256) {
+        return IExecutable(executable).getAllocationDistributed();
+    }
+
+    /**
+    * @dev return the amount of DBIT and DGOV allocated to a given address
+    */
+    function getAllocatedToken(address _account) public view returns(uint256, uint256) {
+        return IExecutable(executable).getAllocatedToken(_account);
+    } 
 
     /**
     * @dev get the bnumber of days elapsed since the vote has started
@@ -699,10 +721,6 @@ contract Governance is GovStorage, VoteCounting, IExecutable, ReentrancyGuard, P
         uint256 votingDay = _proposalVotes[_class][_nonce].user[_voter].votingDay;
 
         numberOfDay = (proposalDurationInDay - votingDay) + 1;
-    }
-
-    function getBudget() public view returns(uint256, uint256) {
-        return (dbitBudgetPPM, dgovBudgetPPM);
     }
 
     
@@ -774,13 +792,15 @@ contract Governance is GovStorage, VoteCounting, IExecutable, ReentrancyGuard, P
     function updateBenchmarkInterestRate(
         uint256 _newBenchmarkInterestRate,
         address _executor
-    ) public override returns(bool) {
+    ) public returns(bool) {
         require(
             _executor == debondTeam || _executor == debondOperator,
             "Gov: can't execute this task"
         );
 
-        benchmarkInterestRate = _newBenchmarkInterestRate;
+        IExecutable(executable).updateBenchmarkInterestRate(
+            _newBenchmarkInterestRate
+        );
 
         return true;
     }
@@ -804,8 +824,10 @@ contract Governance is GovStorage, VoteCounting, IExecutable, ReentrancyGuard, P
         );
         require(_proposalClass < 1, "Gov: class not valid");
 
-        dbitBudgetPPM = _newDBITBudgetPPM;
-        dgovBudgetPPM = _newDGOVBudgetPPM;
+        IExecutable(executable).changeCommunityFundSize(
+            _newDBITBudgetPPM,
+            _newDGOVBudgetPPM
+        );
 
         return true;
     }
@@ -828,25 +850,11 @@ contract Governance is GovStorage, VoteCounting, IExecutable, ReentrancyGuard, P
             "Gov: can't execute this task"
         );
 
-        AllocatedToken memory _allocatedToken = allocatedToken[_to];
-        uint256 dbitAllocDistributedPPM = dbitAllocationDistibutedPPM;
-        uint256 dgovAllocDistributedPPM = dgovAllocationDistibutedPPM;
-
-        require(
-            dbitAllocDistributedPPM - _allocatedToken.dbitAllocationPPM + _newDBITPPM <= dbitBudgetPPM,
-            "Gov: too much"
+        IExecutable(executable).changeTeamAllocation(
+            _to,
+            _newDBITPPM,
+            _newDGOVPPM
         );
-
-        require(
-            dgovAllocDistributedPPM - _allocatedToken.dgovAllocationPPM + _newDGOVPPM <= dgovBudgetPPM,
-            "Gov: too much"
-        );
-
-        dbitAllocationDistibutedPPM = dbitAllocDistributedPPM - allocatedToken[_to].dbitAllocationPPM + _newDBITPPM;
-        allocatedToken[_to].dbitAllocationPPM = _newDBITPPM;
-
-        dgovAllocationDistibutedPPM = dgovAllocDistributedPPM - allocatedToken[_to].dgovAllocationPPM + _newDGOVPPM;
-        allocatedToken[_to].dgovAllocationPPM = _newDGOVPPM;
 
         return true;
     }
@@ -869,29 +877,11 @@ contract Governance is GovStorage, VoteCounting, IExecutable, ReentrancyGuard, P
             "Gov: can't execute this task"
         );
 
-        AllocatedToken memory _allocatedToken = allocatedToken[_to];
-
-        uint256 _dbitCollaterizedSupply = IDebondToken(dbitContract).collaterisedSupply();
-        uint256 _dgovCollaterizedSupply = IDebondToken(dgovContract).collaterisedSupply();
-
-        require(
-            IDebondToken(dbitContract).allocatedBalance(_to) + _amountDBIT <=
-            _dbitCollaterizedSupply * _allocatedToken.dbitAllocationPPM / 1 ether,
-            "Gov: not enough supply"
+        IExecutable(executable).mintAllocatedToken(
+            _to,
+            _amountDBIT,
+            _amountDGOV
         );
-        require(
-            IDebondToken(dgovContract).allocatedBalance(_to) + _amountDGOV <=
-            _dgovCollaterizedSupply * _allocatedToken.dgovAllocationPPM / 1 ether,
-            "Gov: not enough supply"
-        );
-
-        IDebondToken(dbitContract).mintAllocatedSupply(_to, _amountDBIT);
-        allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
-        dbitTotalAllocationDistributed += _amountDBIT;
-
-        IDebondToken(dgovContract).mintAllocatedSupply(_to, _amountDGOV);
-        allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
-        dgovTotalAllocationDistributed += _amountDGOV;
 
         return true;
     }
@@ -908,31 +898,14 @@ contract Governance is GovStorage, VoteCounting, IExecutable, ReentrancyGuard, P
         address _to,
         uint256 _amountDBIT,
         uint256 _amountDGOV
-    ) public nonReentrant returns(bool) {
+    ) public returns(bool) {
         require(_proposalClass <= 2, "Gov: class not valid");
 
-        uint256 _dbitTotalSupply = IDebondToken(dbitContract).totalSupply();
-        uint256 _dgovTotalSupply = IDebondToken(dgovContract).totalSupply();
-
-        // NEED TO CHECK THIS WITH YU (see first param on require)
-        require(
-            _amountDBIT <= (_dbitTotalSupply - dbitTotalAllocationDistributed) / 1e6 * 
-                           (dbitBudgetPPM - dbitAllocationDistibutedPPM),
-            "Gov: DBIT amount not valid"
+        IExecutable(executable).claimFundForProposal(
+            _to,
+            _amountDBIT,
+            _amountDGOV
         );
-        require(
-            _amountDGOV <= (_dgovTotalSupply - dgovTotalAllocationDistributed) / 1e6 * 
-                           (dgovBudgetPPM - dgovAllocationDistibutedPPM),
-            "Gov: DGOV amount not valid"
-        );
-
-        IDebondToken(dbitContract).mintAllocatedSupply(_to, _amountDBIT);
-        allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
-        dbitTotalAllocationDistributed += _amountDBIT;
-
-        IDebondToken(dgovContract).mintAllocatedSupply(_to, _amountDGOV);
-        allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
-        dgovTotalAllocationDistributed += _amountDGOV;
 
         return true;
     }

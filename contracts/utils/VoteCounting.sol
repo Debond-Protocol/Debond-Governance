@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 // SPDX-License-Identifier: apache 2.0
 /*
-    Copyright 2020 Sigmoid Foundation <info@SGM.finance>
+    Copyright 2022 Debond Protocol <info@debond.org>
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
@@ -38,7 +38,14 @@ contract VoteCounting is GovSharedStorage {
         Abstain
     }
 
+    address private thisContract;
+
     mapping(uint128 => mapping(uint128 => ProposalVote)) internal _proposalVotes;
+
+    /**
+    * @dev set the voteCounting contract address through governance
+    * @param _voteCountingAddress new voteCounting contract address
+    */
 
     /**
     * @dev check if an account has voted for a proposal
@@ -71,7 +78,7 @@ contract VoteCounting is GovSharedStorage {
     }
 
     /**
-    * @dev return number of votes of a proposal for each votre type
+    * @dev return the number of votes of a proposal for each vote type
     * @param _class proposal class
     * @param _nonce proposal nonce
     * @param forVotes number or FOR votes
@@ -102,8 +109,18 @@ contract VoteCounting is GovSharedStorage {
         uint128 _class,
         uint128 _nonce,
         address _account
-    ) public view returns(User memory) {
-        return _proposalVotes[_class][_nonce].user[_account];
+    ) public view returns(
+        bool,
+        bool,
+        uint256,
+        uint256
+    ) {
+        return (
+            _proposalVotes[_class][_nonce].user[_account].hasVoted,
+            _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded,
+            _proposalVotes[_class][_nonce].user[_account].weight,
+            _proposalVotes[_class][_nonce].user[_account].votingDay
+        );
     }
 
     /**
@@ -112,10 +129,10 @@ contract VoteCounting is GovSharedStorage {
     * @param _nonce proposal nonce
     * @param reached true if quorum has been reached, false otherwise
     */
-    function _quorumReached(
+    function quorumReached(
         uint128 _class,
         uint128 _nonce
-    ) internal view returns(bool reached) {
+    ) public view returns(bool reached) {
         ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
         reached =  proposalVote.forVotes + proposalVote.abstainVotes >= _quorum(_class, _nonce);
@@ -127,10 +144,10 @@ contract VoteCounting is GovSharedStorage {
     * @param _nonce proposal nonce
     * @param succeeded true if FOR votes are greater than AGAINST vote
     */
-    function _voteSucceeded(
+    function voteSucceeded(
         uint128 _class,
         uint128 _nonce
-    ) internal view returns(bool succeeded) {
+    ) public view returns(bool succeeded) {
         ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
         succeeded = proposalVote.forVotes > proposalVote.againstVotes;
@@ -142,10 +159,10 @@ contract VoteCounting is GovSharedStorage {
     * @param _nonce proposal nonce
     * @param approved veto type: true if aggreed, else otherwise
     */
-    function _vetoApproved(
+    function vetoApproved(
         uint128 _class,
         uint128 _nonce
-    ) internal view returns(bool approved) {
+    ) public view returns(bool approved) {
         uint256 veto = _proposalVotes[_class][_nonce].vetoApproval;
 
         approved = veto == 1 ? true : false;
@@ -159,13 +176,13 @@ contract VoteCounting is GovSharedStorage {
     * @param _vote user vote (0: For, 1: Against, 2: Abstain)
     * @param _weight the amount of vote tokens used to vote
     */
-    function _countVote(
+    function countVote(
         uint128 _class,
         uint128 _nonce,
         address _account,
         uint8 _vote,
         uint256 _weight
-    ) internal virtual {
+    ) public {
         ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
         require(
@@ -195,10 +212,10 @@ contract VoteCounting is GovSharedStorage {
     function _quorum(
         uint128 _class,
         uint128 _nonce
-    ) internal view returns(uint256 quorum) {
+    ) internal view returns(uint256 proposalQuorum) {
         ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
-        quorum =  proposalClassInfo[_class][1] * (
+        proposalQuorum =  proposalClassInfo[_class][1] * (
             proposalVote.forVotes +
             proposalVote.againstVotes +
             proposalVote.abstainVotes

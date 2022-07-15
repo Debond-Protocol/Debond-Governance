@@ -13,6 +13,7 @@ const NewStakingDGOV = artifacts.require("StakingDGOV");
 const GovSettings = artifacts.require("GovSettings");
 const NewGovernance = artifacts.require("Governance");
 const VoteCounting = artifacts.require("VoteCounting");
+const Executable = artifacts.require("Executable");
 
 contract("Governance", async (accounts) => {
     let dbit;
@@ -23,6 +24,7 @@ contract("Governance", async (accounts) => {
     let gov;
     let amountToMint;
     let amountToStake;
+    let exec;
 
     let balanceUser1BeforeStake;
     let balanceStakingContractBeforeStake;
@@ -48,6 +50,7 @@ contract("Governance", async (accounts) => {
         dbit = await DBIT.new();
         dgov = await DGOV.new();
         count = await VoteCounting.new();
+        exec = await Executable.new();
         vote = await VoteToken.new("Debond Vote Token", "DVT", operator);
         stak = await NewStakingDGOV.new(dgov.address, vote.address);
         settings = await GovSettings.new(2, 4);
@@ -79,9 +82,10 @@ contract("Governance", async (accounts) => {
             stak.address,
             vote.address,
             settings.address,
+            exec.address,
             operator,
             operator,
-            { from: operator }
+            {from: operator}
         );
 
         let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
