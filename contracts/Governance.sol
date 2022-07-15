@@ -23,7 +23,6 @@ import "./interfaces/IVoteToken.sol";
 import "./interfaces/IGovSettings.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IExecutable.sol";
-import "./test/DBIT.sol";
 import "./Pausable.sol";
 
 /**

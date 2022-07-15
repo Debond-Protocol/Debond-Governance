@@ -6,8 +6,8 @@ const readline = require('readline');
 chai.use(chaiAsPromised);
 const expect = chai.expect;
 
-const DBIT = artifacts.require("DBIT");
-const DGOV = artifacts.require("DGOV");
+const DBIT = artifacts.require("DBITToken");
+const DGOV = artifacts.require("DGOVToken");
 const VoteToken = artifacts.require("VoteToken");
 const NewStakingDGOV = artifacts.require("StakingDGOV");
 const GovSettings = artifacts.require("GovSettings");
@@ -47,32 +47,20 @@ contract("Governance", async (accounts) => {
     }
 
     beforeEach(async () => {
-        dbit = await DBIT.new();
-        dgov = await DGOV.new();
         count = await VoteCounting.new();
         exec = await Executable.new();
         vote = await VoteToken.new("Debond Vote Token", "DVT", operator);
-        stak = await NewStakingDGOV.new(dgov.address, vote.address);
         settings = await GovSettings.new(2, 4);
         gov = await NewGovernance.new(operator, operator);
+        dbit = await DBIT.new(gov.address, operator, operator, operator);
+        dgov = await DGOV.new(gov.address, operator, operator, operator);
+        stak = await NewStakingDGOV.new(dgov.address, vote.address);
 
         // set the stakingDGOV contract address in Vote Token
         await vote.setStakingDGOVContract(stak.address);
 
         // set the governance contract address in voteToken
         await vote.setGovernanceContract(gov.address);
-
-        // set the governance contract address in DBIT
-        await dbit.setGovernanceContract(gov.address);
-
-        // set the bank contract address in DBIT
-        await dbit.setBankContract(operator);
-
-        // set the governance contract address in DGOV
-        await dgov.setGovernanceContract(gov.address);
-
-        // set the bank contract address in DGOV
-        await dgov.setBankContract(operator);
 
         // initialize all contracts
         await gov.firstSetUp(
@@ -191,7 +179,7 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it("Ustake DGOV tokens", async () => {
+    it("Unstake DGOV tokens", async () => {
         let balBefore = await dgov.balanceOf(user1);
         let balContractBefore = await dgov.balanceOf(stak.address);
 
@@ -199,7 +187,6 @@ contract("Governance", async (accounts) => {
 
         await gov.unstakeDGOV(1, { from: user1 });
         let estimate = await gov.estimateInterestEarned(amountToStake, 10);
-
 
         let balanceAfter = await dbit.balanceOf(user1);
 
@@ -261,7 +248,7 @@ contract("Governance", async (accounts) => {
 
         await gov.veto(event.class, event.nonce, true, { from: operator });
 
-        await wait(3000);
+        await wait(4000);
         await gov.test();
 
         let status = await gov.getProposalStatus(event.class, event.nonce);
@@ -323,7 +310,7 @@ contract("Governance", async (accounts) => {
 
         await gov.veto(event.class, event.nonce, true, { from: operator });
 
-        await wait(3000);
+        await wait(4000);
         await gov.test();
 
         let oldBudget = await web3.utils.toWei(web3.utils.toBN(100000), 'ether');
@@ -372,7 +359,7 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 1, amountToStake, 1, { from: user3 });
 
-        await wait(3000);
+        await wait(4000);
         await gov.test();
 
         let status = await gov.getProposalStatus(event.class, event.nonce);
@@ -446,7 +433,7 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
 
-        await wait(3000);
+        await wait(4000);
         await gov.test();
 
         let status = await gov.getProposalStatus(event.class, event.nonce);
@@ -500,7 +487,7 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
 
-        await wait(3000);
+        await wait(4000);
         await gov.test();
 
         await gov.unlockVoteTokens(event.class, event.nonce, { from: user1 });

@@ -14,8 +14,8 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
+import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
 import "./GovStorage.sol";
-import "./test/DBIT.sol";
 import "./interfaces/IExecutable.sol";
 
 contract Executable is GovStorage, IExecutable {
@@ -161,16 +161,16 @@ contract Executable is GovStorage, IExecutable {
     ) public returns(bool) {
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
         
-        uint256 _dbitCollaterizedSupply = IDebondToken(dbitContract).collaterisedSupply();
-        uint256 _dgovCollaterizedSupply = IDebondToken(dgovContract).collaterisedSupply();
+        uint256 _dbitCollaterizedSupply = IDebondToken(dbitContract).getTotalCollateralisedSupply();
+        uint256 _dgovCollaterizedSupply = IDebondToken(dgovContract).getTotalCollateralisedSupply();
         
         require(
-            IDebondToken(dbitContract).allocatedBalance(_to) + _amountDBIT <=
+            IDebondToken(dbitContract).getAllocatedBalance(_to) + _amountDBIT <=
             _dbitCollaterizedSupply * _allocatedToken.dbitAllocationPPM / 1 ether,
             "Gov: not enough supply"
         );
         require(
-            IDebondToken(dgovContract).allocatedBalance(_to) + _amountDGOV <=
+            IDebondToken(dgovContract).getAllocatedBalance(_to) + _amountDGOV <=
             _dgovCollaterizedSupply * _allocatedToken.dgovAllocationPPM / 1 ether,
             "Gov: not enough supply"
         );
