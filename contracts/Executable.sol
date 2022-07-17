@@ -19,7 +19,16 @@ import "./GovStorage.sol";
 import "./interfaces/IExecutable.sol";
 
 contract Executable is GovStorage, IExecutable {
-    constructor() {
+    constructor(
+        address _debondTeam,
+        address _dbitContract,
+        address _dgovContract
+    ) {
+        dbitContract = _dbitContract;
+        dgovContract = _dgovContract;
+
+        debondTeam = _debondTeam;
+
         // in percent
         benchmarkInterestRate = 5;
 
@@ -175,11 +184,9 @@ contract Executable is GovStorage, IExecutable {
             "Gov: not enough supply"
         );
         
-        IDebondToken(dbitContract).mintAllocatedSupply(_to, _amountDBIT);
         allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
         dbitTotalAllocationDistributed += _amountDBIT;
 
-        IDebondToken(dgovContract).mintAllocatedSupply(_to, _amountDGOV);
         allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
         dgovTotalAllocationDistributed += _amountDGOV;
 
@@ -245,12 +252,32 @@ contract Executable is GovStorage, IExecutable {
     }
 
     /**
-    * @dev return the amount of DBIT and DGOV allocated to a given address
+    * return DBIT and DGOV total allocation distributed
+    */
+    function getTotalAllocationDistributed() public view returns(uint256, uint256) {
+        return (
+            dbitTotalAllocationDistributed,
+            dgovTotalAllocationDistributed
+        );
+    }
+
+    /**
+    * @dev return the amount of DBIT and DGOV allocated to an address
     */
     function getAllocatedToken(address _account) public view returns(uint256, uint256) {
         return (
             allocatedToken[_account].dbitAllocationPPM,
             allocatedToken[_account].dgovAllocationPPM
+        );
+    }
+
+    /**
+    * @dev return the amount of allocated DBIT and DGOV minted to an address
+    */
+    function getAllocatedTokenMinted(address _account) public view returns(uint256, uint256) {
+        return (
+            allocatedToken[_account].allocatedDBITMinted,
+            allocatedToken[_account].allocatedDGOVMinted
         );
     }
 }

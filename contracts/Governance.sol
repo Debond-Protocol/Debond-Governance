@@ -17,6 +17,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
 import "./GovStorage.sol";
 import "./utils/VoteCounting.sol";
 import "./interfaces/IVoteToken.sol";
@@ -32,15 +33,13 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
 
     /**
     * @dev governance constructor
-    * @param _debondTeam account address of Debond team
     */
     constructor(
-        address _debondTeam,
+        address _debondOperator,
         address _vetoOperator
     ) {
-        debondTeam = _debondTeam;
         vetoOperator = _vetoOperator;
-        debondOperator = _msgSender();
+        debondOperator = _debondOperator;
 
         // in percent
         interestRateForStakingDGOV = 5;
@@ -683,11 +682,25 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
     }
 
     /**
-    * @dev return the amount of DBIT and DGOV allocated to a given address
+    * @dev return the amount of DBIT and DGOV allocated to a an address
     */
     function getAllocatedToken(address _account) public view returns(uint256, uint256) {
         return IExecutable(executable).getAllocatedToken(_account);
-    } 
+    }
+
+    /**
+    * @dev return the amount of allocated DBIT and DGOV minted to an address
+    */
+    function getAllocatedTokenMinted(address _account) public view returns(uint256, uint256) {
+        return IExecutable(executable).getAllocatedTokenMinted(_account);
+    }
+
+    /**
+    * return DBIT and DGOV total allocation distributed
+    */
+    function getTotalAllocationDistributed() public view returns(uint256, uint256) {
+        return IExecutable(executable).getTotalAllocationDistributed();
+    }
 
     /**
     * @dev get the bnumber of days elapsed since the vote has started
@@ -875,6 +888,9 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
             _executor == debondTeam || _executor == debondOperator,
             "Gov: can't execute this task"
         );
+
+        IDebondToken(dbitContract).mintAllocatedSupply(_to, _amountDBIT);
+        IDebondToken(dgovContract).mintAllocatedSupply(_to, _amountDGOV);
 
         IExecutable(executable).mintAllocatedToken(
             _to,

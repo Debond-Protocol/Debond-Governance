@@ -48,12 +48,12 @@ contract("Governance", async (accounts) => {
 
     beforeEach(async () => {
         count = await VoteCounting.new();
-        exec = await Executable.new();
         vote = await VoteToken.new("Debond Vote Token", "DVT", operator);
         settings = await GovSettings.new(2, 4);
         gov = await NewGovernance.new(operator, operator);
         dbit = await DBIT.new(gov.address, operator, operator, operator);
         dgov = await DGOV.new(gov.address, operator, operator, operator);
+        exec = await Executable.new(debondTeam, dbit.address, dgov.address);
         stak = await NewStakingDGOV.new(dgov.address, vote.address);
 
         // set the stakingDGOV contract address in Vote Token
@@ -329,6 +329,62 @@ contract("Governance", async (accounts) => {
 
         expect(budget[0].toString()).to.equal(newDBITBudget.toString());
         expect(budget[1].toString()).to.equal(newDGOVBudget.toString());
+    });
+
+    it("mint allocated token", async () => {
+        let amountDBIT = await web3.utils.toWei(web3.utils.toBN(2), 'ether');
+        let amountDGOV = await web3.utils.toWei(web3.utils.toBN(1), 'ether');
+
+        // create a proposal
+        let _class = 0;
+        let desc = "Propsal-1: Change the team allocation token amount";
+        let callData = await gov.contract.methods.mintAllocatedToken(
+            debondTeam,
+            amountDBIT,
+            amountDGOV,
+            operator
+        ).encodeABI();
+
+        let res = await gov.createProposal(
+            _class,
+            [gov.address],
+            [0],
+            [callData],
+            desc,
+            {from: operator}
+        );
+
+        let event = res.logs[0].args;
+
+        await gov.test();
+        await wait(3000);
+        await gov.test();
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, {from: user1});
+        await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, {from: user2});
+        await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, {from: user3});
+
+        await gov.veto(event.class, event.nonce, true, {from: operator});
+
+        await wait(3000);
+        await gov.test();
+
+        let allocMintedBefore = await gov.getAllocatedTokenMinted(debondTeam);
+        let totaAllocDistBefore = await gov.getTotalAllocationDistributed();
+
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            {from: operator}
+        );
+
+        let allocMintedAfter = await gov.getAllocatedTokenMinted(debondTeam);
+        let totaAllocDistAfter = await gov.getTotalAllocationDistributed();
+
+        expect(allocMintedAfter[0].toString()).to.equal(allocMintedBefore[0].add(amountDBIT).toString());
+        expect(allocMintedAfter[1].toString()).to.equal(allocMintedBefore[1].add(amountDGOV).toString());
+        expect(totaAllocDistAfter[0].toString()).to.equal(totaAllocDistBefore[0].add(amountDBIT).toString());
+        expect(totaAllocDistAfter[1].toString()).to.equal(totaAllocDistBefore[1].add(amountDGOV).toString());
     });
 
     it("check a proposal didn't pass", async () => {

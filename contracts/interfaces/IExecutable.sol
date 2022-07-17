@@ -69,4 +69,6 @@ interface IExecutable {
     function getBudget() external view returns(uint256, uint256);
     function getAllocationDistributed() external view returns(uint256, uint256);
     function getAllocatedToken(address _account) external view returns(uint256, uint256);
+    function getAllocatedTokenMinted(address _account) external view returns(uint256, uint256);
+    function getTotalAllocationDistributed() external view returns(uint256, uint256);
 }
