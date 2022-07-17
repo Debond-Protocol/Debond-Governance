@@ -14,6 +14,7 @@ const GovSettings = artifacts.require("GovSettings");
 const NewGovernance = artifacts.require("Governance");
 const VoteCounting = artifacts.require("VoteCounting");
 const Executable = artifacts.require("Executable");
+const GovStorage = artifacts.require("GovStorage");
 
 contract("Governance", async (accounts) => {
     let dbit;
@@ -25,6 +26,7 @@ contract("Governance", async (accounts) => {
     let amountToMint;
     let amountToStake;
     let exec;
+    let storage;
 
     let balanceUser1BeforeStake;
     let balanceStakingContractBeforeStake;
@@ -48,9 +50,10 @@ contract("Governance", async (accounts) => {
 
     beforeEach(async () => {
         count = await VoteCounting.new();
+        storage = await GovStorage.new();
         vote = await VoteToken.new("Debond Vote Token", "DVT", operator);
         settings = await GovSettings.new(2, 4);
-        gov = await NewGovernance.new(operator, operator);
+        gov = await NewGovernance.new(operator, operator, storage.address);
         dbit = await DBIT.new(gov.address, operator, operator, operator);
         dgov = await DGOV.new(gov.address, operator, operator, operator);
         exec = await Executable.new(debondTeam, dbit.address, dgov.address);

@@ -16,7 +16,7 @@ pragma solidity ^0.8.0;
 
 import "./interfaces/IGovernance.sol";
 
-abstract contract GovStorage is IGovernance {
+contract GovStorage is IGovernance {
     struct AllocatedToken {
         uint256 allocatedDBITMinted;
         uint256 allocatedDGOVMinted;
@@ -58,5 +58,18 @@ abstract contract GovStorage is IGovernance {
     modifier onlyDebondOperator {
         require(msg.sender == debondOperator, "Gov: Need rights");
         _;
+    }
+
+    constructor() {
+        _proposalThreshold = 10 ether;
+    }
+
+
+    function getThreshold() public view returns(uint256) {
+        return _proposalThreshold;
+    }
+
+    function setThreshold(uint256 _newProposalThreshold) public {
+        _proposalThreshold = _newProposalThreshold;
     }
 }

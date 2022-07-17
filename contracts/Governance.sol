@@ -22,6 +22,7 @@ import "./GovStorage.sol";
 import "./utils/VoteCounting.sol";
 import "./interfaces/IVoteToken.sol";
 import "./interfaces/IGovSettings.sol";
+import "./interfaces/IGovStorage.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IExecutable.sol";
 import "./Pausable.sol";
@@ -30,14 +31,18 @@ import "./Pausable.sol";
 * @author Samuel Gwlanold Edoumou (Debond Organization)
 */
 contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
+    address govStorageAddress;
 
     /**
     * @dev governance constructor
     */
     constructor(
         address _debondOperator,
-        address _vetoOperator
+        address _vetoOperator,
+        address _govStorageAddress
     ) {
+        govStorageAddress = _govStorageAddress;
+
         vetoOperator = _vetoOperator;
         debondOperator = _debondOperator;
 
@@ -92,7 +97,8 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         string memory _description
     ) public returns(uint128 nonce) {
         require(
-            IVoteToken(voteTokenContract).availableBalance(_msgSender()) >= _proposalThreshold,
+            IVoteToken(voteTokenContract).availableBalance(_msgSender()) >=
+            IGovStorage(govStorageAddress).getThreshold(),
             "Gov: insufficient vote tokens"
         );
 
@@ -525,14 +531,14 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
     * @param _newThreshold new proposal threshold
     */
     function setProposalThreshold(uint256 _newThreshold) public {
-        _proposalThreshold = _newThreshold;
+        IGovStorage(govStorageAddress).setThreshold(_newThreshold);
     }
 
     /**
     * @dev return the proposal threshold
     */
     function getProposalThreshold() public view returns(uint256) {
-        return _proposalThreshold;
+        return IGovStorage(govStorageAddress).getThreshold();
     }
 
     /**
