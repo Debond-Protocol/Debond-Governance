@@ -218,7 +218,7 @@ contract("Governance", async (accounts) => {
             );
     });
 
-    it("Chenge the benchmark interest rate", async () => {
+    it("Change the benchmark interest rate", async () => {
         // create a proposal
         let _class = 0;
         let desc = "Propsal-1: Update the benchMark interest rate";
@@ -387,7 +387,7 @@ contract("Governance", async (accounts) => {
         expect(totaAllocDistAfter[1].toString()).to.equal(totaAllocDistBefore[1].add(amountDGOV).toString());
     });
 
-    it.only("claim fund for proposal", async () => {
+    it("claim fund for proposal", async () => {
         let amountDBIT = await web3.utils.toWei(web3.utils.toBN(2), 'ether');
         let amountDGOV = await web3.utils.toWei(web3.utils.toBN(1), 'ether');
 

@@ -229,6 +229,48 @@ contract Executable is GovStorage, IExecutable {
     }
 
     /**
+    * @dev return DBIT address
+    */
+    function getDBITAddress() public view returns(address) {
+        return dbitContract;
+    }
+
+    /**
+    * @dev return DGOV address
+    */
+    function getDGOVAddress() public view returns(address) {
+        return dgovContract;
+    }
+
+    /**
+    * @dev return Bank address
+    */
+    function getBankAddress() public view returns(address) {
+        return bankContract;
+    }
+    
+    /**
+    * @dev return Exchange address
+    */
+    function getExchangeAddress() public view returns(address) {
+        return exchangeContract;
+    }
+
+    /**
+    * @dev return Governance address
+    */
+    function getGovernanceAddress() public view returns(address) {
+        return governance;
+    }
+
+    /**
+    * @dev return the Debond team address
+    */
+    function getDebondTeamAddress() public view returns(address) {
+        return debondTeam;
+    }
+
+    /**
     * @dev return the benchmark interest rate
     */
     function getBenchmarkInterestRate() public view returns(uint256) {

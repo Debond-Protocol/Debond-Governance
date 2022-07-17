@@ -65,6 +65,12 @@ interface IExecutable {
         uint256 _amountDGOV
     ) external returns(bool);
 
+    function getDBITAddress() external view returns(address);
+    function getDGOVAddress() external view returns(address);
+    function getBankAddress() external view returns(address);
+    function getExchangeAddress() external view returns(address);
+    function getGovernanceAddress() external view returns(address);
+    function getDebondTeamAddress() external view returns(address);
     function getBenchmarkInterestRate() external view returns(uint256);
     function getBudget() external view returns(uint256, uint256);
     function getAllocationDistributed() external view returns(uint256, uint256);

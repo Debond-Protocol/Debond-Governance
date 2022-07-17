@@ -323,7 +323,7 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         // ToDo: CHAGE THIS
         // transfer DBIT interests to the staker - the interest is in ether unit
         //IERC20(dbitContract).transferFrom(dbitContract, staker, amountStaked * interest / 1 ether);
-        IERC20(dbitContract).transfer(staker, amountStaked * interest / 1 ether);
+        IERC20(getDBITAddress()).transfer(staker, amountStaked * interest / 1 ether);
 
         unstaked = true;
     }
@@ -382,7 +382,7 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
 
         _reward = _reward * proposalVote.user[_tokenOwner].weight * votingReward[_class].numberOfDBITDistributedPerDay / 1 ether;
 
-        IERC20(dbitContract).transfer(_tokenOwner, _reward);
+        IERC20(getDBITAddress()).transfer(_tokenOwner, _reward);
     }
 
     /**
@@ -661,6 +661,20 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
     }
 
     /**
+    * @dev return DBIT address
+    */
+    function getDBITAddress() public view returns(address) {
+        return IExecutable(executable).getDBITAddress();
+    }
+
+    /**
+    * @dev return DGOV address
+    */
+    function getDGOVAddress() public view returns(address) {
+        return IExecutable(executable).getDGOVAddress();
+    }
+
+    /**
     * @dev return the benchmark interest rate
     */
     function getBenchmarkIR() public view returns(uint256) {
@@ -889,7 +903,7 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
             "Gov: can't execute this task"
         );
 
-        IDebondToken(dbitContract).mintAllocatedSupply(_to, _amountDBIT);
+        IDebondToken(getDBITAddress()).mintAllocatedSupply(_to, _amountDBIT);
         IDebondToken(dgovContract).mintAllocatedSupply(_to, _amountDGOV);
 
         IExecutable(executable).mintAllocatedToken(
@@ -916,7 +930,7 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
     ) public returns(bool) {
         require(_proposalClass <= 2, "Gov: class not valid");
 
-        IDebondToken(dbitContract).mintAllocatedSupply(_to, _amountDBIT);
+        IDebondToken(getDBITAddress()).mintAllocatedSupply(_to, _amountDBIT);
         IDebondToken(dgovContract).mintAllocatedSupply(_to, _amountDGOV);
 
         IExecutable(executable).claimFundForProposal(
