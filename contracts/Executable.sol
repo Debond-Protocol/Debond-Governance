@@ -218,12 +218,10 @@ contract Executable is GovStorage, IExecutable {
                            (dgovBudgetPPM - dgovAllocationDistibutedPPM),
             "Gov: DGOV amount not valid"
         );
-
-        IDebondToken(dbitContract).mintAllocatedSupply(_to, _amountDBIT);
+        
         allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
         dbitTotalAllocationDistributed += _amountDBIT;
 
-        IDebondToken(dgovContract).mintAllocatedSupply(_to, _amountDGOV);
         allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
         dgovTotalAllocationDistributed += _amountDGOV;
 

@@ -916,6 +916,9 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
     ) public returns(bool) {
         require(_proposalClass <= 2, "Gov: class not valid");
 
+        IDebondToken(dbitContract).mintAllocatedSupply(_to, _amountDBIT);
+        IDebondToken(dgovContract).mintAllocatedSupply(_to, _amountDGOV);
+
         IExecutable(executable).claimFundForProposal(
             _to,
             _amountDBIT,

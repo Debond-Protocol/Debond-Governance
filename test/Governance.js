@@ -387,6 +387,62 @@ contract("Governance", async (accounts) => {
         expect(totaAllocDistAfter[1].toString()).to.equal(totaAllocDistBefore[1].add(amountDGOV).toString());
     });
 
+    it.only("claim fund for proposal", async () => {
+        let amountDBIT = await web3.utils.toWei(web3.utils.toBN(2), 'ether');
+        let amountDGOV = await web3.utils.toWei(web3.utils.toBN(1), 'ether');
+
+        // create a proposal
+        let _class = 0;
+        let desc = "Propsal-1: Claim Funds for a proposal";
+        let callData = await gov.contract.methods.claimFundForProposal(
+            _class,
+            debondTeam,
+            amountDBIT,
+            amountDGOV
+        ).encodeABI();
+
+        let res = await gov.createProposal(
+            _class,
+            [gov.address],
+            [0],
+            [callData],
+            desc,
+            {from: operator}
+        );
+
+        let event = res.logs[0].args;
+
+        await gov.test();
+        await wait(3000);
+        await gov.test();
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, {from: user1});
+        await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, {from: user2});
+        await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, {from: user3});
+
+        await gov.veto(event.class, event.nonce, true, {from: operator});
+
+        await wait(3000);
+        await gov.test();
+
+        let allocMintedBefore = await gov.getAllocatedTokenMinted(debondTeam);
+        let totaAllocDistBefore = await gov.getTotalAllocationDistributed();
+
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            {from: operator}
+        );
+
+        let allocMintedAfter = await gov.getAllocatedTokenMinted(debondTeam);
+        let totaAllocDistAfter = await gov.getTotalAllocationDistributed();
+
+        expect(allocMintedAfter[0].toString()).to.equal(allocMintedBefore[0].add(amountDBIT).toString());
+        expect(allocMintedAfter[1].toString()).to.equal(allocMintedBefore[1].add(amountDGOV).toString());
+        expect(totaAllocDistAfter[0].toString()).to.equal(totaAllocDistBefore[0].add(amountDBIT).toString());
+        expect(totaAllocDistAfter[1].toString()).to.equal(totaAllocDistBefore[1].add(amountDGOV).toString());
+    });
+
     it("check a proposal didn't pass", async () => {
         // create a proposal
         let _class = 0;
