@@ -16,7 +16,7 @@ pragma solidity ^0.8.0;
 
 import "./interfaces/IGovernance.sol";
 
-abstract contract GovStorage is IGovernance {
+contract GovStorage is IGovernance {
     struct AllocatedToken {
         uint256 allocatedDBITMinted;
         uint256 allocatedDGOVMinted;
@@ -36,6 +36,7 @@ abstract contract GovStorage is IGovernance {
     address public stakingContract;
     address public voteTokenContract;
     address public govSettingsContract;
+    address public executable;
 
     address public vetoOperator;
 
@@ -46,9 +47,9 @@ abstract contract GovStorage is IGovernance {
     uint256 public dbitTotalAllocationDistributed;
     uint256 public dgovTotalAllocationDistributed;
 
-    uint256 internal benchmarkInterestRate;
+    uint256 public benchmarkInterestRate;
     uint256 public interestRateForStakingDGOV;
-    uint256 internal _proposalThreshold;
+    uint256 public _proposalThreshold;
     uint256 constant public NUMBER_OF_SECONDS_IN_DAY = 31536000;
 
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
@@ -57,5 +58,18 @@ abstract contract GovStorage is IGovernance {
     modifier onlyDebondOperator {
         require(msg.sender == debondOperator, "Gov: Need rights");
         _;
+    }
+
+    constructor() {
+        _proposalThreshold = 10 ether;
+    }
+
+
+    function getThreshold() public view returns(uint256) {
+        return _proposalThreshold;
+    }
+
+    function setThreshold(uint256 _newProposalThreshold) public {
+        _proposalThreshold = _newProposalThreshold;
     }
 }
