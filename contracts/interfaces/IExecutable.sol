@@ -17,20 +17,17 @@ pragma solidity ^0.8.0;
 interface IExecutable {
     // update the bank contract
     function updateGovernanceContract(
-        address _newGovernanceAddress,
-        address _executor
+        address _newGovernanceAddress
     ) external returns(bool);
 
     // update the exchange contract
     function updateExchangeContract(
-        address _newExchangeAddress,
-        address _executor
+        address _newExchangeAddress
     ) external returns(bool);
 
     // update the bank contract
     function updateBankContract(
-        address _newBankAddress,
-        address _executor
+        address _newBankAddress
     ) external returns(bool);
 
     //Update benchmark intrest rate
@@ -58,23 +55,10 @@ interface IExecutable {
         uint256 _amountDGOV
     ) external returns(bool);
 
-    // claim func for proposal
+    // claim fund for proposal
     function claimFundForProposal(
         address _to,
         uint256 _amountDBIT,
         uint256 _amountDGOV
     ) external returns(bool);
-
-    function getDBITAddress() external view returns(address);
-    function getDGOVAddress() external view returns(address);
-    function getBankAddress() external view returns(address);
-    function getExchangeAddress() external view returns(address);
-    function getGovernanceAddress() external view returns(address);
-    function getDebondTeamAddress() external view returns(address);
-    function getBenchmarkInterestRate() external view returns(uint256);
-    function getBudget() external view returns(uint256, uint256);
-    function getAllocationDistributed() external view returns(uint256, uint256);
-    function getAllocatedToken(address _account) external view returns(uint256, uint256);
-    function getAllocatedTokenMinted(address _account) external view returns(uint256, uint256);
-    function getTotalAllocationDistributed() external view returns(uint256, uint256);
 }

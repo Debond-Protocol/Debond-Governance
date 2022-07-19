@@ -14,7 +14,151 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-interface IGovStorage {
+import "./IGovSharedStorage.sol";
+
+interface IGovStorage is IGovSharedStorage {
     function getThreshold() external view returns(uint256);
+    function getDebondOperator() external view returns(address);
+    function getVetoOperator() external view returns(address);
+    function getInterestForStakingDGOV() external view returns(uint256);
+    function getExecutableContract() external view returns(address);
+    function getStakingContract() external view returns(address);
+    function getVoteTokenContract() external view returns(address);
+    function getGovSettingContract() external view returns(address);
+    function getNumberOfSecondInYear() external pure returns(uint256);
+
+    function getProposalStruct(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(Proposal memory);
+
+    function getProposalClassInfo(
+        uint128 _class,
+        uint256 _index
+    ) external view returns(uint256);
+
+    function getProposal(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(
+        uint256,
+        uint256,
+        address,
+        ProposalStatus,
+        ProposalApproval,
+        address[] memory,
+        uint256[] memory,
+        bytes[] memory,
+        bytes32
+    );
+
+    function getNumberOfVotingDays(
+        uint128 _class
+    ) external view returns(uint256);
+
+    function getTotalVoteTokenPerDay(
+        uint128 _class,
+        uint128 _nonce,
+        uint256 _votingDay
+    ) external view returns(uint256);
+
+    function increaseTotalVoteTokenPerDay(
+        uint128 _class,
+        uint128 _nonce,
+        uint256 _votingDay,
+        uint256 _amountVoteTokens
+    ) external;
+
+    function getNumberOfDBITDistributedPerDay(
+        uint128 _class
+    ) external view returns(uint256);
+
     function setThreshold(uint256 _newProposalThreshold) external;
+    function setProposal(
+        uint128 _class,
+        uint128 _nonce,
+        uint256 _startTime,
+        uint256 _endTime,
+        address _proposer,
+        ProposalApproval _approvalMode,
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        string memory _description
+    ) external;
+
+    function setProposalStatus(
+        uint128 _class,
+        uint128 _nonce,
+        ProposalStatus _status
+    ) external;
+
+    function setProposalClassInfo(
+        uint128 _class,
+        uint256 _index,
+        uint256 _value
+    ) external;
+
+    function getProposalNonce(
+        uint128 _class
+    ) external view returns(uint128);
+
+    function setProposalNonce(
+        uint128 _class,
+        uint128 _nonce
+    ) external;
+
+    //== FROM EXECUTABLE
+    function updateGovernanceContract(
+        address _newGovernanceAddress
+    ) external returns(bool);
+
+    function updateExchangeContract(
+        address _newExchangeAddress
+    ) external returns(bool);
+
+    function updateBankContract(
+        address _newBankAddress
+    ) external returns(bool);
+
+    function updateBenchmarkInterestRate(
+        uint256 _newBenchmarkInterestRate
+    ) external returns(bool);
+
+    function changeCommunityFundSize(
+        uint256 _newDBITBudgetPPM,
+        uint256 _newDGOVBudgetPPM
+    ) external returns(bool);
+
+    function changeTeamAllocation(
+        address _to,
+        uint256 _newDBITPPM,
+        uint256 _newDGOVPPM
+    ) external returns(bool);
+
+    function mintAllocatedToken(
+        address _to,
+        uint256 _amountDBIT,
+        uint256 _amountDGOV
+    ) external returns(bool);
+
+    function claimFundForProposal(
+        address _to,
+        uint256 _amountDBIT,
+        uint256 _amountDGOV
+    ) external returns(bool);
+
+    function getGovernanceAddress() external view returns(address);
+    function getExchangeAddress() external view returns(address);
+    function getBankAddress() external view returns(address);
+    function getDGOVAddress() external view returns(address);
+    function getDBITAddress() external view returns(address);
+    function getVoteCountingAddress() external view returns(address);
+    function getDebondTeamAddress() external view returns(address);
+    function getBenchmarkInterestRate() external view returns(uint256);
+    function getBudget() external view returns(uint256, uint256);
+    function getAllocationDistributed() external view returns(uint256, uint256);
+    function getTotalAllocationDistributed() external view returns(uint256, uint256);
+    function getAllocatedToken(address _account) external view returns(uint256, uint256);
+    function getAllocatedTokenMinted(address _account) external view returns(uint256, uint256);
 }

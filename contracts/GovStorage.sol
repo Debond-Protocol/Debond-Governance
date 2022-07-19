@@ -14,14 +14,24 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "./interfaces/IGovernance.sol";
+import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
+import "./interfaces/IGovStorage.sol";
 
-contract GovStorage is IGovernance {
+contract GovStorage is IGovStorage {
     struct AllocatedToken {
         uint256 allocatedDBITMinted;
         uint256 allocatedDGOVMinted;
         uint256 dbitAllocationPPM;
         uint256 dgovAllocationPPM;
+    }
+
+    struct ProposalNonce {
+        uint128 nonce;
+    }
+
+    struct VotingReward {
+        uint256 numberOfVotingDays;
+        uint256 numberOfDBITDistributedPerDay;
     }
 
     bool public initialized;
@@ -37,6 +47,7 @@ contract GovStorage is IGovernance {
     address public voteTokenContract;
     address public govSettingsContract;
     address public executable;
+    address public voteCountingContract;
 
     address public vetoOperator;
 
@@ -50,18 +61,99 @@ contract GovStorage is IGovernance {
     uint256 public benchmarkInterestRate;
     uint256 public interestRateForStakingDGOV;
     uint256 public _proposalThreshold;
-    uint256 constant public NUMBER_OF_SECONDS_IN_DAY = 31536000;
+    uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
 
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
     mapping(address => AllocatedToken) allocatedToken;
+    // link proposal class to class info
+    mapping(uint128 => uint256[6]) public proposalClassInfo;
+    // links proposal class to proposal nonce
+    mapping(uint128 => uint128) public proposalNonce;
+    // vote rewards info
+    mapping(uint128 => VotingReward) public votingReward;
+    // total vote tokens collected per day for a given proposal
+    // key1: proposal class, key2: proposal nonce, key3: voting day (1, 2, 3, etc.)
+    mapping(uint128 => mapping(uint128 => mapping(uint256 => uint256))) public totalVoteTokenPerDay;
 
     modifier onlyDebondOperator {
         require(msg.sender == debondOperator, "Gov: Need rights");
         _;
     }
 
-    constructor() {
+    constructor(
+        address _debondTeam,
+        address _vetoOperator,
+        address _debondOperator
+    ) {
         _proposalThreshold = 10 ether;
+        interestRateForStakingDGOV = 5;
+
+        debondOperator = _debondOperator;
+        debondTeam = _debondTeam;
+        vetoOperator = _vetoOperator;
+
+        // in percent
+        benchmarkInterestRate = 5;
+
+        dbitBudgetPPM = 1e5 * 1 ether;
+        dgovBudgetPPM = 1e5 * 1 ether;
+
+        allocatedToken[debondTeam].dbitAllocationPPM = 4e4 * 1 ether;
+        allocatedToken[debondTeam].dgovAllocationPPM = 8e4 * 1 ether;
+
+        // proposal class info
+        proposalClassInfo[0][0] = 3;
+        proposalClassInfo[0][1] = 50;
+        proposalClassInfo[0][3] = 1;
+        proposalClassInfo[0][4] = 1;
+
+        proposalClassInfo[1][0] = 3;
+        proposalClassInfo[1][1] = 50;
+        proposalClassInfo[1][3] = 1;
+        proposalClassInfo[1][4] = 1;
+
+        proposalClassInfo[2][0] = 3;
+        proposalClassInfo[2][1] = 50;
+        proposalClassInfo[2][3] = 0;
+        proposalClassInfo[2][4] = 120;
+
+        // voting rewards by class
+        votingReward[0].numberOfVotingDays = 3;
+        votingReward[0].numberOfDBITDistributedPerDay = 5;
+
+        votingReward[1].numberOfVotingDays = 3;
+        votingReward[1].numberOfDBITDistributedPerDay = 5;
+
+        votingReward[2].numberOfVotingDays = 1; // 3
+        votingReward[2].numberOfDBITDistributedPerDay = 5;
+    }
+
+    function firstSetUp(
+        address _governance,
+        address _dgovContract,
+        address _dbitContract,
+        address _stakingContract,
+        address _voteContract,
+        address _voteCounting,
+        address _settingsContrats,
+        address _executable,
+        address _bankContract,
+        address _exchangeContract
+    ) public onlyDebondOperator returns(bool) {
+        require(!initialized, "Gov: Already initialized");
+
+        governance = _governance;
+        dgovContract = _dgovContract;
+        dbitContract = _dbitContract;
+        stakingContract = _stakingContract;
+        voteTokenContract = _voteContract;
+        voteCountingContract = _voteCounting;
+        govSettingsContract = _settingsContrats;
+        executable = _executable;
+        exchangeContract = _bankContract;
+        bankContract = _exchangeContract;
+
+        return true;
     }
 
 
@@ -69,7 +161,370 @@ contract GovStorage is IGovernance {
         return _proposalThreshold;
     }
 
+    function getDebondOperator() public view returns(address) {
+        return debondOperator;
+    }
+
+    function getVetoOperator() public view returns(address) {
+        return vetoOperator;
+    }
+
+    function getExecutableContract() public view returns(address) {
+        return executable;
+    }
+
+    function getStakingContract() public view returns(address) {
+        return stakingContract;
+    }
+
+    function getVoteTokenContract() public view returns(address) {
+        return voteTokenContract;
+    }
+
+    function getGovSettingContract() public view returns(address) {
+        return govSettingsContract;
+    }
+
+    function getInterestForStakingDGOV() public view returns(uint256) {
+        return interestRateForStakingDGOV;
+    }
+
+    function getNumberOfSecondInYear() public pure returns(uint256) {
+        return NUMBER_OF_SECONDS_IN_YEAR;
+    }
+
     function setThreshold(uint256 _newProposalThreshold) public {
         _proposalThreshold = _newProposalThreshold;
+    }
+
+    function getGovernanceAddress() public view returns(address) {
+        return governance;
+    }
+
+    function getExchangeAddress() public view returns(address) {
+        return exchangeContract;
+    }
+
+    function getBankAddress() public view returns(address) {
+        return bankContract;
+    }
+
+    function getDGOVAddress() public view returns(address) {
+        return dgovContract;
+    }
+
+    function getDBITAddress() public view returns(address) {
+        return dbitContract;
+    }
+
+    function getVoteCountingAddress() public view returns(address) {
+        return voteCountingContract;
+    }
+
+    function getDebondTeamAddress() public view returns(address) {
+        return debondTeam;
+    }
+
+    function getBenchmarkInterestRate() public view returns(uint256) {
+        return benchmarkInterestRate;
+    }
+
+    function getBudget() public view returns(uint256, uint256) {
+        return (dbitBudgetPPM, dgovBudgetPPM);
+    }
+
+    function getAllocationDistributed() public view returns(uint256, uint256) {
+        return (dbitAllocationDistibutedPPM, dgovAllocationDistibutedPPM);
+    }
+
+    function getTotalAllocationDistributed() public view returns(uint256, uint256) {
+        return (
+            dbitTotalAllocationDistributed,
+            dgovTotalAllocationDistributed
+        );
+    }
+
+    function getAllocatedToken(address _account) public view returns(uint256, uint256) {
+        return (
+            allocatedToken[_account].dbitAllocationPPM,
+            allocatedToken[_account].dgovAllocationPPM
+        );
+    }
+
+    function getAllocatedTokenMinted(address _account) public view returns(uint256, uint256) {
+        return (
+            allocatedToken[_account].allocatedDBITMinted,
+            allocatedToken[_account].allocatedDGOVMinted
+        );
+    }
+
+    function getProposalStruct(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(Proposal memory) {
+        return proposal[_class][_nonce];
+    }
+
+    /**
+    * @dev return the proposal class info for a given class and index
+    * @param _class proposal class
+    * @param _index index in the proposal class info array
+    */
+    function getProposalClassInfo(
+        uint128 _class,
+        uint256 _index
+    ) public view returns(uint256) {
+        return proposalClassInfo[_class][_index];
+    }
+
+    /**
+    * @dev return a proposal
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    */
+    function getProposal(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(
+        uint256,
+        uint256,
+        address,
+        ProposalStatus,
+        ProposalApproval,
+        address[] memory,
+        uint256[] memory,
+        bytes[] memory,
+        bytes32
+    ) {
+        Proposal memory _proposal = proposal[_class][_nonce];
+
+        return (
+            _proposal.startTime,
+            _proposal.endTime,
+            _proposal.proposer,
+            _proposal.status,
+            _proposal.approvalMode,
+            _proposal.targets,
+            _proposal.values,
+            _proposal.calldatas,
+            _proposal.descriptionHash
+        );
+    }
+
+    function getNumberOfVotingDays(
+        uint128 _class
+    ) public view returns(uint256) {
+        return votingReward[_class].numberOfVotingDays;
+    }
+
+    function getTotalVoteTokenPerDay(
+        uint128 _class,
+        uint128 _nonce,
+        uint256 _votingDay
+    ) public view returns(uint256) {
+        return totalVoteTokenPerDay[_class][_nonce][_votingDay];
+    }
+
+    function increaseTotalVoteTokenPerDay(
+        uint128 _class,
+        uint128 _nonce,
+        uint256 _votingDay,
+        uint256 _amountVoteTokens
+    ) public {
+        totalVoteTokenPerDay[_class][_nonce][_votingDay] += _amountVoteTokens;
+    }
+
+    function getNumberOfDBITDistributedPerDay(
+        uint128 _class
+    ) public view returns(uint256) {
+        return votingReward[_class].numberOfDBITDistributedPerDay;
+    }
+ 
+    function setProposal(
+        uint128 _class,
+        uint128 _nonce,
+        uint256 _startTime,
+        uint256 _endTime,
+        address _proposer,
+        ProposalApproval _approvalMode,
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        string memory _description
+    ) public {
+        proposal[_class][_nonce].startTime = _startTime;
+        proposal[_class][_nonce].endTime = _endTime;
+        proposal[_class][_nonce].proposer = _proposer;
+        proposal[_class][_nonce].approvalMode = _approvalMode;
+        proposal[_class][_nonce].targets = _targets;
+        proposal[_class][_nonce].values = _values;
+        proposal[_class][_nonce].calldatas = _calldatas;
+        proposal[_class][_nonce].descriptionHash = keccak256(bytes(_description));
+    }
+
+    function setProposalStatus(
+        uint128 _class,
+        uint128 _nonce,
+        ProposalStatus _status
+    ) public {
+        proposal[_class][_nonce].status = _status;
+    }
+
+    /**
+    * @dev set a proposal class info for a given class and index
+    * @param _class proposal class
+    * @param _index index in the proposal class info array
+    * @param _value the new ven value of the proposal class info
+    */
+    function setProposalClassInfo(
+        uint128 _class,
+        uint256 _index,
+        uint256 _value
+    ) public {
+        proposalClassInfo[_class][_index] = _value;
+    }
+
+    function getProposalNonce(
+        uint128 _class
+    ) public view returns(uint128) {
+        return proposalNonce[_class];
+    }
+
+    function setProposalNonce(
+        uint128 _class,
+        uint128 _nonce
+    ) public {
+        proposalNonce[_class] = _nonce;
+    }
+
+    //==== FROM EXECUTABLE
+
+    function updateGovernanceContract(
+        address _newGovernanceAddress
+    ) public returns(bool) {
+        governance = _newGovernanceAddress;
+
+        return true;
+    }
+
+    function updateExchangeContract(
+        address _newExchangeAddress
+    ) public returns(bool) {
+        exchangeContract = _newExchangeAddress;
+
+        return true;
+    }
+
+    function updateBankContract(
+        address _newBankAddress
+    ) public returns(bool) {
+        bankContract = _newBankAddress;
+
+        return true;
+    }
+
+    function updateBenchmarkInterestRate(
+        uint256 _newBenchmarkInterestRate
+    ) public returns(bool) {
+        benchmarkInterestRate = _newBenchmarkInterestRate;
+
+        return true;
+    }
+
+    function changeCommunityFundSize(
+        uint256 _newDBITBudgetPPM,
+        uint256 _newDGOVBudgetPPM
+    ) public returns(bool) {
+        dbitBudgetPPM = _newDBITBudgetPPM;
+        dgovBudgetPPM = _newDGOVBudgetPPM;
+
+        return true;
+    }
+
+    function changeTeamAllocation(
+        address _to,
+        uint256 _newDBITPPM,
+        uint256 _newDGOVPPM
+    ) public returns(bool) {
+        AllocatedToken memory _allocatedToken = allocatedToken[_to];
+        uint256 dbitAllocDistributedPPM = dbitAllocationDistibutedPPM;
+        uint256 dgovAllocDistributedPPM = dgovAllocationDistibutedPPM;
+
+        require(
+            dbitAllocDistributedPPM - _allocatedToken.dbitAllocationPPM + _newDBITPPM <= dbitBudgetPPM,
+            "Gov: too much"
+        );
+
+        require(
+            dgovAllocDistributedPPM - _allocatedToken.dgovAllocationPPM + _newDGOVPPM <= dgovBudgetPPM,
+            "Gov: too much"
+        );
+
+        dbitAllocationDistibutedPPM = dbitAllocDistributedPPM - allocatedToken[_to].dbitAllocationPPM + _newDBITPPM;
+        allocatedToken[_to].dbitAllocationPPM = _newDBITPPM;
+
+        dgovAllocationDistibutedPPM = dgovAllocDistributedPPM - allocatedToken[_to].dgovAllocationPPM + _newDGOVPPM;
+        allocatedToken[_to].dgovAllocationPPM = _newDGOVPPM;
+
+        return true;
+    }
+
+    function mintAllocatedToken(
+        address _to,
+        uint256 _amountDBIT,
+        uint256 _amountDGOV
+    ) public returns(bool) {
+        AllocatedToken memory _allocatedToken = allocatedToken[_to];
+        
+        uint256 _dbitCollaterizedSupply = IDebondToken(dbitContract).getTotalCollateralisedSupply();
+        uint256 _dgovCollaterizedSupply = IDebondToken(dgovContract).getTotalCollateralisedSupply();
+        
+        require(
+            IDebondToken(dbitContract).getAllocatedBalance(_to) + _amountDBIT <=
+            _dbitCollaterizedSupply * _allocatedToken.dbitAllocationPPM / 1 ether,
+            "Gov: not enough supply"
+        );
+        require(
+            IDebondToken(dgovContract).getAllocatedBalance(_to) + _amountDGOV <=
+            _dgovCollaterizedSupply * _allocatedToken.dgovAllocationPPM / 1 ether,
+            "Gov: not enough supply"
+        );
+        
+        allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
+        dbitTotalAllocationDistributed += _amountDBIT;
+
+        allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
+        dgovTotalAllocationDistributed += _amountDGOV;
+
+        return true;
+    }
+
+    function claimFundForProposal(
+        address _to,
+        uint256 _amountDBIT,
+        uint256 _amountDGOV
+    ) public returns(bool) {
+        uint256 _dbitTotalSupply = IDebondToken(dbitContract).totalSupply();
+        uint256 _dgovTotalSupply = IDebondToken(dgovContract).totalSupply();
+
+        // NEED TO CHECK THIS WITH YU (see first param on require)
+        require(
+            _amountDBIT <= (_dbitTotalSupply - dbitTotalAllocationDistributed) / 1e6 * 
+                           (dbitBudgetPPM - dbitAllocationDistibutedPPM),
+            "Gov: DBIT amount not valid"
+        );
+        require(
+            _amountDGOV <= (_dgovTotalSupply - dgovTotalAllocationDistributed) / 1e6 * 
+                           (dgovBudgetPPM - dgovAllocationDistibutedPPM),
+            "Gov: DGOV amount not valid"
+        );
+        
+        allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
+        dbitTotalAllocationDistributed += _amountDBIT;
+
+        allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
+        dgovTotalAllocationDistributed += _amountDGOV;
+
+        return true;
     }
 }

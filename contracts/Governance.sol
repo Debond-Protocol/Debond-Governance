@@ -21,8 +21,10 @@ import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
 import "./GovStorage.sol";
 import "./utils/VoteCounting.sol";
 import "./interfaces/IVoteToken.sol";
+import "./interfaces/IVoteCounting.sol";
 import "./interfaces/IGovSettings.sol";
 import "./interfaces/IGovStorage.sol";
+import "./interfaces/IGovSharedStorage.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IExecutable.sol";
 import "./Pausable.sol";
@@ -30,54 +32,25 @@ import "./Pausable.sol";
 /**
 * @author Samuel Gwlanold Edoumou (Debond Organization)
 */
-contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
+contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     address govStorageAddress;
+    address voteCountingAddress;
+
+    modifier onlyDebondOperator {
+        require(msg.sender == IGovStorage(govStorageAddress).getDebondOperator(),
+        "Gov: Need rights");
+        _;
+    }
 
     /**
     * @dev governance constructor
     */
     constructor(
-        address _debondOperator,
-        address _vetoOperator,
-        address _govStorageAddress
+        address _govStorageAddress,
+        address _voteCountingAddress
     ) {
         govStorageAddress = _govStorageAddress;
-
-        vetoOperator = _vetoOperator;
-        debondOperator = _debondOperator;
-
-        // in percent
-        interestRateForStakingDGOV = 5;
-
-        // proposal threshold for proposer
-        _proposalThreshold = 10 ether;
-
-        // proposal class info
-        proposalClassInfo[0][0] = 3;
-        proposalClassInfo[0][1] = 50;
-        proposalClassInfo[0][3] = 1;
-        proposalClassInfo[0][4] = 1;
-
-        proposalClassInfo[1][0] = 3;
-        proposalClassInfo[1][1] = 50;
-        proposalClassInfo[1][3] = 1;
-        proposalClassInfo[1][4] = 1;
-
-        proposalClassInfo[2][0] = 3;
-        proposalClassInfo[2][1] = 50;
-        proposalClassInfo[2][3] = 0;
-        proposalClassInfo[2][4] = 120;
-
-        // voting rewards by class
-        votingReward[0].numberOfVotingDays = 3;
-        votingReward[0].numberOfDBITDistributedPerDay = 5;
-
-        votingReward[1].numberOfVotingDays = 3;
-        votingReward[1].numberOfDBITDistributedPerDay = 5;
-
-        votingReward[2].numberOfVotingDays = 1; // 3
-        votingReward[2].numberOfDBITDistributedPerDay = 5;
-
+        voteCountingAddress = _voteCountingAddress;
     }
 
     /**
@@ -97,7 +70,9 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         string memory _description
     ) public returns(uint128 nonce) {
         require(
-            IVoteToken(voteTokenContract).availableBalance(_msgSender()) >=
+            IVoteToken(
+                IGovStorage(govStorageAddress).getVoteTokenContract()
+            ).availableBalance(_msgSender()) >=
             IGovStorage(govStorageAddress).getThreshold(),
             "Gov: insufficient vote tokens"
         );
@@ -111,17 +86,26 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         nonce = _generateNewNonce(_class);
         ProposalApproval approval = getApprovalMode(_class);
 
-        uint256 _start = block.timestamp + IGovSettings(govSettingsContract).votingDelay();
-        uint256 _end = _start + IGovSettings(govSettingsContract).votingPeriod();
+        uint256 _start = block.timestamp + IGovSettings(
+            IGovStorage(govStorageAddress).getGovSettingContract()
+        ).votingDelay();
+        
+        uint256 _end = _start + IGovSettings(
+            IGovStorage(govStorageAddress).getGovSettingContract()
+        ).votingPeriod();
 
-        proposal[_class][nonce].startTime = _start;
-        proposal[_class][nonce].endTime = _end;
-        proposal[_class][nonce].proposer = _msgSender();
-        proposal[_class][nonce].approvalMode = approval;
-        proposal[_class][nonce].targets = _targets;
-        proposal[_class][nonce].values = _values;
-        proposal[_class][nonce].calldatas = _calldatas;
-        proposal[_class][nonce].descriptionHash = keccak256(bytes(_description));
+        IGovStorage(govStorageAddress).setProposal(
+            _class,
+            nonce,
+            _start,
+            _end,
+            _msgSender(),
+            approval,
+            _targets,
+            _values,
+            _calldatas,
+            _description
+        );
 
         emit ProposalCreated(
             _class,
@@ -148,13 +132,15 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
     ) public returns(bool) {
         require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
 
-        Proposal storage _proposal = proposal[_class][_nonce];
-
+        Proposal memory _proposal = IGovStorage(
+            govStorageAddress
+        ).getProposalStruct(_class, _nonce);
+        
         require(
-            _msgSender() == _proposal.proposer,
+            msg.sender == _proposal.proposer,
             "Gov: permission denied"
         );
-
+        
         ProposalStatus status = getProposalStatus(
             _class,
             _nonce
@@ -164,13 +150,15 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
             status == ProposalStatus.Succeeded,
             "Gov: proposal not successful"
         );
-
-        proposal[_class][_nonce].status = ProposalStatus.Executed;
+        
+        IGovStorage(
+            govStorageAddress
+        ).setProposalStatus(_class, _nonce, ProposalStatus.Executed);
 
         emit ProposalExecuted(_class, _nonce);
 
         _execute(_proposal.targets, _proposal.values, _proposal.calldatas);
-
+        
         return true;
     }
 
@@ -193,7 +181,9 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
             status != ProposalStatus.Executed
         );
 
-        proposal[_class][_nonce].status = ProposalStatus.Canceled;
+        IGovStorage(
+            govStorageAddress
+        ).setProposalStatus(_class, _nonce, ProposalStatus.Canceled);
     }
     
     /**
@@ -240,23 +230,34 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
 
         require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
 
-        uint256 _dgovStaked = IStaking(stakingContract).getStakedDGOV(_tokenOwner, _stakingCounter);
-        uint256 approvedToSpend = IERC20(dgovContract).allowance(_tokenOwner, voter);
-
+        uint256 _dgovStaked = IStaking(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).getStakedDGOV(_tokenOwner, _stakingCounter);
+        
+        uint256 approvedToSpend = IERC20(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).allowance(_tokenOwner, voter);
+        
         require(
             _amountVoteTokens <= _dgovStaked &&
             _amountVoteTokens <= approvedToSpend,
             "Gov: not approved or not enough dGoV staked"
         );
-
+    
         require(
             _amountVoteTokens <= 
-            IERC20(voteTokenContract).balanceOf(_tokenOwner) - 
-            IVoteToken(voteTokenContract).lockedBalanceOf(_tokenOwner, _class, _nonce),
+            IERC20(
+                IGovStorage(govStorageAddress).getVoteTokenContract()
+            ).balanceOf(_tokenOwner) - 
+            IVoteToken(
+                IGovStorage(govStorageAddress).getVoteTokenContract()
+            ).lockedBalanceOf(_tokenOwner, _class, _nonce),
             "Gov: not enough vote tokens"
         );
 
-        IVoteToken(voteTokenContract).lockTokens(_tokenOwner, voter, _amountVoteTokens, _class, _nonce);
+        IVoteToken(
+            IGovStorage(govStorageAddress).getVoteTokenContract()
+        ).lockTokens(_tokenOwner, voter, _amountVoteTokens, _class, _nonce);
 
         _vote(_class, _nonce, voter, _userVote, _amountVoteTokens);
     }
@@ -272,7 +273,10 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         uint128 _nonce,
         bool _approval
     ) public {
-        require(_msgSender() == vetoOperator, "Gov: permission denied");
+        require(
+            _msgSender() == IGovStorage(govStorageAddress).getVetoOperator(),
+            "Gov: permission denied"
+        );
         require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
         require(
             getProposalStatus(_class, _nonce) == ProposalStatus.Active,
@@ -280,9 +284,9 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         );
 
         if (_approval == true) {
-            _proposalVotes[_class][_nonce].vetoApproval = 1;
+            IVoteCounting(voteCountingAddress).setVetoApproval(_class, _nonce, 1);
         } else {
-            _proposalVotes[_class][_nonce].vetoApproval = 2;
+            IVoteCounting(voteCountingAddress).setVetoApproval(_class, _nonce, 2);
         }
     }
 
@@ -298,7 +302,9 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
     ) public returns(bool staked) {
         address staker = _msgSender();
 
-        IStaking(stakingContract).stakeDgovToken(staker, _amount, _duration);
+        IStaking(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).stakeDgovToken(staker, _amount, _duration);
 
         staked = true;
     }
@@ -313,23 +319,26 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
     ) public returns(bool unstaked) {
         address staker = _msgSender();
 
-        uint256 amountStaked = IStaking(stakingContract).unstakeDgovToken(
-            staker,
-            _stakingCounter
-        );
+        uint256 amountStaked = IStaking(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).unstakeDgovToken(staker, _stakingCounter);
 
         // the interest calculated from this function is in ether unit
-        uint256 interest = IStaking(stakingContract).calculateInterestEarned(
+        uint256 interest = IStaking(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).calculateInterestEarned(
             staker,
             _stakingCounter,
-            interestRateForStakingDGOV
+            IGovStorage(govStorageAddress).getInterestForStakingDGOV()
         );
 
         // CHECK WITH YU THE ORIGIN OF DBIT TO TRANSFER
         // ToDo: CHAGE THIS
         // transfer DBIT interests to the staker - the interest is in ether unit
         //IERC20(dbitContract).transferFrom(dbitContract, staker, amountStaked * interest / 1 ether);
-        IERC20(getDBITAddress()).transfer(staker, amountStaked * interest / 1 ether);
+        IERC20(
+            IGovStorage(govStorageAddress).getDBITAddress()
+        ).transfer(staker, amountStaked * interest / 1 ether);
 
         unstaked = true;
     }
@@ -345,16 +354,22 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
     ) external {
         address tokenOwner = _msgSender();
 
+        Proposal memory _proposal = IGovStorage(
+            govStorageAddress
+        ).getProposalStruct(_class, _nonce);
+
         require(
-            block.timestamp > proposal[_class][_nonce].endTime,
+            block.timestamp > _proposal.endTime,
             "Gov: still voting"
         );
         require(
-            hasVoted(_class, _nonce, tokenOwner),
+            IVoteCounting(voteCountingAddress).hasVoted(_class, _nonce, tokenOwner),
             "Gov: you haven't voted"
         );
         
-        uint256 _amount = IVoteToken(voteTokenContract).lockedBalanceOf(tokenOwner, _class, _nonce);
+        uint256 _amount = IVoteToken(
+            IGovStorage(govStorageAddress).getVoteTokenContract()
+        ).lockedBalanceOf(tokenOwner, _class, _nonce);
         _unlockVoteTokens(_class, _nonce, tokenOwner, _amount);
 
         // transfer the rewards earned for this vote
@@ -372,23 +387,24 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         uint128 _nonce,
         address _tokenOwner
     ) internal {
-        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
-
         require(
-            proposalVote.user[_tokenOwner].hasBeenRewarded == false,
+            IVoteCounting(voteCountingAddress).hasBeenRewarded(_class, _nonce, _tokenOwner) == false,
             "Gov: already rewarded"
         );
-        proposalVote.user[_tokenOwner].hasBeenRewarded = true;
+        IVoteCounting(voteCountingAddress).setUserHasBeenRewarded(_class, _nonce, _tokenOwner);
 
         uint256 _reward;
         
-        for(uint256 i = 1; i <= votingReward[_class].numberOfVotingDays; i++) {
-            _reward += (1 ether * 1 ether) / totalVoteTokenPerDay[_class][_nonce][i];
+        for(uint256 i = 1; i <= IGovStorage(govStorageAddress).getNumberOfVotingDays(_class); i++) {
+            _reward += (1 ether * 1 ether) / IGovStorage(govStorageAddress).getTotalVoteTokenPerDay(_class, _nonce, i);
         }
 
-        _reward = _reward * proposalVote.user[_tokenOwner].weight * votingReward[_class].numberOfDBITDistributedPerDay / 1 ether;
+        _reward = _reward * IVoteCounting(voteCountingAddress).getVoteWeight(_class, _nonce, _tokenOwner) * 
+        IGovStorage(govStorageAddress).getNumberOfDBITDistributedPerDay(_class) / 1 ether;
 
-        IERC20(getDBITAddress()).transfer(_tokenOwner, _reward);
+        IERC20(
+            IGovStorage(govStorageAddress).getDBITAddress()
+        ).transfer(_tokenOwner, _reward);
     }
 
     /**
@@ -404,7 +420,9 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         address _tokenOwner,
         uint256 _amount
     ) internal {
-        IVoteToken(voteTokenContract).unlockTokens(_tokenOwner, _amount, _class, _nonce);
+        IVoteToken(
+            IGovStorage(govStorageAddress).getVoteTokenContract()
+        ).unlockTokens(_tokenOwner, _amount, _class, _nonce);
     }
 
     /**
@@ -422,12 +440,18 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
             "Gov: vote not active"
         );
 
-        uint256 day = _getVotingDay(_class, _nonce);
-        uint256 dayVoteTokens = totalVoteTokenPerDay[_class][_nonce][day];
+        uint256 day = _getVotingDay(_class, _nonce);        
+        IGovStorage(govStorageAddress).increaseTotalVoteTokenPerDay(
+            _class, _nonce, day, _amountVoteTokens
+        );
+        
+        IVoteCounting(voteCountingAddress).setVotingDay(
+            _class, _nonce, _voter, day
+        );
 
-        totalVoteTokenPerDay[_class][_nonce][day] = dayVoteTokens + _amountVoteTokens;
-        _proposalVotes[_class][_nonce].user[_voter].votingDay = day;
-        countVote(_class, _nonce, _voter, _userVote, _amountVoteTokens);
+        IVoteCounting(voteCountingAddress).countVote(
+            _class, _nonce, _voter, _userVote, _amountVoteTokens
+        );
     }
 
     /**
@@ -435,12 +459,29 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
     * @param _class proposal class
     * @param _nonce proposal nonce
     */
-    function getProposal(
+    function getProposalStruct(
         uint128 _class,
         uint128 _nonce
     ) public view returns(Proposal memory) {
-        return proposal[_class][_nonce];
+        return IGovStorage(govStorageAddress).getProposalStruct(_class, _nonce);
     }
+
+    function getProposal(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(
+        uint256,
+        uint256,
+        address,
+        ProposalStatus,
+        ProposalApproval,
+        address[] memory,
+        uint256[] memory,
+        bytes[] memory,
+        bytes32
+    ) {
+        return IGovStorage(govStorageAddress).getProposal(_class, _nonce);
+    } 
 
     /**
     * @dev return the proposal status
@@ -451,8 +492,8 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         uint128 _class,
         uint128 _nonce
     ) public view returns(ProposalStatus unassigned) {
-        Proposal memory _proposal = proposal[_class][_nonce];
-
+        Proposal memory _proposal = IGovStorage(govStorageAddress).getProposalStruct(_class, _nonce);
+        
         if (_proposal.status == ProposalStatus.Canceled) {
             return ProposalStatus.Canceled;
         }
@@ -470,37 +511,21 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         }
 
         if (_class == 2) {
-            if (quorumReached(_class, _nonce) && voteSucceeded(_class, _nonce)) {
+            if (
+                IVoteCounting(voteCountingAddress).quorumReached(_class, _nonce) && 
+                IVoteCounting(voteCountingAddress).voteSucceeded(_class, _nonce)
+            ) {
                 return ProposalStatus.Succeeded;
             } else {
                 return ProposalStatus.Defeated;
             }
         } else {
-            if (vetoApproved(_class, _nonce)) {
+            if (IVoteCounting(voteCountingAddress).vetoApproved(_class, _nonce)) {
                 return ProposalStatus.Succeeded;
             } else {
                 return ProposalStatus.Defeated;
             }
         }
-    }
-
-    //============================
-    //REMOVE THIS TESTING FUNCTION
-    //============================
-    uint256 count;
-    function test() public {
-        count = count + 1;
-    }
-    //============================
-
-    /**
-    * @dev set a new address for debond operator
-    * @param _newDebondOperator new debond operator address
-    */
-    function setNewDebondOperator(address _newDebondOperator) public returns(bool) {
-        debondOperator = _newDebondOperator;
-
-        return true;
     }
 
     /**
@@ -512,7 +537,7 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         uint128 _class,
         uint256 _quorum
     ) public onlyDebondOperator {
-        proposalClassInfo[_class][1] = _quorum;
+        IGovStorage(govStorageAddress).setProposalClassInfo(_class, 1, _quorum);
     }
 
     /**
@@ -523,7 +548,7 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
     function getProposalQuorum(
         uint128 _class
     ) public view returns(uint256 quorum) {
-        quorum = proposalClassInfo[_class][1];
+        quorum = IGovStorage(govStorageAddress).getProposalClassInfo(_class, 1);
     }
 
     /**
@@ -551,7 +576,7 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         uint128 _class,
         uint128 _nonce
     ) public view returns(uint256 day) {
-        day = _proposalVotes[_class][_nonce].user[_msgSender()].votingDay;
+        day = IVoteCounting(voteCountingAddress).getVotingDay(_class, _nonce, _msgSender());
     }
 
     /**
@@ -564,7 +589,9 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         uint256 _amount,
         uint256 _duration
     ) external view returns(uint256 interest) {
-        interest = (_amount * interestRateForStakingDGOV * _duration) / (100 * NUMBER_OF_SECONDS_IN_DAY);
+        interest = (
+            _amount * IGovStorage(govStorageAddress).getInterestForStakingDGOV() * _duration
+        ) / (100 * IGovStorage(govStorageAddress).getNumberOfSecondInYear());
     }
 
     /**
@@ -572,8 +599,8 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
     * @param _class proposal class
     */
     function _generateNewNonce(uint128 _class) internal returns(uint128 nonce) {
-        nonce = proposalNonce[_class] + 1;
-        proposalNonce[_class] = nonce;
+        nonce = IGovStorage(govStorageAddress).getProposalNonce(_class) + 1;
+        IGovStorage(govStorageAddress).setProposalNonce(_class, nonce);
     }
 
     /**
@@ -623,103 +650,66 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
     }
 
     /**
-    * @dev initialise all contracts
-    * @param _governance governance contract address
-    * @param _dgovContract dgov contract address
-    * @param _dbitContract dbit contract address
-    * @param _stakingContract staking contract address
-    * @param _voteContract vote contract address
-    * @param _settingsContrats governance settings contract address
-    * @param _bankContract bank contract address
-    * @param _exchangeContract exchange contract address
-    */
-    function firstSetUp(
-        address _governance,
-        address _dgovContract,
-        address _dbitContract,
-        address _stakingContract,
-        address _voteContract,
-        address _settingsContrats,
-        address _executable,
-        address _bankContract,
-        address _exchangeContract
-    ) public onlyDebondOperator returns(bool) {
-        require(!initialized, "Gov: Already initialized");
-
-        governance = _governance;
-        dgovContract = _dgovContract;
-        dbitContract = _dbitContract;
-        stakingContract = _stakingContract;
-        voteTokenContract = _voteContract;
-        govSettingsContract = _settingsContrats;
-        executable = _executable;
-        exchangeContract = _bankContract;
-        bankContract = _exchangeContract;
-
-        return true;
-    }
-
-    /**
     * @dev return the governance contract address
     */
     function getGovernance() public view returns(address) {
-        return governance;
+        return IGovStorage(govStorageAddress).getGovernanceAddress();
     }
 
     /**
     * @dev return DBIT address
     */
     function getDBITAddress() public view returns(address) {
-        return IExecutable(executable).getDBITAddress();
+        return IGovStorage(govStorageAddress).getDBITAddress();
     }
 
     /**
     * @dev return DGOV address
     */
     function getDGOVAddress() public view returns(address) {
-        return IExecutable(executable).getDGOVAddress();
+        return IGovStorage(govStorageAddress).getDGOVAddress();
     }
 
     /**
     * @dev return the benchmark interest rate
     */
     function getBenchmarkIR() public view returns(uint256) {
-        return IExecutable(executable).getBenchmarkInterestRate();
+        return IGovStorage(govStorageAddress).getBenchmarkInterestRate();
     }
 
     /**
     * @dev return DBIT and DGOV budgets in PPM (part per million)
     */
     function getBudget() public view returns(uint256, uint256) {
-        return IExecutable(executable).getBudget();
+        return IGovStorage(govStorageAddress).getBudget();
     }
 
     /**
     * @dev return DBIT and DGOV allocation distributed
     */
     function getAllocationDistributed() public view returns(uint256, uint256) {
-        return IExecutable(executable).getAllocationDistributed();
+        return IGovStorage(govStorageAddress).getAllocationDistributed();
     }
 
     /**
     * @dev return the amount of DBIT and DGOV allocated to a an address
     */
     function getAllocatedToken(address _account) public view returns(uint256, uint256) {
-        return IExecutable(executable).getAllocatedToken(_account);
+        return IGovStorage(govStorageAddress).getAllocatedToken(_account);
     }
 
     /**
     * @dev return the amount of allocated DBIT and DGOV minted to an address
     */
     function getAllocatedTokenMinted(address _account) public view returns(uint256, uint256) {
-        return IExecutable(executable).getAllocatedTokenMinted(_account);
+        return IGovStorage(govStorageAddress).getAllocatedTokenMinted(_account);
     }
 
     /**
     * return DBIT and DGOV total allocation distributed
     */
     function getTotalAllocationDistributed() public view returns(uint256, uint256) {
-        return IExecutable(executable).getTotalAllocationDistributed();
+        return IGovStorage(govStorageAddress).getTotalAllocationDistributed();
     }
 
     /**
@@ -729,12 +719,14 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
     * @param day the current voting day
     */
     function _getVotingDay(uint128 _class, uint128 _nonce) internal view returns(uint256 day) {
-        Proposal memory _proposal = proposal[_class][_nonce];
+        Proposal memory _proposal = IGovStorage(
+            govStorageAddress
+        ).getProposalStruct(_class, _nonce);
 
         uint256 duration = _proposal.startTime > block.timestamp ?
             0: block.timestamp - _proposal.startTime;
         
-        day = (duration / NUMBER_OF_SECONDS_IN_DAY) + 1;
+        day = (duration / IGovStorage(govStorageAddress).getNumberOfSecondInYear()) + 1;
     }
 
     /**
@@ -749,10 +741,24 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         uint128 _class,
         uint128 _nonce
     ) internal view returns(uint256 numberOfDay) {
-        uint256 proposalDurationInDay = votingReward[_class].numberOfVotingDays;
-        uint256 votingDay = _proposalVotes[_class][_nonce].user[_voter].votingDay;
+        uint256 proposalDurationInDay = IGovStorage(govStorageAddress).getNumberOfVotingDays(_class);
+        uint256 votingDay = IVoteCounting(voteCountingAddress).getVotingDay(_class, _nonce, _voter);
 
         numberOfDay = (proposalDurationInDay - votingDay) + 1;
+    }
+
+    /**
+    * @dev check if a user as voted or not (true if he has voted, false otherwise)
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    * _account user accout address
+    */
+    function hasVoted(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(bool) {
+        return IVoteCounting(voteCountingAddress).hasVoted(_class, _nonce, _account);
     }
 
     
@@ -769,11 +775,12 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         address _executor
     ) public returns(bool) {
         require(
-            _executor == debondTeam || _executor == debondOperator,
+            _executor == IGovStorage(govStorageAddress).getDebondTeamAddress() ||
+            _executor == IGovStorage(govStorageAddress).getDebondOperator(),
             "Gov: can't execute this task"
         );
 
-        governance = _newGovernanceAddress;
+        IGovStorage(govStorageAddress).updateGovernanceContract(_newGovernanceAddress);
 
         return true;
     }
@@ -788,11 +795,12 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         address _executor
     ) public returns(bool) {
         require(
-            _executor == debondTeam || _executor == debondOperator,
+            _executor == IGovStorage(govStorageAddress).getDebondTeamAddress() ||
+            _executor == IGovStorage(govStorageAddress).getDebondOperator(),
             "Gov: can't execute this task"
         );
 
-        exchangeContract = _newExchangeAddress;
+        IGovStorage(govStorageAddress).updateExchangeContract(_newExchangeAddress);
 
         return true;
     }
@@ -807,11 +815,12 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         address _executor
     ) public returns(bool) {
         require(
-            _executor == debondTeam || _executor == debondOperator,
+            _executor == IGovStorage(govStorageAddress).getDebondTeamAddress() ||
+            _executor == IGovStorage(govStorageAddress).getDebondOperator(),
             "Gov: can't execute this task"
         );
 
-        bankContract = _newBankAddress;
+        IGovStorage(govStorageAddress).updateBankContract(_newBankAddress);
 
         return true;
     }
@@ -826,11 +835,12 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         address _executor
     ) public returns(bool) {
         require(
-            _executor == debondTeam || _executor == debondOperator,
+            _executor == IGovStorage(govStorageAddress).getDebondTeamAddress() ||
+            _executor == IGovStorage(govStorageAddress).getDebondOperator(),
             "Gov: can't execute this task"
         );
 
-        IExecutable(executable).updateBenchmarkInterestRate(
+        IGovStorage(govStorageAddress).updateBenchmarkInterestRate(
             _newBenchmarkInterestRate
         );
 
@@ -851,12 +861,13 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         address _executor
     ) public returns(bool) {
         require(
-            _executor == debondTeam || _executor == debondOperator,
+            _executor == IGovStorage(govStorageAddress).getDebondTeamAddress() ||
+            _executor == IGovStorage(govStorageAddress).getDebondOperator(),
             "Gov: can't execute this task"
         );
         require(_proposalClass < 1, "Gov: class not valid");
 
-        IExecutable(executable).changeCommunityFundSize(
+        IGovStorage(govStorageAddress).changeCommunityFundSize(
             _newDBITBudgetPPM,
             _newDGOVBudgetPPM
         );
@@ -878,11 +889,12 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         address _executor
     ) public returns(bool) {
         require(
-            _executor == debondTeam || _executor == debondOperator,
+            _executor == IGovStorage(govStorageAddress).getDebondTeamAddress() ||
+            _executor == IGovStorage(govStorageAddress).getDebondOperator(),
             "Gov: can't execute this task"
         );
 
-        IExecutable(executable).changeTeamAllocation(
+        IGovStorage(govStorageAddress).changeTeamAllocation(
             _to,
             _newDBITPPM,
             _newDGOVPPM
@@ -905,14 +917,20 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
         address _executor
     ) public returns(bool) {
         require(
-            _executor == debondTeam || _executor == debondOperator,
+            _executor == IGovStorage(govStorageAddress).getDebondTeamAddress() ||
+            _executor == IGovStorage(govStorageAddress).getDebondOperator(),
             "Gov: can't execute this task"
         );
 
-        IDebondToken(getDBITAddress()).mintAllocatedSupply(_to, _amountDBIT);
-        IDebondToken(dgovContract).mintAllocatedSupply(_to, _amountDGOV);
+        IDebondToken(
+            IGovStorage(govStorageAddress).getDBITAddress()
+        ).mintAllocatedSupply(_to, _amountDBIT);
 
-        IExecutable(executable).mintAllocatedToken(
+        IDebondToken(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).mintAllocatedSupply(_to, _amountDGOV);
+
+        IGovStorage(govStorageAddress).mintAllocatedToken(
             _to,
             _amountDBIT,
             _amountDGOV
@@ -936,10 +954,15 @@ contract Governance is GovStorage, VoteCounting, ReentrancyGuard, Pausable {
     ) public returns(bool) {
         require(_proposalClass <= 2, "Gov: class not valid");
 
-        IDebondToken(getDBITAddress()).mintAllocatedSupply(_to, _amountDBIT);
-        IDebondToken(dgovContract).mintAllocatedSupply(_to, _amountDGOV);
+        IDebondToken(
+            IGovStorage(govStorageAddress).getDBITAddress()
+        ).mintAllocatedSupply(_to, _amountDBIT);
 
-        IExecutable(executable).claimFundForProposal(
+        IDebondToken(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).mintAllocatedSupply(_to, _amountDGOV);
+
+        IGovStorage(govStorageAddress).claimFundForProposal(
             _to,
             _amountDBIT,
             _amountDGOV
