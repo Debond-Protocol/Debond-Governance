@@ -18,8 +18,6 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
-import "./GovStorage.sol";
-import "./utils/VoteCounting.sol";
 import "./interfaces/IVoteToken.sol";
 import "./interfaces/IVoteCounting.sol";
 import "./interfaces/IGovSettings.sol";
