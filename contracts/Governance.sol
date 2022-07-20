@@ -42,15 +42,6 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         _;
     }
 
-    modifier onlyDebondExecutor(address _executor) {
-        require(
-            _executor == IGovStorage(govStorageAddress).getDebondTeamAddress() ||
-            _executor == IGovStorage(govStorageAddress).getDebondOperator(),
-            "Gov: can't execute this task"
-        );
-        _;
-    }
-
     /**
     * @dev governance constructor
     */
@@ -782,8 +773,8 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     function updateGovernanceContract(
         address _newGovernanceAddress,
         address _executor
-    ) public onlyDebondExecutor(_executor) returns(bool) {
-        IGovStorage(govStorageAddress).updateGovernanceContract(_newGovernanceAddress);
+    ) public returns(bool) {
+        IGovStorage(govStorageAddress).updateGovernanceContract(_newGovernanceAddress, _executor);
 
         return true;
     }
@@ -796,8 +787,8 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     function updateExchangeContract(
         address _newExchangeAddress,
         address _executor
-    ) public onlyDebondExecutor(_executor) returns(bool) {
-        IGovStorage(govStorageAddress).updateExchangeContract(_newExchangeAddress);
+    ) public returns(bool) {
+        IGovStorage(govStorageAddress).updateExchangeContract(_newExchangeAddress, _executor);
 
         return true;
     }
@@ -810,8 +801,8 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     function updateBankContract(
         address _newBankAddress,
         address _executor
-    ) public onlyDebondExecutor(_executor) returns(bool) {
-        IGovStorage(govStorageAddress).updateBankContract(_newBankAddress);
+    ) public returns(bool) {
+        IGovStorage(govStorageAddress).updateBankContract(_newBankAddress, _executor);
 
         return true;
     }
@@ -824,9 +815,10 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     function updateBenchmarkInterestRate(
         uint256 _newBenchmarkInterestRate,
         address _executor
-    ) public onlyDebondExecutor(_executor) returns(bool) {
+    ) public returns(bool) {
         IGovStorage(govStorageAddress).updateBenchmarkInterestRate(
-            _newBenchmarkInterestRate
+            _newBenchmarkInterestRate,
+            _executor
         );
 
         return true;
@@ -844,12 +836,13 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         uint256 _newDBITBudgetPPM,
         uint256 _newDGOVBudgetPPM,
         address _executor
-    ) public onlyDebondExecutor(_executor) returns(bool) {
+    ) public returns(bool) {
         require(_proposalClass < 1, "Gov: class not valid");
 
         IGovStorage(govStorageAddress).changeCommunityFundSize(
             _newDBITBudgetPPM,
-            _newDGOVBudgetPPM
+            _newDGOVBudgetPPM,
+            _executor
         );
 
         return true;
@@ -867,11 +860,12 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         uint256 _newDBITPPM,
         uint256 _newDGOVPPM,
         address _executor
-    ) public onlyDebondExecutor(_executor) returns(bool) {
+    ) public returns(bool) {
         IGovStorage(govStorageAddress).changeTeamAllocation(
             _to,
             _newDBITPPM,
-            _newDGOVPPM
+            _newDGOVPPM,
+            _executor
         );
 
         return true;
@@ -889,7 +883,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         uint256 _amountDBIT,
         uint256 _amountDGOV,
         address _executor
-    ) public onlyDebondExecutor(_executor) returns(bool) {
+    ) public returns(bool) {
         IDebondToken(
             IGovStorage(govStorageAddress).getDBITAddress()
         ).mintAllocatedSupply(_to, _amountDBIT);
@@ -901,7 +895,8 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         IGovStorage(govStorageAddress).mintAllocatedToken(
             _to,
             _amountDBIT,
-            _amountDGOV
+            _amountDGOV,
+            _executor
         );
 
         return true;

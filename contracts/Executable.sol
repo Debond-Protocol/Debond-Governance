@@ -20,6 +20,15 @@ import "./interfaces/IExecutable.sol";
 contract Executable is IExecutable {
     address public govStorageAddress;
 
+    modifier onlyDebondExecutor(address _executor) {
+        require(
+            _executor == IGovStorage(govStorageAddress).getDebondTeamAddress() ||
+            _executor == IGovStorage(govStorageAddress).getDebondOperator(),
+            "Gov: can't execute this task"
+        );
+        _;
+    }
+
     constructor(address _govStorageAddress) {
         govStorageAddress = _govStorageAddress;
     }
@@ -33,9 +42,10 @@ contract Executable is IExecutable {
     * @param _newGovernanceAddress new address for the Governance contract
     */
     function updateGovernanceContract(
-        address _newGovernanceAddress
-    ) public returns(bool) {
-        IGovStorage(govStorageAddress).updateGovernanceContract(_newGovernanceAddress);
+        address _newGovernanceAddress,
+        address _executor
+    ) public onlyDebondExecutor(_executor) returns(bool) {
+        IGovStorage(govStorageAddress).updateGovernanceContract(_newGovernanceAddress, _executor);
 
         return true;
     }
@@ -45,9 +55,10 @@ contract Executable is IExecutable {
     * @param _newExchangeAddress new address for the Exchange contract
     */
     function updateExchangeContract(
-        address _newExchangeAddress
-    ) public returns(bool) {
-        IGovStorage(govStorageAddress).updateExchangeContract(_newExchangeAddress);
+        address _newExchangeAddress,
+        address _executor
+    ) public onlyDebondExecutor(_executor) returns(bool) {
+        IGovStorage(govStorageAddress).updateExchangeContract(_newExchangeAddress, _executor);
 
         return true;
     }
@@ -57,9 +68,10 @@ contract Executable is IExecutable {
     * @param _newBankAddress new address for the Bank contract
     */
     function updateBankContract(
-        address _newBankAddress
-    ) public returns(bool) {
-        IGovStorage(govStorageAddress).updateBankContract(_newBankAddress);
+        address _newBankAddress,
+        address _executor
+    ) public onlyDebondExecutor(_executor) returns(bool) {
+        IGovStorage(govStorageAddress).updateBankContract(_newBankAddress, _executor);
 
         return true;
     }
@@ -69,9 +81,10 @@ contract Executable is IExecutable {
     * @param _newBenchmarkInterestRate new benchmark interest rate
     */
     function updateBenchmarkInterestRate(
-        uint256 _newBenchmarkInterestRate
-    ) public returns(bool) {
-        IGovStorage(govStorageAddress).updateBenchmarkInterestRate(_newBenchmarkInterestRate);
+        uint256 _newBenchmarkInterestRate,
+        address _executor
+    ) public onlyDebondExecutor(_executor) returns(bool) {
+        IGovStorage(govStorageAddress).updateBenchmarkInterestRate(_newBenchmarkInterestRate, _executor);
 
         return true;
     }
@@ -83,9 +96,10 @@ contract Executable is IExecutable {
     */
     function changeCommunityFundSize(
         uint256 _newDBITBudgetPPM,
-        uint256 _newDGOVBudgetPPM
-    ) public returns(bool) {
-        IGovStorage(govStorageAddress).changeCommunityFundSize(_newDBITBudgetPPM, _newDGOVBudgetPPM);
+        uint256 _newDGOVBudgetPPM,
+        address _executor
+    ) public onlyDebondExecutor(_executor) returns(bool) {
+        IGovStorage(govStorageAddress).changeCommunityFundSize(_newDBITBudgetPPM, _newDGOVBudgetPPM, _executor);
 
         return true;
     }
@@ -99,9 +113,10 @@ contract Executable is IExecutable {
     function changeTeamAllocation(
         address _to,
         uint256 _newDBITPPM,
-        uint256 _newDGOVPPM
-    ) public returns(bool) {
-        IGovStorage(govStorageAddress).changeTeamAllocation(_to, _newDBITPPM, _newDGOVPPM);
+        uint256 _newDGOVPPM,
+        address _executor
+    ) public onlyDebondExecutor(_executor) returns(bool) {
+        IGovStorage(govStorageAddress).changeTeamAllocation(_to, _newDBITPPM, _newDGOVPPM, _executor);
 
         return true;
     }
@@ -115,9 +130,10 @@ contract Executable is IExecutable {
     function mintAllocatedToken(
         address _to,
         uint256 _amountDBIT,
-        uint256 _amountDGOV
-    ) public returns(bool) {
-        IGovStorage(govStorageAddress).mintAllocatedToken(_to, _amountDBIT, _amountDGOV);
+        uint256 _amountDGOV,
+        address _executor
+    ) public onlyDebondExecutor(_executor) returns(bool) {
+        IGovStorage(govStorageAddress).mintAllocatedToken(_to, _amountDBIT, _amountDGOV, _executor);
 
         return true;
     }

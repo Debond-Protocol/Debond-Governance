@@ -400,32 +400,40 @@ contract GovStorage is IGovStorage {
     //==== FROM EXECUTABLE
 
     function updateGovernanceContract(
-        address _newGovernanceAddress
+        address _newGovernanceAddress,
+        address _executor
     ) public returns(bool) {
+        require(_executor != address(0));
         governance = _newGovernanceAddress;
 
         return true;
     }
 
     function updateExchangeContract(
-        address _newExchangeAddress
+        address _newExchangeAddress,
+        address _executor
     ) public returns(bool) {
+        require(_executor != address(0));
         exchangeContract = _newExchangeAddress;
 
         return true;
     }
 
     function updateBankContract(
-        address _newBankAddress
+        address _newBankAddress,
+        address _executor
     ) public returns(bool) {
+        require(_executor != address(0));
         bankContract = _newBankAddress;
 
         return true;
     }
 
     function updateBenchmarkInterestRate(
-        uint256 _newBenchmarkInterestRate
+        uint256 _newBenchmarkInterestRate,
+        address _executor
     ) public returns(bool) {
+        require(_executor != address(0));
         benchmarkInterestRate = _newBenchmarkInterestRate;
 
         return true;
@@ -433,8 +441,10 @@ contract GovStorage is IGovStorage {
 
     function changeCommunityFundSize(
         uint256 _newDBITBudgetPPM,
-        uint256 _newDGOVBudgetPPM
+        uint256 _newDGOVBudgetPPM,
+        address _executor
     ) public returns(bool) {
+        require(_executor != address(0));
         dbitBudgetPPM = _newDBITBudgetPPM;
         dgovBudgetPPM = _newDGOVBudgetPPM;
 
@@ -444,8 +454,10 @@ contract GovStorage is IGovStorage {
     function changeTeamAllocation(
         address _to,
         uint256 _newDBITPPM,
-        uint256 _newDGOVPPM
+        uint256 _newDGOVPPM,
+        address _executor
     ) public returns(bool) {
+        require(_executor != address(0));
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
         uint256 dbitAllocDistributedPPM = dbitAllocationDistibutedPPM;
         uint256 dgovAllocDistributedPPM = dgovAllocationDistibutedPPM;
@@ -472,8 +484,10 @@ contract GovStorage is IGovStorage {
     function mintAllocatedToken(
         address _to,
         uint256 _amountDBIT,
-        uint256 _amountDGOV
+        uint256 _amountDGOV,
+        address _executor
     ) public returns(bool) {
+        require(_executor != address(0));
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
         
         uint256 _dbitCollaterizedSupply = IDebondToken(dbitContract).getTotalCollateralisedSupply();

@@ -17,42 +17,49 @@ pragma solidity ^0.8.0;
 interface IExecutable {
     // update the bank contract
     function updateGovernanceContract(
-        address _newGovernanceAddress
+        address _newGovernanceAddress,
+        address _executor
     ) external returns(bool);
 
     // update the exchange contract
     function updateExchangeContract(
-        address _newExchangeAddress
+        address _newExchangeAddress,
+        address _executor
     ) external returns(bool);
 
     // update the bank contract
     function updateBankContract(
-        address _newBankAddress
+        address _newBankAddress,
+        address _executor
     ) external returns(bool);
 
     //Update benchmark intrest rate
     function updateBenchmarkInterestRate(
-        uint256 _newBenchmarkInterestRate
+        uint256 _newBenchmarkInterestRate,
+        address _executor
     ) external returns(bool);
 
     // change the community fund size
     function changeCommunityFundSize(
         uint256 _newDBITBudgetPPM,
-        uint256 _newDGOVBudgetPPM
+        uint256 _newDGOVBudgetPPM,
+        address _executor
     ) external returns(bool);
 
     // change the team allocation
     function changeTeamAllocation(
         address _to,
         uint256 _newDBITPPM,
-        uint256 _newDGOVPPM
+        uint256 _newDGOVPPM,
+        address _executor
     ) external returns(bool);
 
     // mint allocated tokens
     function mintAllocatedToken(
         address _to,
         uint256 _amountDBIT,
-        uint256 _amountDGOV
+        uint256 _amountDGOV,
+        address _executor
     ) external returns(bool);
 
     // claim fund for proposal
