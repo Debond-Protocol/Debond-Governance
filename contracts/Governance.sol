@@ -176,9 +176,18 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
             _nonce
         );
 
+        Proposal memory _proposal = IGovStorage(
+            govStorageAddress
+        ).getProposalStruct(_class, _nonce);
+
         require(
             status != ProposalStatus.Canceled &&
             status != ProposalStatus.Executed
+        );
+        
+        require(
+            msg.sender == _proposal.proposer,
+            "Gov: permission denied"
         );
 
         IGovStorage(
@@ -273,10 +282,6 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         uint128 _nonce,
         bool _approval
     ) public {
-        require(
-            _msgSender() == IGovStorage(govStorageAddress).getVetoOperator(),
-            "Gov: permission denied"
-        );
         require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
         require(
             getProposalStatus(_class, _nonce) == ProposalStatus.Active,
@@ -284,9 +289,9 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         );
 
         if (_approval == true) {
-            IVoteCounting(voteCountingAddress).setVetoApproval(_class, _nonce, 1);
+            IVoteCounting(voteCountingAddress).setVetoApproval(_class, _nonce, 1, msg.sender);
         } else {
-            IVoteCounting(voteCountingAddress).setVetoApproval(_class, _nonce, 2);
+            IVoteCounting(voteCountingAddress).setVetoApproval(_class, _nonce, 2, msg.sender);
         }
     }
 
@@ -555,8 +560,8 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     * @dev change the proposal proposal threshold
     * @param _newThreshold new proposal threshold
     */
-    function setProposalThreshold(uint256 _newThreshold) public {
-        IGovStorage(govStorageAddress).setThreshold(_newThreshold);
+    function setProposalThreshold(uint256 _newThreshold, address _executor) public {
+        IGovStorage(govStorageAddress).setThreshold(_newThreshold, _executor);
     }
 
     /**

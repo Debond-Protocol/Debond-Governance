@@ -19,13 +19,27 @@ import "../interfaces/IVoteCounting.sol";
 
 contract VoteCounting is IVoteCounting {
     mapping(uint128 => mapping(uint128 => ProposalVote)) internal _proposalVotes;
-    address govStorageAddress;
+    address public govStorageAddress;
+
+    modifier onlyGov {
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getGovernanceAddress(),
+            "Gov: Only Gouvernance"
+        );
+        _;
+    }
 
     /**
     * @dev set the govStorage contract address
     * @param _govStorageAddress govStorage contract address
     */
     function setGovStorageAddress(address _govStorageAddress) public {
+        require(
+            msg.sender == IGovStorage(_govStorageAddress).getDebondTeamAddress() ||
+            msg.sender == IGovStorage(_govStorageAddress).getDebondOperator(),
+            "VoteCounting: permission denied"
+        );
+
         govStorageAddress = _govStorageAddress;
     }
 
@@ -109,7 +123,13 @@ contract VoteCounting is IVoteCounting {
         uint128 _class,
         uint128 _nonce,
         address _account
-    ) public {
+    ) public onlyGov {
+        require(
+            _proposalVotes[_class][_nonce].user[_account].hasVoted == true &&
+            _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded == false,
+            "VoteCounting: didn't vote or have been rewarded already"
+        );
+
         _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded = true;
     }
 
@@ -164,7 +184,7 @@ contract VoteCounting is IVoteCounting {
         uint128 _nonce,
         address _voter,
         uint256 _day
-    ) public {
+    ) public onlyGov {
         _proposalVotes[_class][_nonce].user[_voter].votingDay = _day;
     }
 
@@ -200,8 +220,14 @@ contract VoteCounting is IVoteCounting {
     function setVetoApproval(
         uint128 _class,
         uint128 _nonce,
-        uint256 _vetoApproval
-    ) public {
+        uint256 _vetoApproval,
+        address _vetoOperator
+    ) public onlyGov {
+        require(
+            _vetoOperator == IGovStorage(govStorageAddress).getVetoOperator(),
+            "VoteCounting: permission denied"
+        );
+        
         _proposalVotes[_class][_nonce].vetoApproval = _vetoApproval;
     }
 
@@ -219,7 +245,7 @@ contract VoteCounting is IVoteCounting {
         address _account,
         uint8 _vote,
         uint256 _weight
-    ) public {
+    ) public onlyGov {
         ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
         require(
@@ -249,7 +275,7 @@ contract VoteCounting is IVoteCounting {
     function _quorum(
         uint128 _class,
         uint128 _nonce
-    ) internal view returns(uint256 proposalQuorum) {
+    ) internal view onlyGov returns(uint256 proposalQuorum) {
         ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
         uint256 minApproval = IGovStorage(govStorageAddress).getProposalClassInfo(_class, 1);

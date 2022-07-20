@@ -67,7 +67,8 @@ interface IVoteCounting is IGovSharedStorage {
     function setVetoApproval(
         uint128 _class,
         uint128 _nonce,
-        uint256 _vetoApproval
+        uint256 _vetoApproval,
+        address _vetoOperator
     ) external;
 
     function setUserHasBeenRewarded(

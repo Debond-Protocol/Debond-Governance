@@ -80,6 +80,31 @@ contract GovStorage is IGovStorage {
         _;
     }
 
+    modifier onlyGov {
+        require(
+            msg.sender == getGovernanceAddress(),
+            "Gov: Only Gouvernance"
+        );
+        _;
+    }
+
+    modifier onlyDebondExecutor(address _executor) {
+        require(
+            _executor == getDebondTeamAddress() ||
+            _executor == getDebondOperator(),
+            "Gov: can't execute this task"
+        );
+        _;
+    }
+
+    modifier onlyGovOrExec {
+        require(
+            msg.sender == getGovernanceAddress() ||
+            msg.sender == getExecutableContract()
+        );
+        _;
+    }
+
     constructor(
         address _debondTeam,
         address _vetoOperator,
@@ -193,7 +218,10 @@ contract GovStorage is IGovStorage {
         return NUMBER_OF_SECONDS_IN_YEAR;
     }
 
-    function setThreshold(uint256 _newProposalThreshold) public {
+    function setThreshold(
+        uint256 _newProposalThreshold,
+        address _executor
+    ) public onlyGov onlyDebondExecutor(_executor) {
         _proposalThreshold = _newProposalThreshold;
     }
 
@@ -330,7 +358,7 @@ contract GovStorage is IGovStorage {
         uint128 _nonce,
         uint256 _votingDay,
         uint256 _amountVoteTokens
-    ) public {
+    ) public onlyGov {
         totalVoteTokenPerDay[_class][_nonce][_votingDay] += _amountVoteTokens;
     }
 
@@ -351,7 +379,7 @@ contract GovStorage is IGovStorage {
         uint256[] memory _values,
         bytes[] memory _calldatas,
         string memory _description
-    ) public {
+    ) public onlyGov {
         proposal[_class][_nonce].startTime = _startTime;
         proposal[_class][_nonce].endTime = _endTime;
         proposal[_class][_nonce].proposer = _proposer;
@@ -366,7 +394,7 @@ contract GovStorage is IGovStorage {
         uint128 _class,
         uint128 _nonce,
         ProposalStatus _status
-    ) public {
+    ) public onlyGov {
         proposal[_class][_nonce].status = _status;
     }
 
@@ -380,7 +408,7 @@ contract GovStorage is IGovStorage {
         uint128 _class,
         uint256 _index,
         uint256 _value
-    ) public {
+    ) public onlyGov {
         proposalClassInfo[_class][_index] = _value;
     }
 
@@ -393,7 +421,7 @@ contract GovStorage is IGovStorage {
     function setProposalNonce(
         uint128 _class,
         uint128 _nonce
-    ) public {
+    ) public onlyGov {
         proposalNonce[_class] = _nonce;
     }
 
@@ -402,7 +430,7 @@ contract GovStorage is IGovStorage {
     function updateGovernanceContract(
         address _newGovernanceAddress,
         address _executor
-    ) public returns(bool) {
+    ) public onlyGovOrExec returns(bool) {
         require(_executor != address(0));
         governance = _newGovernanceAddress;
 
@@ -412,7 +440,7 @@ contract GovStorage is IGovStorage {
     function updateExchangeContract(
         address _newExchangeAddress,
         address _executor
-    ) public returns(bool) {
+    ) public onlyGovOrExec returns(bool) {
         require(_executor != address(0));
         exchangeContract = _newExchangeAddress;
 
@@ -422,7 +450,7 @@ contract GovStorage is IGovStorage {
     function updateBankContract(
         address _newBankAddress,
         address _executor
-    ) public returns(bool) {
+    ) public onlyGovOrExec returns(bool) {
         require(_executor != address(0));
         bankContract = _newBankAddress;
 
@@ -432,7 +460,7 @@ contract GovStorage is IGovStorage {
     function updateBenchmarkInterestRate(
         uint256 _newBenchmarkInterestRate,
         address _executor
-    ) public returns(bool) {
+    ) public onlyGovOrExec returns(bool) {
         require(_executor != address(0));
         benchmarkInterestRate = _newBenchmarkInterestRate;
 
@@ -443,7 +471,7 @@ contract GovStorage is IGovStorage {
         uint256 _newDBITBudgetPPM,
         uint256 _newDGOVBudgetPPM,
         address _executor
-    ) public returns(bool) {
+    ) public onlyGovOrExec returns(bool) {
         require(_executor != address(0));
         dbitBudgetPPM = _newDBITBudgetPPM;
         dgovBudgetPPM = _newDGOVBudgetPPM;
@@ -456,7 +484,7 @@ contract GovStorage is IGovStorage {
         uint256 _newDBITPPM,
         uint256 _newDGOVPPM,
         address _executor
-    ) public returns(bool) {
+    ) public onlyGovOrExec returns(bool) {
         require(_executor != address(0));
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
         uint256 dbitAllocDistributedPPM = dbitAllocationDistibutedPPM;
@@ -486,7 +514,7 @@ contract GovStorage is IGovStorage {
         uint256 _amountDBIT,
         uint256 _amountDGOV,
         address _executor
-    ) public returns(bool) {
+    ) public onlyGovOrExec returns(bool) {
         require(_executor != address(0));
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
         
@@ -517,7 +545,7 @@ contract GovStorage is IGovStorage {
         address _to,
         uint256 _amountDBIT,
         uint256 _amountDGOV
-    ) public returns(bool) {
+    ) public onlyGovOrExec returns(bool) {
         uint256 _dbitTotalSupply = IDebondToken(dbitContract).totalSupply();
         uint256 _dgovTotalSupply = IDebondToken(dgovContract).totalSupply();
 

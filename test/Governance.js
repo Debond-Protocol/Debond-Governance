@@ -50,17 +50,17 @@ contract("Governance", async (accounts) => {
     }
 
     beforeEach(async () => {
-        settings = await GovSettings.new(17, 17);
         count = await VoteCounting.new();
         vote = await VoteToken.new("Debond Vote Token", "DVT", operator);
         storage = await GovStorage.new(debondTeam, operator, operator);
+        settings = await GovSettings.new(17, 17, storage.address);
         gov = await Governance.new(storage.address, count.address);
         dbit = await DBIT.new(gov.address, operator, operator, operator);
         dgov = await DGOV.new(gov.address, operator, operator, operator);
         exec = await Executable.new(storage.address);
         stak = await StakingDGOV.new(dgov.address, vote.address);
 
-        await count.setGovStorageAddress(storage.address);
+        await count.setGovStorageAddress(storage.address, {from: operator});
 
         // initialize all contracts
         await storage.firstSetUp(
