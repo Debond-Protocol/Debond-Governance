@@ -40,6 +40,7 @@ contract GovStorage is IGovStorage {
     address public debondTeam;
     address public governance;
     address public exchangeContract;
+    address public exchangeStorageContract;
     address public bankContract;
     address public dgovContract;
     address public dbitContract;
@@ -163,7 +164,8 @@ contract GovStorage is IGovStorage {
         address _settingsContrats,
         address _executable,
         address _bankContract,
-        address _exchangeContract
+        address _exchangeContract,
+        address _exchangeStorageContract
     ) public onlyDebondOperator returns(bool) {
         require(!initialized, "Gov: Already initialized");
 
@@ -176,6 +178,7 @@ contract GovStorage is IGovStorage {
         govSettingsContract = _settingsContrats;
         executable = _executable;
         exchangeContract = _bankContract;
+        exchangeStorageContract = _exchangeStorageContract;
         bankContract = _exchangeContract;
 
         return true;
@@ -233,6 +236,10 @@ contract GovStorage is IGovStorage {
         return exchangeContract;
     }
 
+    function getExchangeStorageAddress() public view returns(address) {
+        return exchangeStorageContract;
+    }
+
     function getBankAddress() public view returns(address) {
         return bankContract;
     }
@@ -253,7 +260,7 @@ contract GovStorage is IGovStorage {
         return debondTeam;
     }
 
-    function getBenchmarkInterestRate() public view returns(uint256) {
+    function getBenchmarkIR() public view returns(uint256) {
         return benchmarkInterestRate;
     }
 
@@ -457,7 +464,7 @@ contract GovStorage is IGovStorage {
         return true;
     }
 
-    function updateBenchmarkInterestRate(
+    function updateBenchmarkIR(
         uint256 _newBenchmarkInterestRate,
         address _executor
     ) public onlyGovOrExec returns(bool) {

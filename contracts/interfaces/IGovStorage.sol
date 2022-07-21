@@ -127,7 +127,7 @@ interface IGovStorage is IGovSharedStorage {
         address _executor
     ) external returns(bool);
 
-    function updateBenchmarkInterestRate(
+    function updateBenchmarkIR(
         uint256 _newBenchmarkInterestRate,
         address _executor
     ) external returns(bool);
@@ -160,12 +160,13 @@ interface IGovStorage is IGovSharedStorage {
 
     function getGovernanceAddress() external view returns(address);
     function getExchangeAddress() external view returns(address);
+    function getExchangeStorageAddress() external view returns(address);
     function getBankAddress() external view returns(address);
     function getDGOVAddress() external view returns(address);
     function getDBITAddress() external view returns(address);
     function getVoteCountingAddress() external view returns(address);
     function getDebondTeamAddress() external view returns(address);
-    function getBenchmarkInterestRate() external view returns(uint256);
+    function getBenchmarkIR() external view returns(uint256);
     function getBudget() external view returns(uint256, uint256);
     function getAllocationDistributed() external view returns(uint256, uint256);
     function getTotalAllocationDistributed() external view returns(uint256, uint256);

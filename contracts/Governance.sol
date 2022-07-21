@@ -17,7 +17,9 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@debond-protocol/debond-token-contracts/interfaces/IDGOV.sol";
 import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
+import "@debond-protocol/debond-exchange-contracts/interfaces/IExchangeStorage.sol";
 import "./interfaces/IVoteToken.sol";
 import "./interfaces/IVoteCounting.sol";
 import "./interfaces/IGovSettings.sol";
@@ -37,6 +39,15 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     modifier onlyDebondOperator {
         require(msg.sender == IGovStorage(govStorageAddress).getDebondOperator(),
         "Gov: Need rights");
+        _;
+    }
+
+    modifier onlyDBITorDGOV(address _tokenAddress) {
+        require(
+            _tokenAddress == IGovStorage(govStorageAddress).getDGOVAddress() ||
+            _tokenAddress == IGovStorage(govStorageAddress).getDBITAddress(),
+            "Gov: wrong token address"
+        );
         _;
     }
 
@@ -653,69 +664,6 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     }
 
     /**
-    * @dev return the governance contract address
-    */
-    function getGovernance() public view returns(address) {
-        return IGovStorage(govStorageAddress).getGovernanceAddress();
-    }
-
-    /**
-    * @dev return DBIT address
-    */
-    function getDBITAddress() public view returns(address) {
-        return IGovStorage(govStorageAddress).getDBITAddress();
-    }
-
-    /**
-    * @dev return DGOV address
-    */
-    function getDGOVAddress() public view returns(address) {
-        return IGovStorage(govStorageAddress).getDGOVAddress();
-    }
-
-    /**
-    * @dev return the benchmark interest rate
-    */
-    function getBenchmarkIR() public view returns(uint256) {
-        return IGovStorage(govStorageAddress).getBenchmarkInterestRate();
-    }
-
-    /**
-    * @dev return DBIT and DGOV budgets in PPM (part per million)
-    */
-    function getBudget() public view returns(uint256, uint256) {
-        return IGovStorage(govStorageAddress).getBudget();
-    }
-
-    /**
-    * @dev return DBIT and DGOV allocation distributed
-    */
-    function getAllocationDistributed() public view returns(uint256, uint256) {
-        return IGovStorage(govStorageAddress).getAllocationDistributed();
-    }
-
-    /**
-    * @dev return the amount of DBIT and DGOV allocated to a an address
-    */
-    function getAllocatedToken(address _account) public view returns(uint256, uint256) {
-        return IGovStorage(govStorageAddress).getAllocatedToken(_account);
-    }
-
-    /**
-    * @dev return the amount of allocated DBIT and DGOV minted to an address
-    */
-    function getAllocatedTokenMinted(address _account) public view returns(uint256, uint256) {
-        return IGovStorage(govStorageAddress).getAllocatedTokenMinted(_account);
-    }
-
-    /**
-    * return DBIT and DGOV total allocation distributed
-    */
-    function getTotalAllocationDistributed() public view returns(uint256, uint256) {
-        return IGovStorage(govStorageAddress).getTotalAllocationDistributed();
-    }
-
-    /**
     * @dev get the bnumber of days elapsed since the vote has started
     * @param _class proposal class
     * @param _nonce proposal nonce
@@ -731,39 +679,6 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         
         day = (duration / IGovStorage(govStorageAddress).getNumberOfSecondInYear()) + 1;
     }
-
-    /**
-    * @dev get the number of days elapsed since the user has voted
-    * @param _voter the address of the voter
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    * @param numberOfDay the number of days
-    */
-    function _getNumberOfDaysRewarded(
-        address _voter,
-        uint128 _class,
-        uint128 _nonce
-    ) internal view returns(uint256 numberOfDay) {
-        uint256 proposalDurationInDay = IGovStorage(govStorageAddress).getNumberOfVotingDays(_class);
-        uint256 votingDay = IVoteCounting(voteCountingAddress).getVotingDay(_class, _nonce, _voter);
-
-        numberOfDay = (proposalDurationInDay - votingDay) + 1;
-    }
-
-    /**
-    * @dev check if a user as voted or not (true if he has voted, false otherwise)
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    * _account user accout address
-    */
-    function hasVoted(
-        uint128 _class,
-        uint128 _nonce,
-        address _account
-    ) public view returns(bool) {
-        return IVoteCounting(voteCountingAddress).hasVoted(_class, _nonce, _account);
-    }
-
     
     /****************************************************************************
     *                          Executable functions
@@ -819,7 +734,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         uint256 _newBenchmarkInterestRate,
         address _executor
     ) public returns(bool) {
-        IGovStorage(govStorageAddress).updateBenchmarkInterestRate(
+        IGovStorage(govStorageAddress).updateBenchmarkIR(
             _newBenchmarkInterestRate,
             _executor
         );
@@ -936,6 +851,130 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
 
         return true;
     }
-    //**************************************************************************/
 
+    //====== External executables (to change params in external contracts)    
+    function setMaxSupply(
+        uint256 maxSupply
+    ) public onlyDebondOperator returns (bool) {
+        IDGOV(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).setMaxSupply(maxSupply);
+
+        return true;
+    }
+
+    /**
+    * @dev set the max supply of Debond token
+    * @param newSupply new supply of the Debond token
+    * @param _tokenAddress address of the Debond token (either DGOV or DBIT)
+    */
+    function setMaxAirdropSupply(
+        uint256 newSupply,
+        address _tokenAddress
+    ) public onlyDebondOperator onlyDBITorDGOV(_tokenAddress) returns (bool) {
+        IDebondToken(_tokenAddress).setMaxAirdropSupply(newSupply);
+
+        return true;
+    }
+
+    /**
+    * @dev set the maximum allocation percentage
+    * @dev new maximum allocation percentage
+    * @param _tokenAddress address of the Debond token (either DGOV or DBIT)
+    */
+    function setMaxAllocationPercentage(
+        uint256 newPercentage,
+        address _tokenAddress
+    ) public onlyDebondOperator onlyDBITorDGOV(_tokenAddress) returns (bool) {
+        IDebondToken(_tokenAddress).setMaxAllocationPercentage(newPercentage);
+
+        return true;
+    }
+
+    /**
+    * @dev set the bank address to Debond Token contract
+    * @dev new maximum allocation percentage
+    * @param _bankAddress new bank address
+    * @param _tokenAddress address of the Debond token (either DGOV or DBIT)
+    */
+    function setBankAddressInDebondToken(
+        address _bankAddress,
+        address _tokenAddress
+    ) public onlyDebondOperator onlyDBITorDGOV(_tokenAddress) returns(bool) {
+        IDebondToken(_tokenAddress).setBankAddress(_bankAddress);
+
+        return true;
+    }
+
+    /**
+    * @dev set the airdrop address to Debond Token contract
+    * @dev new maximum allocation percentage
+    * @param _airdropAddress new airdrop address
+    * @param _tokenAddress address of the Debond token (either DGOV or DBIT)
+    */
+    function setAirdropAddressInDebondToken(
+        address _airdropAddress,
+        address _tokenAddress
+    ) public onlyDebondOperator onlyDBITorDGOV(_tokenAddress) returns(bool) {
+        IDebondToken(_tokenAddress).setAirdropAddress(_airdropAddress);
+
+        return true;
+    }
+
+    /**
+    * @dev set the exchange address to Debond Token contract
+    * @dev new maximum allocation percentage
+    * @param _exchangeAddress new exchange address
+    * @param _tokenAddress address of the Debond token (either DGOV or DBIT)
+    */
+    function setExchangeAddressInDebondToken(
+        address _exchangeAddress,
+        address _tokenAddress
+    ) public onlyDebondOperator onlyDBITorDGOV(_tokenAddress) returns(bool) {
+        IDebondToken(_tokenAddress).setExchangeAddress(_exchangeAddress);
+
+        return true;
+    }
+
+    /**
+    * @dev set the exchange address in exchange storage
+    * @param _exchangeAddress exchange new address
+    */
+    function setExchangeNewAddress(
+        address _exchangeAddress
+    ) public onlyDebondOperator returns(bool) {
+        IExchangeStorage(
+            IGovStorage(govStorageAddress).getExchangeStorageAddress()
+        ).setExchangeAddress(_exchangeAddress);
+
+        return true;
+    }
+
+    /**
+    * @dev set the maximum auction duration in exchange
+    * @param _maxAuctionDuration new maximum auction duration
+    */
+    function setMaxAuctionDuration(
+        uint256 _maxAuctionDuration
+    ) public onlyDebondOperator returns(bool) {
+        IExchangeStorage(
+            IGovStorage(govStorageAddress).getExchangeStorageAddress()
+        ).setMaxAuctionDuration(_maxAuctionDuration);
+
+        return true;
+    }
+
+    /**
+    * @dev set the minimum auction duration in exchange
+    * @param _minAuctionDuration new minimum auction duration
+    */
+    function setMinAuctionDuration(
+        uint256 _minAuctionDuration
+    ) public onlyDebondOperator returns(bool) {
+        IExchangeStorage(
+            IGovStorage(govStorageAddress).getExchangeStorageAddress()
+        ).setMinAuctionDuration(_minAuctionDuration);
+
+        return true;
+    }
 }

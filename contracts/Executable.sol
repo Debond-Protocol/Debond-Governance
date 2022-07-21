@@ -84,7 +84,7 @@ contract Executable is IExecutable {
         uint256 _newBenchmarkInterestRate,
         address _executor
     ) public onlyDebondExecutor(_executor) returns(bool) {
-        IGovStorage(govStorageAddress).updateBenchmarkInterestRate(_newBenchmarkInterestRate, _executor);
+        IGovStorage(govStorageAddress).updateBenchmarkIR(_newBenchmarkInterestRate, _executor);
 
         return true;
     }

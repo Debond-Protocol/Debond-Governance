@@ -38,7 +38,6 @@ contract("Governance", async (accounts) => {
     let user2 = accounts[3];
     let user3 = accounts[4];
     let user4 = accounts[5];
-    let user5 = accounts[6];
 
     let ProposalStatus = {
         Active: '0',
@@ -72,6 +71,7 @@ contract("Governance", async (accounts) => {
             count.address,
             settings.address,
             exec.address,
+            operator,
             operator,
             operator,
             {from: operator}
@@ -256,7 +256,7 @@ contract("Governance", async (accounts) => {
         await wait(18000);
 
         let status = await gov.getProposalStatus(event.class, event.nonce);
-        let benchmarkBefore = await gov.getBenchmarkIR();
+        let benchmarkBefore = await storage.getBenchmarkIR();
 
         // Execute the proposal
         await gov.executeProposal(
@@ -265,7 +265,7 @@ contract("Governance", async (accounts) => {
             { from: operator }
         );
 
-        let benchmarkAfter = await gov.getBenchmarkIR();        
+        let benchmarkAfter = await storage.getBenchmarkIR();        
         let status1 = await gov.getProposalStatus(event.class, event.nonce);
 
         expect(status.toString()).to.equal(ProposalStatus.Active);
@@ -313,7 +313,7 @@ contract("Governance", async (accounts) => {
         await wait(18000);
 
         let oldBudget = await web3.utils.toWei(web3.utils.toBN(100000), 'ether');
-        let budget = await gov.getBudget();
+        let budget = await storage.getBudget();
 
         expect(budget[0].toString()).to.equal(oldBudget.toString());
         expect(budget[1].toString()).to.equal(oldBudget.toString());
@@ -324,7 +324,7 @@ contract("Governance", async (accounts) => {
             { from: operator }
         );
 
-        budget = await gov.getBudget();
+        budget = await storage.getBudget();
 
         expect(budget[0].toString()).to.equal(newDBITBudget.toString());
         expect(budget[1].toString()).to.equal(newDGOVBudget.toString());
@@ -365,8 +365,8 @@ contract("Governance", async (accounts) => {
 
         await wait(18000);
 
-        let allocMintedBefore = await gov.getAllocatedTokenMinted(debondTeam);
-        let totaAllocDistBefore = await gov.getTotalAllocationDistributed();
+        let allocMintedBefore = await storage.getAllocatedTokenMinted(debondTeam);
+        let totaAllocDistBefore = await storage.getTotalAllocationDistributed();
 
         await gov.executeProposal(
             event.class,
@@ -374,8 +374,8 @@ contract("Governance", async (accounts) => {
             {from: operator}
         );
 
-        let allocMintedAfter = await gov.getAllocatedTokenMinted(debondTeam);
-        let totaAllocDistAfter = await gov.getTotalAllocationDistributed();
+        let allocMintedAfter = await storage.getAllocatedTokenMinted(debondTeam);
+        let totaAllocDistAfter = await storage.getTotalAllocationDistributed();
 
         expect(allocMintedAfter[0].toString()).to.equal(allocMintedBefore[0].add(amountDBIT).toString());
         expect(allocMintedAfter[1].toString()).to.equal(allocMintedBefore[1].add(amountDGOV).toString());
@@ -418,8 +418,8 @@ contract("Governance", async (accounts) => {
 
         await wait(18000);
 
-        let allocMintedBefore = await gov.getAllocatedTokenMinted(debondTeam);
-        let totaAllocDistBefore = await gov.getTotalAllocationDistributed();
+        let allocMintedBefore = await storage.getAllocatedTokenMinted(debondTeam);
+        let totaAllocDistBefore = await storage.getTotalAllocationDistributed();
 
         await gov.executeProposal(
             event.class,
@@ -427,8 +427,8 @@ contract("Governance", async (accounts) => {
             {from: operator}
         );
 
-        let allocMintedAfter = await gov.getAllocatedTokenMinted(debondTeam);
-        let totaAllocDistAfter = await gov.getTotalAllocationDistributed();
+        let allocMintedAfter = await storage.getAllocatedTokenMinted(debondTeam);
+        let totaAllocDistAfter = await storage.getTotalAllocationDistributed();
 
         expect(allocMintedAfter[0].toString()).to.equal(allocMintedBefore[0].add(amountDBIT).toString());
         expect(allocMintedAfter[1].toString()).to.equal(allocMintedBefore[1].add(amountDGOV).toString());
@@ -502,10 +502,10 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
 
-        let v1 = await gov.hasVoted(event.class, event.nonce, user1);
-        let v4 = await gov.hasVoted(event.class, event.nonce, user4);
-        let v2 = await gov.hasVoted(event.class, event.nonce, user2);
-        let v3 = await gov.hasVoted(event.class, event.nonce, user3);
+        let v1 = await count.hasVoted(event.class, event.nonce, user1);
+        let v4 = await count.hasVoted(event.class, event.nonce, user4);
+        let v2 = await count.hasVoted(event.class, event.nonce, user2);
+        let v3 = await count.hasVoted(event.class, event.nonce, user3);
 
         expect(v1).to.be.false;
         expect(v4).to.be.true;
@@ -540,7 +540,7 @@ contract("Governance", async (accounts) => {
 
         await wait(18000);
 
-        let benchmarkBefore = await gov.getBenchmarkIR();
+        let benchmarkBefore = await storage.getBenchmarkIR();
 
         // Execute the proposal
         await gov.executeProposal(
@@ -551,7 +551,7 @@ contract("Governance", async (accounts) => {
 
         let status = await gov.getProposalStatus(event.class, event.nonce);
 
-        let benchmarkAfter = await gov.getBenchmarkIR();
+        let benchmarkAfter = await storage.getBenchmarkIR();
 
         expect(status.toString()).to.equal(ProposalStatus.Executed);
         expect(
