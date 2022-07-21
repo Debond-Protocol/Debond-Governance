@@ -74,6 +74,7 @@ contract("Governance", async (accounts) => {
             operator,
             operator,
             operator,
+            operator,
             {from: operator}
         );
 

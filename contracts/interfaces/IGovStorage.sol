@@ -17,6 +17,7 @@ pragma solidity ^0.8.0;
 import "./IGovSharedStorage.sol";
 
 interface IGovStorage is IGovSharedStorage {
+    function isInitialized() external view returns(bool);
     function getThreshold() external view returns(uint256);
     function getDebondOperator() external view returns(address);
     function getVetoOperator() external view returns(address);
@@ -25,6 +26,7 @@ interface IGovStorage is IGovSharedStorage {
     function getStakingContract() external view returns(address);
     function getVoteTokenContract() external view returns(address);
     function getGovSettingContract() external view returns(address);
+    function getAirdropContract() external view returns(address);
     function getNumberOfSecondInYear() external pure returns(uint256);
 
     function getProposalStruct(

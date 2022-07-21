@@ -14,7 +14,9 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
+import "@debond-protocol/debond-token-contracts/interfaces/IDGOV.sol";
 import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
+import "@debond-protocol/debond-exchange-contracts/interfaces/IExchangeStorage.sol";
 import "./interfaces/IGovStorage.sol";
 
 contract GovStorage is IGovStorage {
@@ -49,6 +51,7 @@ contract GovStorage is IGovStorage {
     address public govSettingsContract;
     address public executable;
     address public voteCountingContract;
+    address public airdropContract;
 
     address public vetoOperator;
 
@@ -165,7 +168,8 @@ contract GovStorage is IGovStorage {
         address _executable,
         address _bankContract,
         address _exchangeContract,
-        address _exchangeStorageContract
+        address _exchangeStorageContract,
+        address _airdropContract
     ) public onlyDebondOperator returns(bool) {
         require(!initialized, "Gov: Already initialized");
 
@@ -180,7 +184,53 @@ contract GovStorage is IGovStorage {
         exchangeContract = _bankContract;
         exchangeStorageContract = _exchangeStorageContract;
         bankContract = _exchangeContract;
+        airdropContract = _airdropContract;
 
+        return true;
+    }
+
+    function isInitialized() public view returns(bool) {
+        return initialized;
+    }
+
+    function initializeDebond() public onlyDebondOperator returns(bool) {
+        require(initialized == false, "Gov: Debond alraedy initialized");
+        require(dbitContract != address(0), "GovStorage: check DBIT address");
+        require(dgovContract != address(0), "GovStorage: check DGOV address");
+        require(bankContract != address(0), "GovStorage: check Bank address");
+        require(exchangeContract != address(0), "GovStorage: check Exchange address");
+        require(airdropContract != address(0), "GovStorage: check Airdrop address");
+        require(exchangeStorageContract != address(0), "GovStorage: check exchange storage address");
+
+        IDebondToken(
+            dbitContract
+        ).setExchangeAddress(exchangeContract);
+
+        IDebondToken(
+            dbitContract
+        ).setAirdropAddress(airdropContract);
+
+        IDebondToken(
+            dbitContract
+        ).setAirdropAddress(bankContract);
+
+        IDebondToken(
+            dgovContract
+        ).setExchangeAddress(exchangeContract);
+
+        IDebondToken(
+            dgovContract
+        ).setAirdropAddress(airdropContract);
+
+        IDebondToken(
+            dgovContract
+        ).setAirdropAddress(bankContract);
+
+        IExchangeStorage(
+            exchangeStorageContract
+        ).setExchangeAddress(exchangeContract);
+        
+        initialized = true;
         return true;
     }
 
@@ -211,6 +261,10 @@ contract GovStorage is IGovStorage {
 
     function getGovSettingContract() public view returns(address) {
         return govSettingsContract;
+    }
+
+    function getAirdropContract() public view returns(address) {
+        return airdropContract;
     }
 
     function getInterestForStakingDGOV() public view returns(uint256) {
