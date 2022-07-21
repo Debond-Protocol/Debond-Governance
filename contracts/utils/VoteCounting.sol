@@ -14,38 +14,34 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "../GovSharedStorage.sol";
+import "../interfaces/IGovStorage.sol";
+import "../interfaces/IVoteCounting.sol";
 
-contract VoteCounting is GovSharedStorage {
-    struct User {
-        bool hasVoted;
-        bool hasBeenRewarded;
-        uint256 weight;
-        uint256 votingDay;
-    }
-
-    struct ProposalVote {
-        uint256 forVotes;
-        uint256 againstVotes;
-        uint256 abstainVotes;
-        uint256 vetoApproval;
-        mapping(address => User) user;
-    }
-
-    enum VoteType {
-        For,
-        Against,
-        Abstain
-    }
-
-    address private thisContract;
-
+contract VoteCounting is IVoteCounting {
     mapping(uint128 => mapping(uint128 => ProposalVote)) internal _proposalVotes;
+    address public govStorageAddress;
+
+    modifier onlyGov {
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getGovernanceAddress(),
+            "Gov: Only Gouvernance"
+        );
+        _;
+    }
 
     /**
-    * @dev set the voteCounting contract address through governance
-    * @param _voteCountingAddress new voteCounting contract address
+    * @dev set the govStorage contract address
+    * @param _govStorageAddress govStorage contract address
     */
+    function setGovStorageAddress(address _govStorageAddress) public {
+        require(
+            msg.sender == IGovStorage(_govStorageAddress).getDebondTeamAddress() ||
+            msg.sender == IGovStorage(_govStorageAddress).getDebondOperator(),
+            "VoteCounting: permission denied"
+        );
+
+        govStorageAddress = _govStorageAddress;
+    }
 
     /**
     * @dev check if an account has voted for a proposal
@@ -123,6 +119,36 @@ contract VoteCounting is GovSharedStorage {
         );
     }
 
+    function setUserHasBeenRewarded(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public onlyGov {
+        require(
+            _proposalVotes[_class][_nonce].user[_account].hasVoted == true &&
+            _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded == false,
+            "VoteCounting: didn't vote or have been rewarded already"
+        );
+
+        _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded = true;
+    }
+
+    function hasBeenRewarded(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(bool) {
+        return _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded;
+    }
+
+    function getVoteWeight(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(uint256) {
+        return _proposalVotes[_class][_nonce].user[_account].weight;
+    }
+
     /**
     * @dev check if the quorum has been reached
     * @param _class proposal class
@@ -153,6 +179,23 @@ contract VoteCounting is GovSharedStorage {
         succeeded = proposalVote.forVotes > proposalVote.againstVotes;
     }
 
+    function setVotingDay(
+        uint128 _class,
+        uint128 _nonce,
+        address _voter,
+        uint256 _day
+    ) public onlyGov {
+        _proposalVotes[_class][_nonce].user[_voter].votingDay = _day;
+    }
+
+    function getVotingDay(
+        uint128 _class,
+        uint128 _nonce,
+        address _voter
+    ) public view returns(uint256) {
+        return _proposalVotes[_class][_nonce].user[_voter].votingDay;
+    }
+
     /**
     * @dev check if the veto approve or not
     * @param _class proposal class
@@ -169,6 +212,26 @@ contract VoteCounting is GovSharedStorage {
     }
 
     /**
+    * @dev set veto approval for a proposal
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    * @param _vetoApproval veto approval
+    */
+    function setVetoApproval(
+        uint128 _class,
+        uint128 _nonce,
+        uint256 _vetoApproval,
+        address _vetoOperator
+    ) public onlyGov {
+        require(
+            _vetoOperator == IGovStorage(govStorageAddress).getVetoOperator(),
+            "VoteCounting: permission denied"
+        );
+        
+        _proposalVotes[_class][_nonce].vetoApproval = _vetoApproval;
+    }
+
+    /**
     * @dev update the user vote when he votes
     * @param _class proposal class
     * @param _nonce proposal nonce
@@ -182,7 +245,7 @@ contract VoteCounting is GovSharedStorage {
         address _account,
         uint8 _vote,
         uint256 _weight
-    ) public {
+    ) public onlyGov {
         ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
         require(
@@ -212,10 +275,12 @@ contract VoteCounting is GovSharedStorage {
     function _quorum(
         uint128 _class,
         uint128 _nonce
-    ) internal view returns(uint256 proposalQuorum) {
+    ) internal view onlyGov returns(uint256 proposalQuorum) {
         ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
-        proposalQuorum =  proposalClassInfo[_class][1] * (
+        uint256 minApproval = IGovStorage(govStorageAddress).getProposalClassInfo(_class, 1);
+
+        proposalQuorum =  minApproval * (
             proposalVote.forVotes +
             proposalVote.againstVotes +
             proposalVote.abstainVotes

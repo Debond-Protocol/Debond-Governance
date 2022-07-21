@@ -15,20 +15,33 @@ pragma solidity ^0.8.0;
 */
 
 import "../interfaces/IGovSettings.sol";
+import "../interfaces/IGovStorage.sol";
 
 contract GovSettings is IGovSettings {
     uint256 private _votingDelay;
     uint256 private _votingPeriod;
+    address govStorageAddress;
 
     event votingDelaySet(uint256 oldDelay, uint256 newDelay);
     event votingPeriodSet(uint256 oldPeriod, uint256 newPeriod);
 
+    modifier onlyDebondExecutor {
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getDebondTeamAddress() ||
+            msg.sender == IGovStorage(govStorageAddress).getDebondOperator(),
+            "Gov: can't execute this task"
+        );
+        _;
+    }
+
     constructor(
         uint256 _initialVotingDelay,
-        uint256 _initialVotingPeriod
+        uint256 _initialVotingPeriod,
+        address _govStorageAddress
     ) {
         _votingDelay = _initialVotingDelay;
         _votingPeriod = _initialVotingPeriod;
+        govStorageAddress = _govStorageAddress;
     }
 
     function votingDelay() public view override returns(uint256) {
@@ -39,11 +52,11 @@ contract GovSettings is IGovSettings {
         return _votingPeriod;
     }
 
-    function setVotingDelay(uint256 _newDelay) public override {
+    function setVotingDelay(uint256 _newDelay) public onlyDebondExecutor override {
         _setVotingDelay(_newDelay);
     }
 
-    function setVotingPeriod(uint256 _newPeriod) public override {
+    function setVotingPeriod(uint256 _newPeriod) public onlyDebondExecutor override {
         _setVotingPeriod(_newPeriod);
     }
 

@@ -35,46 +35,37 @@ interface IExecutable {
 
     //Update benchmark intrest rate
     function updateBenchmarkInterestRate(
-        uint256 _newBenchmarkInterestRate
+        uint256 _newBenchmarkInterestRate,
+        address _executor
     ) external returns(bool);
 
     // change the community fund size
     function changeCommunityFundSize(
         uint256 _newDBITBudgetPPM,
-        uint256 _newDGOVBudgetPPM
+        uint256 _newDGOVBudgetPPM,
+        address _executor
     ) external returns(bool);
 
     // change the team allocation
     function changeTeamAllocation(
         address _to,
         uint256 _newDBITPPM,
-        uint256 _newDGOVPPM
+        uint256 _newDGOVPPM,
+        address _executor
     ) external returns(bool);
 
     // mint allocated tokens
     function mintAllocatedToken(
         address _to,
         uint256 _amountDBIT,
-        uint256 _amountDGOV
+        uint256 _amountDGOV,
+        address _executor
     ) external returns(bool);
 
-    // claim func for proposal
+    // claim fund for proposal
     function claimFundForProposal(
         address _to,
         uint256 _amountDBIT,
         uint256 _amountDGOV
     ) external returns(bool);
-
-    function getDBITAddress() external view returns(address);
-    function getDGOVAddress() external view returns(address);
-    function getBankAddress() external view returns(address);
-    function getExchangeAddress() external view returns(address);
-    function getGovernanceAddress() external view returns(address);
-    function getDebondTeamAddress() external view returns(address);
-    function getBenchmarkInterestRate() external view returns(uint256);
-    function getBudget() external view returns(uint256, uint256);
-    function getAllocationDistributed() external view returns(uint256, uint256);
-    function getAllocatedToken(address _account) external view returns(uint256, uint256);
-    function getAllocatedTokenMinted(address _account) external view returns(uint256, uint256);
-    function getTotalAllocationDistributed() external view returns(uint256, uint256);
 }
