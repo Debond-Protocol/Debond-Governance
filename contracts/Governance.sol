@@ -801,7 +801,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         uint256 _amountDBIT,
         uint256 _amountDGOV,
         address _executor
-    ) public returns(bool) {
+    ) public nonReentrant returns(bool) {
         IDebondToken(
             IGovStorage(govStorageAddress).getDBITAddress()
         ).mintAllocatedSupply(_to, _amountDBIT);
@@ -832,7 +832,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         address _to,
         uint256 _amountDBIT,
         uint256 _amountDGOV
-    ) public returns(bool) {
+    ) public nonReentrant returns(bool) {
         require(_proposalClass <= 2, "Gov: class not valid");
 
         IDebondToken(
