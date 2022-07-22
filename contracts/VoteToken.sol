@@ -28,12 +28,17 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     address stakingDGOV;
 
     modifier onlyGov {
-        require(msg.sender == govAddress, "Gov: not governance");
+        require(msg.sender == govAddress, "VoteToken: not governance");
         _;
     }
 
     modifier onlyDebondOperator {
-        require(msg.sender == debondOperator, "Gov: not governance");
+        require(msg.sender == debondOperator, "VoteToken: not governance");
+        _;
+    }
+
+    modifier onlyStakingContract {
+        require(msg.sender == stakingDGOV, "VoteToken: permission denied");
         _;
     }
 
@@ -81,7 +86,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         uint256 _amount,
         uint128 _class,
         uint128 _nonce
-    ) public override {
+    ) public onlyGov {
         require(
             _amount <= balanceOf(_owner),
             "VoteToken: not enough tokens"
@@ -108,7 +113,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         uint256 _amount,
         uint128 _class,
         uint128 _nonce
-    ) public override {
+    ) public onlyGov {
         require(
             _amount <= _lockedBalance[_owner][_class][_nonce],
             "VoteToken: not enough tokens locked"
@@ -123,7 +128,10 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @param _to adrress to send tokens to
     * @param _amount the amount to transfer
     */
-    function transfer(address _to, uint256 _amount) public override(ERC20, IVoteToken) returns (bool) {
+    function transfer(
+        address _to,
+        uint256 _amount
+    ) public override(ERC20, IVoteToken) returns (bool) {
         require(
             _to == govAddress || _to == stakingDGOV,
             "VoteToken: can't transfer vote tokens"
@@ -165,7 +173,10 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @param _user the user address
     * @param _amount the amount of tokens to mint
     */
-    function mintVoteToken(address _user, uint256 _amount) external override nonReentrant() {
+    function mintVoteToken(
+        address _user,
+        uint256 _amount
+    ) external override onlyStakingContract nonReentrant {
         _mint(_user, _amount);
         _availableBalance[_user] = balanceOf(_user);
     }
@@ -175,7 +186,10 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @param _user the user address
     * @param _amount the amount of tokens to burn
     */
-    function burnVoteToken(address _user, uint256 _amount) external override nonReentrant() {
+    function burnVoteToken(
+        address _user,
+        uint256 _amount
+    ) external override onlyStakingContract nonReentrant {
         _burn(_user, _amount);
         _availableBalance[_user] = balanceOf(_user);
     }
@@ -184,7 +198,9 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @dev set the governance contract address
     * @param _governance governance contract address
     */
-    function setGovernanceContract(address _governance) external override onlyDebondOperator {
+    function setGovernanceContract(
+        address _governance
+    ) external override onlyDebondOperator {
         govAddress = _governance;
     }
 
@@ -200,7 +216,9 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @dev set the stakingDGOV contract address
     * @param _stakingDGOV stakingDGOV contract address
     */
-    function setStakingDGOVContract(address _stakingDGOV) external override {
+    function setStakingDGOVContract(
+        address _stakingDGOV
+    ) external override onlyDebondOperator {
         stakingDGOV = _stakingDGOV;
     }
 

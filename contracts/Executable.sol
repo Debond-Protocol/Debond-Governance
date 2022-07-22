@@ -14,11 +14,23 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
+import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IGovStorage.sol";
+import "./interfaces/IGovSharedStorage.sol";
+import "./interfaces/IVoteCounting.sol";
 import "./interfaces/IExecutable.sol";
 
-contract Executable is IExecutable {
+contract Executable is IExecutable, IGovSharedStorage {
     address public govStorageAddress;
+    address public voteCountingAddress;
+
+    modifier onlyDebondOperator {
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getDebondOperator(),
+            "Executable: permission denied"
+        );
+        _;
+    }
 
     modifier onlyDebondExecutor(address _executor) {
         require(
@@ -29,13 +41,133 @@ contract Executable is IExecutable {
         _;
     }
 
-    constructor(address _govStorageAddress) {
+    constructor(
+        address _govStorageAddress,
+        address _voteCountingAddress
+    ) {
         govStorageAddress = _govStorageAddress;
+        voteCountingAddress = _voteCountingAddress;
     }
 
-    function setGovStorageAddress(address _newGovStorageAddress) public {
+    /**
+    * @dev execute a proposal
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    */
+    function executeProposal(
+        uint128 _class,
+        uint128 _nonce
+    ) public returns(bool) {
+        require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
+
+        Proposal memory proposal = IGovStorage(
+            govStorageAddress
+        ).getProposalStruct(_class, _nonce);
+        
+        require(
+            msg.sender == proposal.proposer,
+            "Gov: permission denied"
+        );
+        
+        ProposalStatus status = _getProposalStatus(
+            _class,
+            _nonce
+        );
+
+        require(
+            status == ProposalStatus.Succeeded,
+            "Gov: proposal not successful"
+        );
+        
+        IGovStorage(
+            govStorageAddress
+        ).setProposalStatus(_class, _nonce, ProposalStatus.Executed);
+
+        emit ProposalExecuted(_class, _nonce);
+
+        _execute(proposal.targets, proposal.values, proposal.calldatas);
+        
+        return true;
+    }
+
+    /**
+    * @dev internal execution mechanism
+    * @param _targets array of contract to interact with
+    * @param _values array contraining ethers to send (can be array of zeros)
+    * @param _calldatas array of encoded functions
+    */
+    function _execute(
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas
+    ) internal virtual {
+        string memory errorMessage = "Executable: execute proposal reverted";
+        
+        for (uint256 i = 0; i < _targets.length; i++) {
+            (
+                bool success,
+                bytes memory data
+            ) = _targets[i].call{value: _values[i]}(_calldatas[i]);
+
+            Address.verifyCallResult(success, data, errorMessage);
+        }
+    }
+
+    /**
+    * @dev return the proposal status
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    */
+    function _getProposalStatus(
+        uint128 _class,
+        uint128 _nonce
+    ) internal view returns(ProposalStatus unassigned) {
+        Proposal memory proposal = IGovStorage(govStorageAddress).getProposalStruct(_class, _nonce);
+        
+        if (proposal.status == ProposalStatus.Canceled) {
+            return ProposalStatus.Canceled;
+        }
+
+        if (proposal.status == ProposalStatus.Executed) {
+            return ProposalStatus.Executed;
+        }
+
+        if (block.timestamp <= proposal.startTime) {
+            return ProposalStatus.Pending;
+        }
+
+        if (block.timestamp <= proposal.endTime) {
+            return ProposalStatus.Active;
+        }
+
+        if (_class == 2) {
+            if (
+                IVoteCounting(voteCountingAddress).quorumReached(_class, _nonce) && 
+                IVoteCounting(voteCountingAddress).voteSucceeded(_class, _nonce)
+            ) {
+                return ProposalStatus.Succeeded;
+            } else {
+                return ProposalStatus.Defeated;
+            }
+        } else {
+            if (IVoteCounting(voteCountingAddress).vetoApproved(_class, _nonce)) {
+                return ProposalStatus.Succeeded;
+            } else {
+                return ProposalStatus.Defeated;
+            }
+        }
+    }
+
+    /**
+    * @dev set gov storage address
+    */
+    function setGovStorageAddress(address _newGovStorageAddress) public onlyDebondOperator {
         govStorageAddress = _newGovStorageAddress;
     }
+
+    /**********************************************************************************
+    *         Executable functions (executed only after a proposal has passed)
+    **********************************************************************************/
 
     /**
     * @dev update the governance contract
@@ -95,10 +227,13 @@ contract Executable is IExecutable {
     * @param _newDGOVBudgetPPM new DGOV budget for community
     */
     function changeCommunityFundSize(
+        uint128 _proposalClass,
         uint256 _newDBITBudgetPPM,
         uint256 _newDGOVBudgetPPM,
         address _executor
     ) public onlyDebondExecutor(_executor) returns(bool) {
+        require(_proposalClass < 1, "Gov: class not valid");
+
         IGovStorage(govStorageAddress).changeCommunityFundSize(_newDBITBudgetPPM, _newDGOVBudgetPPM, _executor);
 
         return true;
@@ -145,10 +280,13 @@ contract Executable is IExecutable {
     * @param _amountDGOV DGOV amount to transfer
     */
     function claimFundForProposal(
+        uint128 _proposalClass,
         address _to,
         uint256 _amountDBIT,
         uint256 _amountDGOV
     ) public returns(bool) {
+        require(_proposalClass <= 2, "Gov: class not valid");
+
         IGovStorage(govStorageAddress).claimFundForProposal(_to, _amountDBIT, _amountDGOV);
 
         return true;

@@ -29,17 +29,22 @@ contract VoteCounting is IVoteCounting {
         _;
     }
 
-    /**
-    * @dev set the govStorage contract address
-    * @param _govStorageAddress govStorage contract address
-    */
-    function setGovStorageAddress(address _govStorageAddress) public {
+    modifier onlyDebondExecutor(address _govStorageAddress) {
         require(
             msg.sender == IGovStorage(_govStorageAddress).getDebondTeamAddress() ||
             msg.sender == IGovStorage(_govStorageAddress).getDebondOperator(),
             "VoteCounting: permission denied"
         );
+        _;
+    }
 
+    /**
+    * @dev set the govStorage contract address
+    * @param _govStorageAddress govStorage contract address
+    */
+    function setGovStorageAddress(
+        address _govStorageAddress
+    ) public onlyDebondExecutor(_govStorageAddress) {
         govStorageAddress = _govStorageAddress;
     }
 
@@ -89,7 +94,7 @@ contract VoteCounting is IVoteCounting {
 
         (forVotes, againstVotes, abstainVotes) = 
         (
-            _proposalVotes[_class][_nonce].forVotes,
+            proposalVote.forVotes,
             proposalVote.againstVotes,
             proposalVote.abstainVotes
         );
@@ -275,7 +280,7 @@ contract VoteCounting is IVoteCounting {
     function _quorum(
         uint128 _class,
         uint128 _nonce
-    ) internal view onlyGov returns(uint256 proposalQuorum) {
+    ) internal view returns(uint256 proposalQuorum) {
         ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
         uint256 minApproval = IGovStorage(govStorageAddress).getProposalClassInfo(_class, 1);

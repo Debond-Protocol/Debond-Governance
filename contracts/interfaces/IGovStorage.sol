@@ -54,6 +54,16 @@ interface IGovStorage is IGovSharedStorage {
         bytes32
     );
 
+    function getProposalInfoForExecutable(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(
+        address,
+        address[] memory,
+        uint256[] memory,
+        bytes[] memory
+    );
+
     function getNumberOfVotingDays(
         uint128 _class
     ) external view returns(uint256);

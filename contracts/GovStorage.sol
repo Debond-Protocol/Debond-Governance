@@ -101,7 +101,15 @@ contract GovStorage is IGovStorage {
         _;
     }
 
-    modifier onlyGovOrExec {
+    modifier onlyExec {
+        require(
+            msg.sender == getExecutableContract(),
+            "GovStorage: Only Exec"
+        );
+        _;
+    }
+
+    modifier onlyGovOrExec() {
         require(
             msg.sender == getGovernanceAddress() ||
             msg.sender == getExecutableContract()
@@ -400,6 +408,25 @@ contract GovStorage is IGovStorage {
         );
     }
 
+    function getProposalInfoForExecutable(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(
+        address,
+        address[] memory,
+        uint256[] memory,
+        bytes[] memory
+    ) {
+        Proposal memory _proposal = proposal[_class][_nonce];
+
+        return (
+            _proposal.proposer,
+            _proposal.targets,
+            _proposal.values,
+            _proposal.calldatas
+        );
+    }
+
     function getNumberOfVotingDays(
         uint128 _class
     ) public view returns(uint256) {
@@ -455,7 +482,7 @@ contract GovStorage is IGovStorage {
         uint128 _class,
         uint128 _nonce,
         ProposalStatus _status
-    ) public onlyGov {
+    ) public onlyGovOrExec {
         proposal[_class][_nonce].status = _status;
     }
 
@@ -491,7 +518,7 @@ contract GovStorage is IGovStorage {
     function updateGovernanceContract(
         address _newGovernanceAddress,
         address _executor
-    ) public onlyGovOrExec returns(bool) {
+    ) public onlyExec returns(bool) {
         require(_executor != address(0));
         governance = _newGovernanceAddress;
 
@@ -501,7 +528,7 @@ contract GovStorage is IGovStorage {
     function updateExchangeContract(
         address _newExchangeAddress,
         address _executor
-    ) public onlyGovOrExec returns(bool) {
+    ) public onlyExec returns(bool) {
         require(_executor != address(0));
         exchangeContract = _newExchangeAddress;
 
@@ -511,7 +538,7 @@ contract GovStorage is IGovStorage {
     function updateBankContract(
         address _newBankAddress,
         address _executor
-    ) public onlyGovOrExec returns(bool) {
+    ) public onlyExec returns(bool) {
         require(_executor != address(0));
         bankContract = _newBankAddress;
 
@@ -521,7 +548,7 @@ contract GovStorage is IGovStorage {
     function updateBenchmarkIR(
         uint256 _newBenchmarkInterestRate,
         address _executor
-    ) public onlyGovOrExec returns(bool) {
+    ) public onlyExec returns(bool) {
         require(_executor != address(0));
         benchmarkInterestRate = _newBenchmarkInterestRate;
 
@@ -532,7 +559,7 @@ contract GovStorage is IGovStorage {
         uint256 _newDBITBudgetPPM,
         uint256 _newDGOVBudgetPPM,
         address _executor
-    ) public onlyGovOrExec returns(bool) {
+    ) public onlyExec returns(bool) {
         require(_executor != address(0));
         dbitBudgetPPM = _newDBITBudgetPPM;
         dgovBudgetPPM = _newDGOVBudgetPPM;
@@ -545,7 +572,7 @@ contract GovStorage is IGovStorage {
         uint256 _newDBITPPM,
         uint256 _newDGOVPPM,
         address _executor
-    ) public onlyGovOrExec returns(bool) {
+    ) public onlyExec returns(bool) {
         require(_executor != address(0));
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
         uint256 dbitAllocDistributedPPM = dbitAllocationDistibutedPPM;
@@ -575,7 +602,7 @@ contract GovStorage is IGovStorage {
         uint256 _amountDBIT,
         uint256 _amountDGOV,
         address _executor
-    ) public onlyGovOrExec returns(bool) {
+    ) public onlyExec returns(bool) {
         require(_executor != address(0));
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
         
@@ -606,7 +633,7 @@ contract GovStorage is IGovStorage {
         address _to,
         uint256 _amountDBIT,
         uint256 _amountDGOV
-    ) public onlyGovOrExec returns(bool) {
+    ) public onlyExec returns(bool) {
         uint256 _dbitTotalSupply = IDebondToken(dbitContract).totalSupply();
         uint256 _dgovTotalSupply = IDebondToken(dgovContract).totalSupply();
 

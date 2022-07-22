@@ -56,8 +56,8 @@ contract("Governance", async (accounts) => {
         gov = await Governance.new(storage.address, count.address);
         dbit = await DBIT.new(gov.address, operator, operator, operator);
         dgov = await DGOV.new(gov.address, operator, operator, operator);
-        exec = await Executable.new(storage.address);
-        stak = await StakingDGOV.new(dgov.address, vote.address);
+        exec = await Executable.new(storage.address, count.address);
+        stak = await StakingDGOV.new(dgov.address, vote.address, gov.address);
 
         await count.setGovStorageAddress(storage.address, {from: operator});
 
@@ -184,7 +184,7 @@ contract("Governance", async (accounts) => {
     it("Create a proposal", async () => {
         let _class = 0;
         let desc = "Propsal-1: Update the benchMark interest rate";
-        let callData = await gov.contract.methods.updateBenchmarkInterestRate(
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             '10',
             operator
         ).encodeABI();
@@ -230,14 +230,14 @@ contract("Governance", async (accounts) => {
         // create a proposal
         let _class = 0;
         let desc = "Propsal-1: Update the benchMark interest rate";
-        let callData = await gov.contract.methods.updateBenchmarkInterestRate(
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             '10',
             operator
         ).encodeABI();
 
         let res = await gov.createProposal(
             _class,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             desc,
@@ -260,7 +260,7 @@ contract("Governance", async (accounts) => {
         let benchmarkBefore = await storage.getBenchmarkIR();
 
         // Execute the proposal
-        await gov.executeProposal(
+        await exec.executeProposal(
             event.class,
             event.nonce,
             { from: operator }
@@ -285,7 +285,7 @@ contract("Governance", async (accounts) => {
         // create a proposal
         let _class = 0;
         let desc = "Propsal-1: Update the budget part per million";
-        let callData = await gov.contract.methods.changeCommunityFundSize(
+        let callData = await exec.contract.methods.changeCommunityFundSize(
             _class,
             newDBITBudget,
             newDGOVBudget,
@@ -294,7 +294,7 @@ contract("Governance", async (accounts) => {
 
         let res = await gov.createProposal(
             _class,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             desc,
@@ -319,7 +319,7 @@ contract("Governance", async (accounts) => {
         expect(budget[0].toString()).to.equal(oldBudget.toString());
         expect(budget[1].toString()).to.equal(oldBudget.toString());
 
-        await gov.executeProposal(
+        await exec.executeProposal(
             event.class,
             event.nonce,
             { from: operator }
@@ -338,7 +338,7 @@ contract("Governance", async (accounts) => {
         // create a proposal
         let _class = 0;
         let desc = "Propsal-1: Change the team allocation token amount";
-        let callData = await gov.contract.methods.mintAllocatedToken(
+        let callData = await exec.contract.methods.mintAllocatedToken(
             debondTeam,
             amountDBIT,
             amountDGOV,
@@ -347,7 +347,7 @@ contract("Governance", async (accounts) => {
 
         let res = await gov.createProposal(
             _class,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             desc,
@@ -369,7 +369,7 @@ contract("Governance", async (accounts) => {
         let allocMintedBefore = await storage.getAllocatedTokenMinted(debondTeam);
         let totaAllocDistBefore = await storage.getTotalAllocationDistributed();
 
-        await gov.executeProposal(
+        await exec.executeProposal(
             event.class,
             event.nonce,
             {from: operator}
@@ -391,7 +391,7 @@ contract("Governance", async (accounts) => {
         // create a proposal
         let _class = 0;
         let desc = "Propsal-1: Claim Funds for a proposal";
-        let callData = await gov.contract.methods.claimFundForProposal(
+        let callData = await exec.contract.methods.claimFundForProposal(
             _class,
             debondTeam,
             amountDBIT,
@@ -400,7 +400,7 @@ contract("Governance", async (accounts) => {
 
         let res = await gov.createProposal(
             _class,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             desc,
@@ -422,7 +422,7 @@ contract("Governance", async (accounts) => {
         let allocMintedBefore = await storage.getAllocatedTokenMinted(debondTeam);
         let totaAllocDistBefore = await storage.getTotalAllocationDistributed();
 
-        await gov.executeProposal(
+        await exec.executeProposal(
             event.class,
             event.nonce,
             {from: operator}
@@ -441,14 +441,14 @@ contract("Governance", async (accounts) => {
         // create a proposal
         let _class = 2;
         let desc = "Propsal-1: Update the benchMark interest rate";
-        let callData = await gov.contract.methods.updateBenchmarkInterestRate(
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             '10',
             operator
         ).encodeABI();
 
         let res = await gov.createProposal(
             _class,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             desc,
@@ -466,7 +466,7 @@ contract("Governance", async (accounts) => {
         await wait(18000);
 
         expect(
-            gov.executeProposal(
+            exec.executeProposal(
                 event.class,
                 event.nonce,
                 {from: operator}
@@ -481,14 +481,14 @@ contract("Governance", async (accounts) => {
         // create a proposal
         let _class = 0;
         let desc = "Propsal-1: Update the benchMark interest rate";
-        let callData = await gov.contract.methods.updateBenchmarkInterestRate(
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             '10',
             operator
         ).encodeABI();
 
         let res = await gov.createProposal(
             _class,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             desc,
@@ -517,14 +517,14 @@ contract("Governance", async (accounts) => {
     it('check proposal of class 2 passes', async () => {
         let _class = 2;
         let desc = "Propsal-1: Update the benchMark interest rate";
-        let callData = await gov.contract.methods.updateBenchmarkInterestRate(
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             '10',
             operator
         ).encodeABI();
 
         let res = await gov.createProposal(
             _class,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             desc,
@@ -544,7 +544,7 @@ contract("Governance", async (accounts) => {
         let benchmarkBefore = await storage.getBenchmarkIR();
 
         // Execute the proposal
-        await gov.executeProposal(
+        await exec.executeProposal(
             event.class,
             event.nonce,
             { from: operator }
@@ -566,14 +566,14 @@ contract("Governance", async (accounts) => {
     it('Check DBIT earned by voting', async () => {
         let _class = 2;
         let desc = "Propsal-1: Update the benchMark interest rate";
-        let callData = await gov.contract.methods.updateBenchmarkInterestRate(
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             '10',
             operator
         ).encodeABI();
 
         let res = await gov.createProposal(
             _class,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             desc,

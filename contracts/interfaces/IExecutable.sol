@@ -41,6 +41,7 @@ interface IExecutable {
 
     // change the community fund size
     function changeCommunityFundSize(
+        uint128 _proposalClass,
         uint256 _newDBITBudgetPPM,
         uint256 _newDGOVBudgetPPM,
         address _executor
@@ -64,6 +65,7 @@ interface IExecutable {
 
     // claim fund for proposal
     function claimFundForProposal(
+        uint128 _proposalClass,
         address _to,
         uint256 _amountDBIT,
         uint256 _amountDGOV

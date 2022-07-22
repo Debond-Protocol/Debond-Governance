@@ -39,16 +39,24 @@ contract StakingDGOV is IStaking {
 
     address public dGov;
     address public voteToken;
+    address public governance;
+
+    modifier onlyGov() {
+        require(msg.sender == governance, "StakingDGOV: only governance");
+        _;
+    }
     
     IERC20 IdGov;
     IVoteToken Ivote;
 
     constructor (
         address _dgovToken,
-        address _voteToken
+        address _voteToken,
+        address _governance
     ) {
         dGov = _dgovToken;
         voteToken = _voteToken;
+        governance = _governance;
         IdGov = IERC20(_dgovToken);
         Ivote = IVoteToken(_voteToken);
     }
@@ -63,7 +71,7 @@ contract StakingDGOV is IStaking {
         address _staker,
         uint256 _amount,
         uint256 _duration
-    ) external override {
+    ) external override onlyGov {
         uint256 stakerBalance = IdGov.balanceOf(_staker);
         require(_amount <= stakerBalance, "Debond: not enough dGov");
 
@@ -88,7 +96,7 @@ contract StakingDGOV is IStaking {
     function unstakeDgovToken(
         address _staker,
         uint256 _stakingCounter
-    ) external override returns(uint256 unstakedAmount) {
+    ) external override onlyGov returns(uint256 unstakedAmount) {
         StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
 
         require(
