@@ -468,6 +468,8 @@ contract GovStorage is IGovStorage {
         bytes[] memory _calldatas,
         string memory _description
     ) public onlyGov {
+        require(_proposer != address(0), "GovStorage: zero address");
+
         proposal[_class][_nonce].startTime = _startTime;
         proposal[_class][_nonce].endTime = _endTime;
         proposal[_class][_nonce].proposer = _proposer;
@@ -519,7 +521,9 @@ contract GovStorage is IGovStorage {
         address _newGovernanceAddress,
         address _executor
     ) public onlyExec returns(bool) {
-        require(_executor != address(0));
+        require(_newGovernanceAddress != address(0), "GovStorage: zero address");
+        require(_executor != address(0), "GovStorage: zero address");
+
         governance = _newGovernanceAddress;
 
         return true;
@@ -529,7 +533,9 @@ contract GovStorage is IGovStorage {
         address _newExchangeAddress,
         address _executor
     ) public onlyExec returns(bool) {
-        require(_executor != address(0));
+        require(_newExchangeAddress != address(0), "GovStorage: zero address");
+        require(_executor != address(0), "GovStorage: zero address");
+
         exchangeContract = _newExchangeAddress;
 
         return true;
@@ -539,7 +545,9 @@ contract GovStorage is IGovStorage {
         address _newBankAddress,
         address _executor
     ) public onlyExec returns(bool) {
-        require(_executor != address(0));
+        require(_newBankAddress != address(0), "GovStorage: zero address");
+        require(_executor != address(0), "GovStorage: zero address");
+        
         bankContract = _newBankAddress;
 
         return true;
@@ -549,7 +557,8 @@ contract GovStorage is IGovStorage {
         uint256 _newBenchmarkInterestRate,
         address _executor
     ) public onlyExec returns(bool) {
-        require(_executor != address(0));
+        require(_executor != address(0), "GovStorage: zero address");
+
         benchmarkInterestRate = _newBenchmarkInterestRate;
 
         return true;
@@ -560,7 +569,8 @@ contract GovStorage is IGovStorage {
         uint256 _newDGOVBudgetPPM,
         address _executor
     ) public onlyExec returns(bool) {
-        require(_executor != address(0));
+        require(_executor != address(0), "GovStorage: zero address");
+
         dbitBudgetPPM = _newDBITBudgetPPM;
         dgovBudgetPPM = _newDGOVBudgetPPM;
 
@@ -573,7 +583,9 @@ contract GovStorage is IGovStorage {
         uint256 _newDGOVPPM,
         address _executor
     ) public onlyExec returns(bool) {
-        require(_executor != address(0));
+        require(_to != address(0), "Gov: zero address");
+        require(_executor != address(0), "GovStorage: zero address");
+
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
         uint256 dbitAllocDistributedPPM = dbitAllocationDistibutedPPM;
         uint256 dgovAllocDistributedPPM = dgovAllocationDistibutedPPM;
@@ -603,7 +615,9 @@ contract GovStorage is IGovStorage {
         uint256 _amountDGOV,
         address _executor
     ) public onlyExec returns(bool) {
-        require(_executor != address(0));
+        require(_to != address(0), "Gov: zero address");
+        require(_executor != address(0), "GovStorage: zero address");
+
         AllocatedToken memory _allocatedToken = allocatedToken[_to];
         
         uint256 _dbitCollaterizedSupply = IDebondToken(dbitContract).getTotalCollateralisedSupply();
@@ -634,6 +648,8 @@ contract GovStorage is IGovStorage {
         uint256 _amountDBIT,
         uint256 _amountDGOV
     ) public onlyExec returns(bool) {
+        require(_to != address(0), "Gov: zero address");
+
         uint256 _dbitTotalSupply = IDebondToken(dbitContract).totalSupply();
         uint256 _dgovTotalSupply = IDebondToken(dgovContract).totalSupply();
 

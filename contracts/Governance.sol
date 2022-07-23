@@ -189,6 +189,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         uint256 _stakingCounter
     ) public {
         address voter = _msgSender();
+        require(voter != address(0), "Governance: zero address");
 
         require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
 
@@ -241,10 +242,13 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
             "Gov: vote not active"
         );
 
+        address vetoAddress = _msgSender();
+        require(vetoAddress != address(0), "Gov: zero address");
+
         if (_approval == true) {
-            IVoteCounting(voteCountingAddress).setVetoApproval(_class, _nonce, 1, msg.sender);
+            IVoteCounting(voteCountingAddress).setVetoApproval(_class, _nonce, 1, vetoAddress);
         } else {
-            IVoteCounting(voteCountingAddress).setVetoApproval(_class, _nonce, 2, msg.sender);
+            IVoteCounting(voteCountingAddress).setVetoApproval(_class, _nonce, 2, vetoAddress);
         }
     }
 
@@ -257,7 +261,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     function stakeDGOV(
         uint256 _amount,
         uint256 _duration
-    ) public returns(bool staked) {
+    ) public nonReentrant returns(bool staked) {
         address staker = _msgSender();
 
         IStaking(
@@ -276,6 +280,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         uint256 _stakingCounter
     ) public returns(bool unstaked) {
         address staker = _msgSender();
+        require(staker != address(0), "Gov: zero address");
 
         uint256 amountStaked = IStaking(
             IGovStorage(govStorageAddress).getStakingContract()
@@ -646,6 +651,8 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         uint256 newSupply,
         address _tokenAddress
     ) public onlyDebondOperator onlyDBITorDGOV(_tokenAddress) returns (bool) {
+        require(_tokenAddress != address(0), "Gov: zero address");
+
         IDebondToken(_tokenAddress).setMaxAirdropSupply(newSupply);
 
         return true;
@@ -660,6 +667,8 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         uint256 newPercentage,
         address _tokenAddress
     ) public onlyDebondOperator onlyDBITorDGOV(_tokenAddress) returns (bool) {
+        require(_tokenAddress != address(0), "Gov: zero address");
+
         IDebondToken(_tokenAddress).setMaxAllocationPercentage(newPercentage);
 
         return true;
@@ -675,6 +684,11 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         address _bankAddress,
         address _tokenAddress
     ) public onlyDebondOperator onlyDBITorDGOV(_tokenAddress) returns(bool) {
+        require(
+            _bankAddress != address(0) && _tokenAddress != address(0),
+            "Gov: zero address"
+        );
+
         IDebondToken(_tokenAddress).setBankAddress(_bankAddress);
 
         return true;
@@ -690,6 +704,11 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         address _airdropAddress,
         address _tokenAddress
     ) public onlyDebondOperator onlyDBITorDGOV(_tokenAddress) returns(bool) {
+        require(
+            _airdropAddress != address(0) && _tokenAddress != address(0),
+            "Gov: zero address"
+        );
+
         IDebondToken(_tokenAddress).setAirdropAddress(_airdropAddress);
 
         return true;
@@ -705,6 +724,11 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         address _exchangeAddress,
         address _tokenAddress
     ) public onlyDebondOperator onlyDBITorDGOV(_tokenAddress) returns(bool) {
+        require(
+            _exchangeAddress != address(0) && _tokenAddress != address(0),
+            "Gov: zero address"
+        );
+
         IDebondToken(_tokenAddress).setExchangeAddress(_exchangeAddress);
 
         return true;
@@ -717,6 +741,8 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     function setExchangeNewAddress(
         address _exchangeAddress
     ) public onlyDebondOperator returns(bool) {
+        require(_exchangeAddress != address(0), "Gov: zero address");
+
         IExchangeStorage(
             IGovStorage(govStorageAddress).getExchangeStorageAddress()
         ).setExchangeAddress(_exchangeAddress);

@@ -14,11 +14,12 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IVoteToken.sol";
 import "./interfaces/IStaking.sol";
 
-contract StakingDGOV is IStaking {
+contract StakingDGOV is IStaking, ReentrancyGuard {
     /**
     * @dev structure that stores information on stacked dGoV
     */
@@ -72,6 +73,8 @@ contract StakingDGOV is IStaking {
         uint256 _amount,
         uint256 _duration
     ) external override onlyGov {
+        require(_staker != address(0), "StakingDGOV: zero address");
+
         uint256 stakerBalance = IdGov.balanceOf(_staker);
         require(_amount <= stakerBalance, "Debond: not enough dGov");
 
@@ -96,7 +99,7 @@ contract StakingDGOV is IStaking {
     function unstakeDgovToken(
         address _staker,
         uint256 _stakingCounter
-    ) external override onlyGov returns(uint256 unstakedAmount) {
+    ) external override onlyGov nonReentrant returns(uint256 unstakedAmount) {
         StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
 
         require(

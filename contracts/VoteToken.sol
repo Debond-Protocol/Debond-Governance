@@ -87,11 +87,12 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         uint128 _class,
         uint128 _nonce
     ) public onlyGov {
+        require(_owner != address(0), "VoteToken: zero address");
+        require(_spender != address(0), "VoteToken: zero address");
         require(
             _amount <= balanceOf(_owner),
             "VoteToken: not enough tokens"
         );
-
         require(
             allowance(_owner, _spender) <= _amount,
             "VoteToken: insufficient allowance"
@@ -114,6 +115,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         uint128 _class,
         uint128 _nonce
     ) public onlyGov {
+        require(_owner != address(0), "VoteToken: zero address");
         require(
             _amount <= _lockedBalance[_owner][_class][_nonce],
             "VoteToken: not enough tokens locked"
@@ -201,6 +203,8 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     function setGovernanceContract(
         address _governance
     ) external override onlyDebondOperator {
+        require(_governance != address(0), "VoteToken: zero address");
+
         govAddress = _governance;
     }
 
@@ -219,6 +223,8 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     function setStakingDGOVContract(
         address _stakingDGOV
     ) external override onlyDebondOperator {
+        require(_stakingDGOV != address(0), "VoteToken: zero address");
+
         stakingDGOV = _stakingDGOV;
     }
 

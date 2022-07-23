@@ -27,22 +27,31 @@ abstract contract Pausable is Ownable {
     address DGOVAddress;
 
     function setBankAddress(address _bankAddress) external onlyOwner {
+        require(_bankAddress != address(0), "Pausable: zero address");
+
         bankAddress = _bankAddress;
     }
 
     function setExchangeAddress(address _exchangeAddress) external onlyOwner {
+        require(_exchangeAddress != address(0), "Pausable: zero address");
+
         exchangeAddress = _exchangeAddress;
     }
 
     function setDebondBondAddress(address _debondBondAddress) external onlyOwner {
+        require(_debondBondAddress != address(0), "Pausable: zero address");
+
         debondBondAddress = _debondBondAddress;
     }
 
     function setDBITAddress(address _DBITAddress) external onlyOwner {
+        require(_DBITAddress != address(0), "Pausable: zero address");
         DBITAddress = _DBITAddress;
     }
 
     function setDGOVAddress(address _DGOVAddress) external onlyOwner {
+        require(_DGOVAddress != address(0), "Pausable: zero address");
+
         DGOVAddress = _DGOVAddress;
     }
 
@@ -53,6 +62,12 @@ abstract contract Pausable is Ownable {
         address _DBITAddress,
         address _DGOVAddress
     ) external onlyOwner {
+        require(_bankAddress != address(0), "Pausable: zero address");
+        require(_exchangeAddress != address(0), "Pausable: zero address");
+        require(_debondBondAddress != address(0), "Pausable: zero address");
+        require(_DBITAddress != address(0), "Pausable: zero address");
+        require(_DGOVAddress != address(0), "Pausable: zero address");
+
         bankAddress = _bankAddress;
         exchangeAddress = _exchangeAddress;
         debondBondAddress = _debondBondAddress;

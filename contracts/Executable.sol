@@ -161,7 +161,13 @@ contract Executable is IExecutable, IGovSharedStorage {
     /**
     * @dev set gov storage address
     */
-    function setGovStorageAddress(address _newGovStorageAddress) public onlyDebondOperator {
+    function setGovStorageAddress(
+        address _newGovStorageAddress
+    ) public onlyDebondOperator {
+        require(
+            _newGovStorageAddress != address(0), "Executable: zero address"
+        );
+
         govStorageAddress = _newGovStorageAddress;
     }
 
@@ -177,6 +183,10 @@ contract Executable is IExecutable, IGovSharedStorage {
         address _newGovernanceAddress,
         address _executor
     ) public onlyDebondExecutor(_executor) returns(bool) {
+        require(
+            _newGovernanceAddress != address(0), "Executable: zero address"
+        );
+
         IGovStorage(govStorageAddress).updateGovernanceContract(_newGovernanceAddress, _executor);
 
         return true;
@@ -190,6 +200,10 @@ contract Executable is IExecutable, IGovSharedStorage {
         address _newExchangeAddress,
         address _executor
     ) public onlyDebondExecutor(_executor) returns(bool) {
+        require(
+            _newExchangeAddress != address(0), "Executable: zero address"
+        );
+
         IGovStorage(govStorageAddress).updateExchangeContract(_newExchangeAddress, _executor);
 
         return true;
@@ -203,6 +217,10 @@ contract Executable is IExecutable, IGovSharedStorage {
         address _newBankAddress,
         address _executor
     ) public onlyDebondExecutor(_executor) returns(bool) {
+        require(
+            _newBankAddress != address(0), "Executable: zero address"
+        );
+
         IGovStorage(govStorageAddress).updateBankContract(_newBankAddress, _executor);
 
         return true;
@@ -232,7 +250,7 @@ contract Executable is IExecutable, IGovSharedStorage {
         uint256 _newDGOVBudgetPPM,
         address _executor
     ) public onlyDebondExecutor(_executor) returns(bool) {
-        require(_proposalClass < 1, "Gov: class not valid");
+        require(_proposalClass < 1, "Executable: class not valid");
 
         IGovStorage(govStorageAddress).changeCommunityFundSize(_newDBITBudgetPPM, _newDGOVBudgetPPM, _executor);
 
@@ -251,6 +269,8 @@ contract Executable is IExecutable, IGovSharedStorage {
         uint256 _newDGOVPPM,
         address _executor
     ) public onlyDebondExecutor(_executor) returns(bool) {
+        require(_to != address(0), "Executable: zero address");
+
         IGovStorage(govStorageAddress).changeTeamAllocation(_to, _newDBITPPM, _newDGOVPPM, _executor);
 
         return true;
@@ -268,6 +288,8 @@ contract Executable is IExecutable, IGovSharedStorage {
         uint256 _amountDGOV,
         address _executor
     ) public onlyDebondExecutor(_executor) returns(bool) {
+        require(_to != address(0), "Executable: zero address");
+
         IGovStorage(govStorageAddress).mintAllocatedToken(_to, _amountDBIT, _amountDGOV, _executor);
 
         return true;
@@ -286,6 +308,7 @@ contract Executable is IExecutable, IGovSharedStorage {
         uint256 _amountDGOV
     ) public returns(bool) {
         require(_proposalClass <= 2, "Gov: class not valid");
+        require(_to != address(0), "Executable: zero address");
 
         IGovStorage(govStorageAddress).claimFundForProposal(_to, _amountDBIT, _amountDGOV);
 

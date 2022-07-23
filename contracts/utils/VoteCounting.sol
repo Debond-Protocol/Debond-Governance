@@ -45,6 +45,8 @@ contract VoteCounting is IVoteCounting {
     function setGovStorageAddress(
         address _govStorageAddress
     ) public onlyDebondExecutor(_govStorageAddress) {
+        require(_govStorageAddress != address(0), "VoteCounting: zero address");
+
         govStorageAddress = _govStorageAddress;
     }
 
@@ -129,6 +131,7 @@ contract VoteCounting is IVoteCounting {
         uint128 _nonce,
         address _account
     ) public onlyGov {
+        require(_account != address(0), "VoteCounting: zero address");
         require(
             _proposalVotes[_class][_nonce].user[_account].hasVoted == true &&
             _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded == false,
@@ -190,6 +193,8 @@ contract VoteCounting is IVoteCounting {
         address _voter,
         uint256 _day
     ) public onlyGov {
+        require(_voter != address(0), "VoteCounting: zero address");
+
         _proposalVotes[_class][_nonce].user[_voter].votingDay = _day;
     }
 
@@ -228,6 +233,7 @@ contract VoteCounting is IVoteCounting {
         uint256 _vetoApproval,
         address _vetoOperator
     ) public onlyGov {
+        require(_vetoOperator != address(0), "VoteCounting: zero address");
         require(
             _vetoOperator == IGovStorage(govStorageAddress).getVetoOperator(),
             "VoteCounting: permission denied"
@@ -251,8 +257,9 @@ contract VoteCounting is IVoteCounting {
         uint8 _vote,
         uint256 _weight
     ) public onlyGov {
-        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+        require(_account != address(0), "VoteCounting: zero address");
 
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
         require(
             !proposalVote.user[_account].hasVoted,
             "VoteCounting: already voted"
