@@ -59,6 +59,14 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         _;
     }
 
+    modifier onlyVetoOperator {
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getVetoOperator(),
+            "Gov: Only veto operator"
+        );
+        _;
+    }
+
     /**
     * @dev governance constructor
     */
@@ -190,7 +198,6 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     ) public {
         address voter = _msgSender();
         require(voter != address(0), "Governance: zero address");
-
         require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
 
         uint256 _dgovStaked = IStaking(
@@ -235,15 +242,13 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         uint128 _class,
         uint128 _nonce,
         bool _approval
-    ) public {
+    ) public onlyVetoOperator {
+        address vetoAddress = _msgSender();
         require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
         require(
             getProposalStatus(_class, _nonce) == ProposalStatus.Active,
             "Gov: vote not active"
         );
-
-        address vetoAddress = _msgSender();
-        require(vetoAddress != address(0), "Gov: zero address");
 
         if (_approval == true) {
             IVoteCounting(voteCountingAddress).setVetoApproval(_class, _nonce, 1, vetoAddress);
