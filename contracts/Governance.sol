@@ -338,6 +338,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         uint256 _amount = IVoteToken(
             IGovStorage(govStorageAddress).getVoteTokenContract()
         ).lockedBalanceOf(tokenOwner, _class, _nonce);
+
         _unlockVoteTokens(_class, _nonce, tokenOwner, _amount);
 
         // transfer the rewards earned for this vote
@@ -356,7 +357,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         address _tokenOwner
     ) internal {
         require(
-            IVoteCounting(voteCountingAddress).hasBeenRewarded(_class, _nonce, _tokenOwner) == false,
+            !IVoteCounting(voteCountingAddress).hasBeenRewarded(_class, _nonce, _tokenOwner),
             "Gov: already rewarded"
         );
         IVoteCounting(voteCountingAddress).setUserHasBeenRewarded(_class, _nonce, _tokenOwner);
@@ -368,7 +369,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         }
 
         _reward = _reward * IVoteCounting(voteCountingAddress).getVoteWeight(_class, _nonce, _tokenOwner) * 
-        IGovStorage(govStorageAddress).getNumberOfDBITDistributedPerDay(_class) / 1 ether;
+                  IGovStorage(govStorageAddress).getNumberOfDBITDistributedPerDay(_class) / 1 ether;
 
         IERC20(
             IGovStorage(govStorageAddress).getDBITAddress()
@@ -523,7 +524,10 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     * @dev change the proposal proposal threshold
     * @param _newThreshold new proposal threshold
     */
-    function setProposalThreshold(uint256 _newThreshold, address _executor) public {
+    function setProposalThreshold(
+        uint256 _newThreshold,
+        address _executor
+    ) public onlyDebondOperator {
         IGovStorage(govStorageAddress).setThreshold(_newThreshold, _executor);
     }
 
