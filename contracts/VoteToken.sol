@@ -26,6 +26,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     address debondOperator;
     address govAddress;
     address stakingDGOV;
+    address proposalLogic;
 
     modifier onlyGov {
         require(msg.sender == govAddress, "VoteToken: not governance");
@@ -39,6 +40,11 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
 
     modifier onlyStakingContract {
         require(msg.sender == stakingDGOV, "VoteToken: permission denied");
+        _;
+    }
+
+    modifier onlyProposalLogic {
+        require(msg.sender == proposalLogic, "VoteToken: permission denied");
         _;
     }
 
@@ -86,7 +92,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         uint256 _amount,
         uint128 _class,
         uint128 _nonce
-    ) public onlyGov {
+    ) public onlyProposalLogic {
         require(_owner != address(0), "VoteToken: zero address");
         require(_spender != address(0), "VoteToken: zero address");
         require(
@@ -114,7 +120,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         uint256 _amount,
         uint128 _class,
         uint128 _nonce
-    ) public onlyGov {
+    ) public onlyProposalLogic {
         require(_owner != address(0), "VoteToken: zero address");
         require(
             _amount <= _lockedBalance[_owner][_class][_nonce],
@@ -234,5 +240,15 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     */
     function getStakingDGOVContract() external view returns(address _stakingDGOV) {
         _stakingDGOV = stakingDGOV;
+    }
+
+    /**
+    * @dev set the proposalLogic contract address
+    * @param _proposalLogic proposalLogic contract address
+    */
+    function setproposalLogicContract(
+        address _proposalLogic
+    ) external onlyDebondOperator {
+        proposalLogic = _proposalLogic;
     }
 }

@@ -18,6 +18,7 @@ import "@debond-protocol/debond-token-contracts/interfaces/IDGOV.sol";
 import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
 import "@debond-protocol/debond-exchange-contracts/interfaces/IExchangeStorage.sol";
 import "./interfaces/IGovStorage.sol";
+import "./interfaces/IVoteCounting.sol";
 
 contract GovStorage is IGovStorage {
     struct AllocatedToken {
@@ -49,6 +50,7 @@ contract GovStorage is IGovStorage {
     address public stakingContract;
     address public voteTokenContract;
     address public govSettingsContract;
+    address public proposalLogicContract;
     address public executable;
     address public voteCountingContract;
     address public airdropContract;
@@ -117,6 +119,22 @@ contract GovStorage is IGovStorage {
         _;
     }
 
+    modifier onlyProposalLogic {
+        require(
+            msg.sender == getProposalLogicContract()
+        );
+        _;
+    }
+
+    modifier onlyDebondContracts() {
+        require(
+            msg.sender == getGovernanceAddress() ||
+            msg.sender == getExecutableContract() ||
+            msg.sender == getProposalLogicContract()
+        );
+        _;
+    }
+
     constructor(
         address _debondTeam,
         address _vetoOperator,
@@ -165,36 +183,38 @@ contract GovStorage is IGovStorage {
         votingReward[2].numberOfDBITDistributedPerDay = 5;
     }
 
-    function firstSetUp(
+    function setUpGoup1(
         address _governance,
         address _dgovContract,
         address _dbitContract,
         address _stakingContract,
         address _voteContract,
-        address _voteCounting,
-        address _settingsContrats,
-        address _executable,
-        address _bankContract,
-        address _exchangeContract,
-        address _exchangeStorageContract,
-        address _airdropContract
-    ) public onlyDebondOperator returns(bool) {
-        require(!initialized, "Gov: Already initialized");
-
+        address _voteCounting
+    ) external onlyDebondOperator {
         governance = _governance;
         dgovContract = _dgovContract;
         dbitContract = _dbitContract;
         stakingContract = _stakingContract;
         voteTokenContract = _voteContract;
         voteCountingContract = _voteCounting;
+    }
+
+    function setUpGoup2(
+        address _settingsContrats,
+        address _proposalLogicContract,
+        address _executable,
+        address _bankContract,
+        address _exchangeContract,
+        address _exchangeStorageContract,
+        address _airdropContract
+    ) external onlyDebondOperator {
         govSettingsContract = _settingsContrats;
+        proposalLogicContract = _proposalLogicContract;
         executable = _executable;
         exchangeContract = _bankContract;
         exchangeStorageContract = _exchangeStorageContract;
         bankContract = _exchangeContract;
         airdropContract = _airdropContract;
-
-        return true;
     }
 
     function isInitialized() public view returns(bool) {
@@ -269,6 +289,10 @@ contract GovStorage is IGovStorage {
 
     function getGovSettingContract() public view returns(address) {
         return govSettingsContract;
+    }
+
+    function getProposalLogicContract() public view returns(address) {
+        return proposalLogicContract;
     }
 
     function getAirdropContract() public view returns(address) {
@@ -408,6 +432,51 @@ contract GovStorage is IGovStorage {
         );
     }
 
+    /**
+    * @dev return the proposal status
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    */
+    function getProposalStatus(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(ProposalStatus unassigned) {
+        Proposal memory _proposal = getProposalStruct(_class, _nonce);
+        
+        if (_proposal.status == ProposalStatus.Canceled) {
+            return ProposalStatus.Canceled;
+        }
+
+        if (_proposal.status == ProposalStatus.Executed) {
+            return ProposalStatus.Executed;
+        }
+
+        if (block.timestamp <= _proposal.startTime) {
+            return ProposalStatus.Pending;
+        }
+
+        if (block.timestamp <= _proposal.endTime) {
+            return ProposalStatus.Active;
+        }
+
+        if (_class == 2) {
+            if (
+                IVoteCounting(voteCountingContract).quorumReached(_class, _nonce) && 
+                IVoteCounting(voteCountingContract).voteSucceeded(_class, _nonce)
+            ) {
+                return ProposalStatus.Succeeded;
+            } else {
+                return ProposalStatus.Defeated;
+            }
+        } else {
+            if (IVoteCounting(voteCountingContract).vetoApproved(_class, _nonce)) {
+                return ProposalStatus.Succeeded;
+            } else {
+                return ProposalStatus.Defeated;
+            }
+        }
+    }
+
     function getProposalInfoForExecutable(
         uint128 _class,
         uint128 _nonce
@@ -446,7 +515,7 @@ contract GovStorage is IGovStorage {
         uint128 _nonce,
         uint256 _votingDay,
         uint256 _amountVoteTokens
-    ) public onlyGov {
+    ) public onlyProposalLogic {
         totalVoteTokenPerDay[_class][_nonce][_votingDay] += _amountVoteTokens;
     }
 
@@ -467,7 +536,7 @@ contract GovStorage is IGovStorage {
         uint256[] memory _values,
         bytes[] memory _calldatas,
         string memory _description
-    ) public onlyGov {
+    ) public onlyProposalLogic {
         require(_proposer != address(0), "GovStorage: zero address");
 
         proposal[_class][_nonce].startTime = _startTime;
@@ -484,7 +553,7 @@ contract GovStorage is IGovStorage {
         uint128 _class,
         uint128 _nonce,
         ProposalStatus _status
-    ) public onlyGovOrExec {
+    ) public onlyDebondContracts {
         proposal[_class][_nonce].status = _status;
     }
 
@@ -511,7 +580,7 @@ contract GovStorage is IGovStorage {
     function setProposalNonce(
         uint128 _class,
         uint128 _nonce
-    ) public onlyGov {
+    ) public onlyProposalLogic {
         proposalNonce[_class] = _nonce;
     }
 

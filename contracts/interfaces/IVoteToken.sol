@@ -46,6 +46,13 @@ interface IVoteToken {
     ) external;
 
     /**
+    * @dev set the proposalLogic contract address
+    */
+    function setproposalLogicContract(
+        address _proposalLogic
+    ) external;
+
+    /**
     * @dev transfer _amount vote tokens to `_to`
     */
     function transfer(

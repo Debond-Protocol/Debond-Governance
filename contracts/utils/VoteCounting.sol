@@ -20,11 +20,19 @@ import "../interfaces/IVoteCounting.sol";
 contract VoteCounting is IVoteCounting {
     mapping(uint128 => mapping(uint128 => ProposalVote)) internal _proposalVotes;
     address public govStorageAddress;
+    address public proposalLogicAddress;
 
     modifier onlyGov {
         require(
             msg.sender == IGovStorage(govStorageAddress).getGovernanceAddress(),
             "Gov: Only Gouvernance"
+        );
+        _;
+    }
+
+    modifier onlyProposalLogic {
+        require(
+            msg.sender == proposalLogicAddress, "VoteCounting: permission denied"
         );
         _;
     }
@@ -42,12 +50,23 @@ contract VoteCounting is IVoteCounting {
     * @dev set the govStorage contract address
     * @param _govStorageAddress govStorage contract address
     */
-    function setGovStorageAddress(
+    function setGovStorageContract(
         address _govStorageAddress
     ) public onlyDebondExecutor(_govStorageAddress) {
         require(_govStorageAddress != address(0), "VoteCounting: zero address");
 
         govStorageAddress = _govStorageAddress;
+    }
+
+    /**
+    * @dev set the proposal logic contract address
+    * @notice this function must be called after calling setGovStorageAddress
+    * @param _proposalLogicAddress proposalLogic contract address
+    */
+    function setProposalLogicContract(
+        address _proposalLogicAddress
+    ) public onlyDebondExecutor(govStorageAddress) {
+        proposalLogicAddress = _proposalLogicAddress;
     }
 
     /**
@@ -130,7 +149,7 @@ contract VoteCounting is IVoteCounting {
         uint128 _class,
         uint128 _nonce,
         address _account
-    ) public onlyGov {
+    ) public onlyProposalLogic {
         require(_account != address(0), "VoteCounting: zero address");
         require(
             _proposalVotes[_class][_nonce].user[_account].hasVoted == true &&
@@ -192,7 +211,7 @@ contract VoteCounting is IVoteCounting {
         uint128 _nonce,
         address _voter,
         uint256 _day
-    ) public onlyGov {
+    ) public onlyProposalLogic {
         require(_voter != address(0), "VoteCounting: zero address");
 
         _proposalVotes[_class][_nonce].user[_voter].votingDay = _day;
@@ -256,7 +275,7 @@ contract VoteCounting is IVoteCounting {
         address _account,
         uint8 _vote,
         uint256 _weight
-    ) public onlyGov {
+    ) public onlyProposalLogic {
         require(_account != address(0), "VoteCounting: zero address");
 
         ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];

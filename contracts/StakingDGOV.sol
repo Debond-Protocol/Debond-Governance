@@ -41,9 +41,15 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
     address public dGov;
     address public voteToken;
     address public governance;
+    address public proposalLogic;
 
     modifier onlyGov() {
         require(msg.sender == governance, "StakingDGOV: only governance");
+        _;
+    }
+
+    modifier onlyProposalLogic {
+        require(msg.sender == proposalLogic, "StakingDGOV: permission denied");
         _;
     }
     
@@ -53,11 +59,13 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
     constructor (
         address _dgovToken,
         address _voteToken,
-        address _governance
+        address _governance,
+        address _proposalLogic
     ) {
         dGov = _dgovToken;
         voteToken = _voteToken;
         governance = _governance;
+        proposalLogic = _proposalLogic;
         IdGov = IERC20(_dgovToken);
         Ivote = IVoteToken(_voteToken);
     }
@@ -99,7 +107,7 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
     function unstakeDgovToken(
         address _staker,
         uint256 _stakingCounter
-    ) external override onlyGov nonReentrant returns(uint256 unstakedAmount) {
+    ) external override onlyProposalLogic nonReentrant returns(uint256 unstakedAmount) {
         StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
 
         require(

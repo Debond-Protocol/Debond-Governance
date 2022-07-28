@@ -15,6 +15,7 @@ pragma solidity ^0.8.0;
 */
 
 import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol"; 
 import "./interfaces/IGovStorage.sol";
 import "./interfaces/IGovSharedStorage.sol";
 import "./interfaces/IVoteCounting.sol";
@@ -47,115 +48,6 @@ contract Executable is IExecutable, IGovSharedStorage {
     ) {
         govStorageAddress = _govStorageAddress;
         voteCountingAddress = _voteCountingAddress;
-    }
-
-    /**
-    * @dev execute a proposal
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    */
-    function executeProposal(
-        uint128 _class,
-        uint128 _nonce
-    ) public returns(bool) {
-        require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
-
-        Proposal memory proposal = IGovStorage(
-            govStorageAddress
-        ).getProposalStruct(_class, _nonce);
-        
-        require(
-            msg.sender == proposal.proposer,
-            "Gov: permission denied"
-        );
-        
-        ProposalStatus status = _getProposalStatus(
-            _class,
-            _nonce
-        );
-
-        require(
-            status == ProposalStatus.Succeeded,
-            "Gov: proposal not successful"
-        );
-        
-        IGovStorage(
-            govStorageAddress
-        ).setProposalStatus(_class, _nonce, ProposalStatus.Executed);
-
-        emit ProposalExecuted(_class, _nonce);
-
-        _execute(proposal.targets, proposal.values, proposal.calldatas);
-        
-        return true;
-    }
-
-    /**
-    * @dev internal execution mechanism
-    * @param _targets array of contract to interact with
-    * @param _values array contraining ethers to send (can be array of zeros)
-    * @param _calldatas array of encoded functions
-    */
-    function _execute(
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas
-    ) internal virtual {
-        string memory errorMessage = "Executable: execute proposal reverted";
-        
-        for (uint256 i = 0; i < _targets.length; i++) {
-            (
-                bool success,
-                bytes memory data
-            ) = _targets[i].call{value: _values[i]}(_calldatas[i]);
-
-            Address.verifyCallResult(success, data, errorMessage);
-        }
-    }
-
-    /**
-    * @dev return the proposal status
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    */
-    function _getProposalStatus(
-        uint128 _class,
-        uint128 _nonce
-    ) internal view returns(ProposalStatus unassigned) {
-        Proposal memory proposal = IGovStorage(govStorageAddress).getProposalStruct(_class, _nonce);
-        
-        if (proposal.status == ProposalStatus.Canceled) {
-            return ProposalStatus.Canceled;
-        }
-
-        if (proposal.status == ProposalStatus.Executed) {
-            return ProposalStatus.Executed;
-        }
-
-        if (block.timestamp <= proposal.startTime) {
-            return ProposalStatus.Pending;
-        }
-
-        if (block.timestamp <= proposal.endTime) {
-            return ProposalStatus.Active;
-        }
-
-        if (_class == 2) {
-            if (
-                IVoteCounting(voteCountingAddress).quorumReached(_class, _nonce) && 
-                IVoteCounting(voteCountingAddress).voteSucceeded(_class, _nonce)
-            ) {
-                return ProposalStatus.Succeeded;
-            } else {
-                return ProposalStatus.Defeated;
-            }
-        } else {
-            if (IVoteCounting(voteCountingAddress).vetoApproved(_class, _nonce)) {
-                return ProposalStatus.Succeeded;
-            } else {
-                return ProposalStatus.Defeated;
-            }
-        }
     }
 
     /**
@@ -311,6 +203,36 @@ contract Executable is IExecutable, IGovSharedStorage {
         require(_to != address(0), "Executable: zero address");
 
         IGovStorage(govStorageAddress).claimFundForProposal(_to, _amountDBIT, _amountDGOV);
+
+        return true;
+    }
+
+    /**
+    * @dev transfer tokens from Governance to address `to`
+    * @param _proposalClass proposal class
+    * @param _proposalNonce proposal nonce
+    * @param _tokenContract address of the token to transfer
+    * @param _proposer the proposer address
+    * @param _to the receiver address of tokens
+    * @param _amount the amount of tokens to transfer
+    */
+    function transferTokenFromGovernance(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
+        address _tokenContract,
+        address _proposer,
+        address _to,
+        uint256 _amount
+    ) public returns(bool) {
+        require(_proposalClass <= 2, "Executable: class not valid");
+
+        Proposal memory proposal = IGovStorage(
+            govStorageAddress
+        ).getProposalStruct(_proposalClass, _proposalNonce);
+
+        require(_proposer == proposal.proposer, "GovStorage: permission denied");
+
+        require(IERC20(_tokenContract).transfer(_to, _amount));
 
         return true;
     }

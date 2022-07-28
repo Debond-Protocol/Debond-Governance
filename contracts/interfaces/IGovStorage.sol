@@ -24,6 +24,7 @@ interface IGovStorage is IGovSharedStorage {
     function getInterestForStakingDGOV() external view returns(uint256);
     function getExecutableContract() external view returns(address);
     function getStakingContract() external view returns(address);
+    function getProposalLogicContract() external view returns(address);
     function getVoteTokenContract() external view returns(address);
     function getGovSettingContract() external view returns(address);
     function getAirdropContract() external view returns(address);
@@ -53,6 +54,11 @@ interface IGovStorage is IGovSharedStorage {
         bytes[] memory,
         bytes32
     );
+
+    function getProposalStatus(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(ProposalStatus unassigned);
 
     function getProposalInfoForExecutable(
         uint128 _class,

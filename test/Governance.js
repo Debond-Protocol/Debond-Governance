@@ -15,6 +15,7 @@ const Governance = artifacts.require("Governance");
 const VoteCounting = artifacts.require("VoteCounting");
 const Executable = artifacts.require("Executable");
 const GovStorage = artifacts.require("GovStorage");
+const ProposalLogic = artifacts.require("ProposalLogic");
 
 contract("Governance", async (accounts) => {
     let dbit;
@@ -28,6 +29,7 @@ contract("Governance", async (accounts) => {
     let exec;
     let storage;
     let count;
+    let logic;
 
     let balanceUser1BeforeStake;
     let balanceStakingContractBeforeStake;
@@ -38,6 +40,7 @@ contract("Governance", async (accounts) => {
     let user2 = accounts[3];
     let user3 = accounts[4];
     let user4 = accounts[5];
+    let user5 = accounts[6];
 
     let ProposalStatus = {
         Active: '0',
@@ -57,19 +60,23 @@ contract("Governance", async (accounts) => {
         dbit = await DBIT.new(gov.address, operator, operator, operator);
         dgov = await DGOV.new(gov.address, operator, operator, operator);
         exec = await Executable.new(storage.address, count.address);
-        stak = await StakingDGOV.new(dgov.address, vote.address, gov.address);
-
-        await count.setGovStorageAddress(storage.address, {from: operator});
+        logic = await ProposalLogic.new(operator, storage.address, vote.address, count.address);
+        stak = await StakingDGOV.new(dgov.address, vote.address, gov.address, logic.address);
 
         // initialize all contracts
-        await storage.firstSetUp(
+        await storage.setUpGoup1(
             gov.address,
             dgov.address,
             dbit.address,
             stak.address,
             vote.address,
             count.address,
+            {from: operator}
+        );
+
+        await storage.setUpGoup2(
             settings.address,
+            logic.address,
             exec.address,
             operator,
             operator,
@@ -78,11 +85,23 @@ contract("Governance", async (accounts) => {
             {from: operator}
         );
 
-        // set the stakingDGOV contract address in Vote Token
+        // set the stakingDGOV contract address into Vote Token
         await vote.setStakingDGOVContract(stak.address);
 
         // set the governance contract address in voteToken
         await vote.setGovernanceContract(gov.address);
+
+        // set the proposal logic contract address in voteToken
+        await vote.setproposalLogicContract(logic.address);
+
+        // set GovStorage contract address in voteCounting
+        await count.setGovStorageContract(storage.address);
+
+        // set the proposal logic address into voteCounting
+        await count.setProposalLogicContract(logic.address);
+
+        // set the staking contract address into proposalLogic
+        await logic.setStakingContract(stak.address);
 
         let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
         await dbit.mintCollateralisedSupply(debondTeam, amount, { from: operator });
@@ -174,7 +193,16 @@ contract("Governance", async (accounts) => {
     });
 
     it('Cannot unstake DGOV before staking ends', async () => {
-        expect(gov.unstakeDGOV(1, { from: user1 }))
+        amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
+
+        await dgov.mintCollateralisedSupply(debondTeam, amountToStake, { from: operator });
+        await dgov.transfer(user5, amountToStake, { from: debondTeam });
+        await dgov.approve(stak.address, amountToStake, { from: user5 });
+        await dgov.approve(user5, amountToStake, { from: user5 });
+
+        await gov.stakeDGOV(amountToStake, 10, { from: user5 });
+
+        expect(gov.unstakeDGOV(1, { from: user5 }))
             .to.rejectedWith(
                 Error,
                 "VM Exception while processing transaction: revert Staking: still staking -- Reason given: Staking: still staking"
@@ -191,7 +219,7 @@ contract("Governance", async (accounts) => {
         
         let res = await gov.createProposal(
             _class,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             desc
@@ -202,13 +230,13 @@ contract("Governance", async (accounts) => {
 
         // fetch data from structure Proposal
         let nonce = res.logs[0].args.nonce;
-        let proposal = await gov.getProposalStruct(_class, nonce);
+        let proposal = await storage.getProposalStruct(_class, nonce);
 
         let approvalMode = await gov.getApprovalMode(_class);
         
         expect(event.class.toString()).to.equal(_class.toString());
         expect(event.nonce.toString()).to.equal(nonce.toString());
-        expect(event.targets[0]).to.equal(gov.address);
+        expect(event.targets[0]).to.equal(exec.address);
         expect(event.values[0].toString()).to.equal('0');
         expect(event.calldatas[0].toString()).to.equal(callData.toString())
         
@@ -224,6 +252,32 @@ contract("Governance", async (accounts) => {
             .to.equal(approvalMode.toString());
 
         expect(event.description).to.equal(desc);
+    });
+
+    it("Cancel a proposal", async () => {
+        let _class = 0;
+        let desc = "Propsal-1: Update the benchMark interest rate";
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
+            '10',
+            operator
+        ).encodeABI();
+      
+        let res = await gov.createProposal(
+            _class,
+            [exec.address],
+            [0],
+            [callData],
+            desc,
+            { from: operator }
+        );
+
+        let event = res.logs[0].args;
+        
+        await gov.cancelProposal(event.class, event.nonce, { from: operator });
+        let status = await storage.getProposalStatus(event.class, event.nonce);
+
+        expect(status.toString()).to.equal(ProposalStatus.Canceled);
+
     });
 
     it("Change the benchmark interest rate", async () => {
@@ -256,18 +310,18 @@ contract("Governance", async (accounts) => {
 
         await wait(18000);
 
-        let status = await gov.getProposalStatus(event.class, event.nonce);
+        let status = await storage.getProposalStatus(event.class, event.nonce);
         let benchmarkBefore = await storage.getBenchmarkIR();
 
         // Execute the proposal
-        await exec.executeProposal(
+        await gov.executeProposal(
             event.class,
             event.nonce,
             { from: operator }
         );
 
         let benchmarkAfter = await storage.getBenchmarkIR();        
-        let status1 = await gov.getProposalStatus(event.class, event.nonce);
+        let status1 = await storage.getProposalStatus(event.class, event.nonce);
 
         expect(status.toString()).to.equal(ProposalStatus.Active);
         expect(status1.toString()).to.equal(ProposalStatus.Executed);
@@ -319,7 +373,7 @@ contract("Governance", async (accounts) => {
         expect(budget[0].toString()).to.equal(oldBudget.toString());
         expect(budget[1].toString()).to.equal(oldBudget.toString());
 
-        await exec.executeProposal(
+        await gov.executeProposal(
             event.class,
             event.nonce,
             { from: operator }
@@ -369,7 +423,7 @@ contract("Governance", async (accounts) => {
         let allocMintedBefore = await storage.getAllocatedTokenMinted(debondTeam);
         let totaAllocDistBefore = await storage.getTotalAllocationDistributed();
 
-        await exec.executeProposal(
+        await gov.executeProposal(
             event.class,
             event.nonce,
             {from: operator}
@@ -422,7 +476,7 @@ contract("Governance", async (accounts) => {
         let allocMintedBefore = await storage.getAllocatedTokenMinted(debondTeam);
         let totaAllocDistBefore = await storage.getTotalAllocationDistributed();
 
-        await exec.executeProposal(
+        await gov.executeProposal(
             event.class,
             event.nonce,
             {from: operator}
@@ -466,7 +520,7 @@ contract("Governance", async (accounts) => {
         await wait(18000);
 
         expect(
-            exec.executeProposal(
+            gov.executeProposal(
                 event.class,
                 event.nonce,
                 {from: operator}
@@ -544,13 +598,13 @@ contract("Governance", async (accounts) => {
         let benchmarkBefore = await storage.getBenchmarkIR();
 
         // Execute the proposal
-        await exec.executeProposal(
+        await gov.executeProposal(
             event.class,
             event.nonce,
             { from: operator }
         );
 
-        let status = await gov.getProposalStatus(event.class, event.nonce);
+        let status = await storage.getProposalStatus(event.class, event.nonce);
 
         let benchmarkAfter = await storage.getBenchmarkIR();
 
