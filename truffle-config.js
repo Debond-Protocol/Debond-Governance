@@ -33,7 +33,7 @@ module.exports = {
     }
   },
   mocha: {
-    //reporter: 'mocha-junit-reporter'
+    //reporter: 'eth-gas-reporter'
   },
   compilers: {
     solc: {

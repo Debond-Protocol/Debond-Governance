@@ -285,8 +285,7 @@ contract("Governance", async (accounts) => {
         let _class = 0;
         let desc = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
-            '10',
-            operator
+            '10'
         ).encodeABI();
 
         let res = await gov.createProposal(
@@ -342,8 +341,7 @@ contract("Governance", async (accounts) => {
         let callData = await exec.contract.methods.changeCommunityFundSize(
             _class,
             newDBITBudget,
-            newDGOVBudget,
-            operator
+            newDGOVBudget
         ).encodeABI();
 
         let res = await gov.createProposal(
@@ -385,18 +383,17 @@ contract("Governance", async (accounts) => {
         expect(budget[1].toString()).to.equal(newDGOVBudget.toString());
     });
 
-    it("mint allocated token", async () => {
+    it.only("mint allocated token", async () => {
         let amountDBIT = await web3.utils.toWei(web3.utils.toBN(2), 'ether');
         let amountDGOV = await web3.utils.toWei(web3.utils.toBN(1), 'ether');
 
         // create a proposal
         let _class = 0;
-        let desc = "Propsal-1: Change the team allocation token amount";
+        let desc = "Propsal-1: Mint the team allocation token";
         let callData = await exec.contract.methods.mintAllocatedToken(
             debondTeam,
             amountDBIT,
-            amountDGOV,
-            operator
+            amountDGOV
         ).encodeABI();
 
         let res = await gov.createProposal(
@@ -437,6 +434,52 @@ contract("Governance", async (accounts) => {
         expect(totaAllocDistAfter[0].toString()).to.equal(totaAllocDistBefore[0].add(amountDBIT).toString());
         expect(totaAllocDistAfter[1].toString()).to.equal(totaAllocDistBefore[1].add(amountDGOV).toString());
     });
+
+    it.only("change team allocation", async () =>  {
+        let toStake = await web3.utils.toWei(web3.utils.toBN(25), 'ether');
+        let newDBITAmount = await web3.utils.toWei(web3.utils.toBN(60000), 'ether');
+        let newDGOVAmount = await web3.utils.toWei(web3.utils.toBN(90000), 'ether');
+
+        let _class = 0;
+        let desc = "Propsal-1: Change the team allocation token amount";
+        callData = await exec.contract.methods.changeTeamAllocation(
+            debondTeam,
+            newDBITAmount,
+            newDGOVAmount
+        ).encodeABI();      
+
+        let res = await gov.createProposal(
+            _class,
+            [exec.address],
+            [0],
+            [callData],
+            desc,
+            {from: operator}
+        );
+
+        let event = res.logs[0].args;
+
+        await wait(18000);
+
+        await gov.vote(event.class, event.nonce, user1, 0, toStake, 1, {from: user1});
+        await gov.vote(event.class, event.nonce, user2, 1, toStake, 1, {from: user2});
+        await gov.vote(event.class, event.nonce, user3, 0, toStake, 1, {from: user3});
+
+        await gov.veto(event.class, event.nonce, true, {from: operator});
+
+        await wait(18000);
+
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            {from: operator}
+        );
+    });
+
+
+
+
+
 
     it("claim fund for proposal", async () => {
         let amountDBIT = await web3.utils.toWei(web3.utils.toBN(2), 'ether');
@@ -654,6 +697,46 @@ contract("Governance", async (accounts) => {
         reward = reward.toFixed(15);
 
         expect(balanceVoteAfter).to.equal(reward);
+    });
+
+    it('update DGOV max supply', async () => {
+        let toAdd = await web3.utils.toWei(web3.utils.toBN(4000000), 'ether');
+        let maxSupplyBefore = await dgov.getMaxSupply();
+        let newMax = maxSupplyBefore.add(toAdd);
+
+        await gov.setMaxSupply(newMax, { from: operator });
+        let maxSupplyAfter = await dgov.getMaxSupply();
+
+        expect(maxSupplyAfter.toString()).to.equal(maxSupplyBefore.add(toAdd).toString());
+    });
+
+    it("set DGOV max airdrop supply", async () => {
+        let toAdd = await web3.utils.toWei(web3.utils.toBN(250000), 'ether');
+        let maxAirdropBefore = await dgov.getMaxAirdropSupply();
+        let newMax = maxAirdropBefore.add(toAdd);
+
+        await gov.setMaxAirdropSupply(newMax, dgov.address, { from: operator });
+        let maxAirdropAfter = await dgov.getMaxAirdropSupply();
+
+        expect(maxAirdropAfter.toString()).to.equal(maxAirdropBefore.add(toAdd).toString());
+    });
+
+    it("set DBIT max airdrop supply", async () => {
+        let toAdd = await web3.utils.toWei(web3.utils.toBN(250000), 'ether');
+        let maxAirdropBefore = await dbit.getMaxAirdropSupply();
+        let newMax = maxAirdropBefore.add(toAdd);
+
+        await gov.setMaxAirdropSupply(newMax, dbit.address, { from: operator });
+        let maxAirdropAfter = await dbit.getMaxAirdropSupply();
+
+        expect(maxAirdropAfter.toString()).to.equal(maxAirdropBefore.add(toAdd).toString());
+    });
+
+    it("set DGOV max allocation percentage", async () => {
+        await gov.setMaxAllocationPercentage("800", dgov.address, { from: operator });
+        let maxAlloc = await dgov.getMaxAllocatedPercentage();
+
+        expect(maxAlloc.toString()).to.equal("800");
     });
 })
 

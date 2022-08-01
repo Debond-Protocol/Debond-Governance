@@ -35,32 +35,28 @@ interface IExecutable {
 
     //Update benchmark intrest rate
     function updateBenchmarkInterestRate(
-        uint256 _newBenchmarkInterestRate,
-        address _executor
+        uint256 _newBenchmarkInterestRate
     ) external returns(bool);
 
     // change the community fund size
     function changeCommunityFundSize(
         uint128 _proposalClass,
         uint256 _newDBITBudgetPPM,
-        uint256 _newDGOVBudgetPPM,
-        address _executor
+        uint256 _newDGOVBudgetPPM
     ) external returns(bool);
 
     // change the team allocation
     function changeTeamAllocation(
         address _to,
         uint256 _newDBITPPM,
-        uint256 _newDGOVPPM,
-        address _executor
+        uint256 _newDGOVPPM
     ) external returns(bool);
 
     // mint allocated tokens
     function mintAllocatedToken(
         address _to,
         uint256 _amountDBIT,
-        uint256 _amountDGOV,
-        address _executor
+        uint256 _amountDGOV
     ) external returns(bool);
 
     // claim fund for proposal

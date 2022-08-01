@@ -19,6 +19,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@debond-protocol/debond-token-contracts/interfaces/IDGOV.sol";
 import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
 import "@debond-protocol/debond-exchange-contracts/interfaces/IExchangeStorage.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IVoteToken.sol";
 import "./interfaces/IVoteCounting.sol";
@@ -34,6 +35,8 @@ import "./Pausable.sol";
 * @author Samuel Gwlanold Edoumou (Debond Organization)
 */
 contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
+    using SafeERC20 for IERC20;
+
     address govStorageAddress;
     address voteCountingAddress;
 
@@ -137,7 +140,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
             msg.sender == proposal.proposer,
             "Gov: permission denied"
         );
-
+      
         IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).checkAndSetProposalStatus(_class, _nonce);
@@ -572,5 +575,21 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         ).setMinAuctionDuration(_minAuctionDuration);
 
         return true;
+    }
+
+    /**
+    * @dev Migrate ERC20 tokens from an address to another address
+    * @param _token address of the token
+    * @param _from token owner
+    * @param _to recipient address
+    * @param _amount the amount of tokens to trensfer
+    */
+    function MigrateTokens(
+        address _token,
+        address _from,
+        address _to,
+        uint256 _amount
+    ) external {
+        SafeERC20.safeTransferFrom(IERC20(_token), _from, _to, _amount);
     }
 }

@@ -359,10 +359,7 @@ contract GovStorage is IGovStorage {
     }
 
     function getTotalAllocationDistributed() public view returns(uint256, uint256) {
-        return (
-            dbitTotalAllocationDistributed,
-            dgovTotalAllocationDistributed
-        );
+        return (dbitTotalAllocationDistributed, dgovTotalAllocationDistributed);
     }
 
     function getAllocatedToken(address _account) public view returns(uint256, uint256) {
@@ -622,94 +619,41 @@ contract GovStorage is IGovStorage {
         return true;
     }
 
-    function updateBenchmarkIR(
-        uint256 _newBenchmarkInterestRate,
-        address _executor
-    ) public onlyExec returns(bool) {
-        require(_executor != address(0), "GovStorage: zero address");
-
+    function setBenchmarkIR(uint256 _newBenchmarkInterestRate) external onlyExec {
         benchmarkInterestRate = _newBenchmarkInterestRate;
-
-        return true;
     }
 
-    function changeCommunityFundSize(
+    function setFundSize(
         uint256 _newDBITBudgetPPM,
-        uint256 _newDGOVBudgetPPM,
-        address _executor
-    ) public onlyExec returns(bool) {
-        require(_executor != address(0), "GovStorage: zero address");
-
+        uint256 _newDGOVBudgetPPM
+    ) external onlyExec {
         dbitBudgetPPM = _newDBITBudgetPPM;
         dgovBudgetPPM = _newDGOVBudgetPPM;
-
-        return true;
     }
 
-    function changeTeamAllocation(
+    function setTeamAllocation(
         address _to,
         uint256 _newDBITPPM,
-        uint256 _newDGOVPPM,
-        address _executor
-    ) public onlyExec returns(bool) {
+        uint256 _newDGOVPPM
+    ) external onlyExec {
         require(_to != address(0), "Gov: zero address");
-        require(_executor != address(0), "GovStorage: zero address");
 
-        AllocatedToken memory _allocatedToken = allocatedToken[_to];
-        uint256 dbitAllocDistributedPPM = dbitAllocationDistibutedPPM;
-        uint256 dgovAllocDistributedPPM = dgovAllocationDistibutedPPM;
-
-        require(
-            dbitAllocDistributedPPM - _allocatedToken.dbitAllocationPPM + _newDBITPPM <= dbitBudgetPPM,
-            "Gov: too much"
-        );
-
-        require(
-            dgovAllocDistributedPPM - _allocatedToken.dgovAllocationPPM + _newDGOVPPM <= dgovBudgetPPM,
-            "Gov: too much"
-        );
-
-        dbitAllocationDistibutedPPM = dbitAllocDistributedPPM - allocatedToken[_to].dbitAllocationPPM + _newDBITPPM;
         allocatedToken[_to].dbitAllocationPPM = _newDBITPPM;
-
-        dgovAllocationDistibutedPPM = dgovAllocDistributedPPM - allocatedToken[_to].dgovAllocationPPM + _newDGOVPPM;
         allocatedToken[_to].dgovAllocationPPM = _newDGOVPPM;
-
-        return true;
     }
 
     function mintAllocatedToken(
         address _to,
         uint256 _amountDBIT,
-        uint256 _amountDGOV,
-        address _executor
-    ) public onlyExec returns(bool) {
+        uint256 _amountDGOV
+    ) public onlyExec {
         require(_to != address(0), "Gov: zero address");
-        require(_executor != address(0), "GovStorage: zero address");
-
-        AllocatedToken memory _allocatedToken = allocatedToken[_to];
-        
-        uint256 _dbitCollaterizedSupply = IDebondToken(dbitContract).getTotalCollateralisedSupply();
-        uint256 _dgovCollaterizedSupply = IDebondToken(dgovContract).getTotalCollateralisedSupply();
-        
-        require(
-            IDebondToken(dbitContract).getAllocatedBalance(_to) + _amountDBIT <=
-            _dbitCollaterizedSupply * _allocatedToken.dbitAllocationPPM / 1 ether,
-            "Gov: not enough supply"
-        );
-        require(
-            IDebondToken(dgovContract).getAllocatedBalance(_to) + _amountDGOV <=
-            _dgovCollaterizedSupply * _allocatedToken.dgovAllocationPPM / 1 ether,
-            "Gov: not enough supply"
-        );
         
         allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
         dbitTotalAllocationDistributed += _amountDBIT;
 
         allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
         dgovTotalAllocationDistributed += _amountDGOV;
-
-        return true;
     }
 
     function claimFundForProposal(

@@ -14,8 +14,8 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
+import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol"; 
 import "./interfaces/IGovStorage.sol";
 import "./interfaces/IGovSharedStorage.sol";
 import "./interfaces/IVoteCounting.sol";
@@ -74,7 +74,7 @@ contract Executable is IExecutable, IGovSharedStorage {
     function updateGovernanceContract(
         address _newGovernanceAddress,
         address _executor
-    ) public onlyDebondExecutor(_executor) returns(bool) {
+    ) external onlyDebondExecutor(_executor) returns(bool) {
         require(
             _newGovernanceAddress != address(0), "Executable: zero address"
         );
@@ -91,7 +91,7 @@ contract Executable is IExecutable, IGovSharedStorage {
     function updateExchangeContract(
         address _newExchangeAddress,
         address _executor
-    ) public onlyDebondExecutor(_executor) returns(bool) {
+    ) external onlyDebondExecutor(_executor) returns(bool) {
         require(
             _newExchangeAddress != address(0), "Executable: zero address"
         );
@@ -108,7 +108,7 @@ contract Executable is IExecutable, IGovSharedStorage {
     function updateBankContract(
         address _newBankAddress,
         address _executor
-    ) public onlyDebondExecutor(_executor) returns(bool) {
+    ) external onlyDebondExecutor(_executor) returns(bool) {
         require(
             _newBankAddress != address(0), "Executable: zero address"
         );
@@ -123,10 +123,9 @@ contract Executable is IExecutable, IGovSharedStorage {
     * @param _newBenchmarkInterestRate new benchmark interest rate
     */
     function updateBenchmarkInterestRate(
-        uint256 _newBenchmarkInterestRate,
-        address _executor
-    ) public onlyDebondExecutor(_executor) returns(bool) {
-        IGovStorage(govStorageAddress).updateBenchmarkIR(_newBenchmarkInterestRate, _executor);
+        uint256 _newBenchmarkInterestRate
+    ) external returns(bool) {
+        IGovStorage(govStorageAddress).setBenchmarkIR(_newBenchmarkInterestRate);
 
         return true;
     }
@@ -139,12 +138,11 @@ contract Executable is IExecutable, IGovSharedStorage {
     function changeCommunityFundSize(
         uint128 _proposalClass,
         uint256 _newDBITBudgetPPM,
-        uint256 _newDGOVBudgetPPM,
-        address _executor
-    ) public onlyDebondExecutor(_executor) returns(bool) {
+        uint256 _newDGOVBudgetPPM
+    ) external returns(bool) {
         require(_proposalClass < 1, "Executable: class not valid");
 
-        IGovStorage(govStorageAddress).changeCommunityFundSize(_newDBITBudgetPPM, _newDGOVBudgetPPM, _executor);
+        IGovStorage(govStorageAddress).setFundSize(_newDBITBudgetPPM, _newDGOVBudgetPPM);
 
         return true;
     }
@@ -158,12 +156,14 @@ contract Executable is IExecutable, IGovSharedStorage {
     function changeTeamAllocation(
         address _to,
         uint256 _newDBITPPM,
-        uint256 _newDGOVPPM,
-        address _executor
-    ) public onlyDebondExecutor(_executor) returns(bool) {
-        require(_to != address(0), "Executable: zero address");
+        uint256 _newDGOVPPM
+    ) external returns(bool) {
+        require(
+            _checkSupply(_to, _newDBITPPM, _newDGOVPPM),
+            "Executable: Fails, not enough supply"
+        );
 
-        IGovStorage(govStorageAddress).changeTeamAllocation(_to, _newDBITPPM, _newDGOVPPM, _executor);
+        IGovStorage(govStorageAddress).setTeamAllocation(_to, _newDBITPPM, _newDGOVPPM);
 
         return true;
     }
@@ -177,12 +177,14 @@ contract Executable is IExecutable, IGovSharedStorage {
     function mintAllocatedToken(
         address _to,
         uint256 _amountDBIT,
-        uint256 _amountDGOV,
-        address _executor
-    ) public onlyDebondExecutor(_executor) returns(bool) {
-        require(_to != address(0), "Executable: zero address");
+        uint256 _amountDGOV
+    ) external returns(bool) {
+        require(
+            _checkSupply(_to, _amountDBIT, _amountDGOV),
+            "Executable: Fails, not enough supply"
+        );
 
-        IGovStorage(govStorageAddress).mintAllocatedToken(_to, _amountDBIT, _amountDGOV, _executor);
+        IGovStorage(govStorageAddress).mintAllocatedToken(_to, _amountDBIT, _amountDGOV);
 
         return true;
     }
@@ -198,9 +200,8 @@ contract Executable is IExecutable, IGovSharedStorage {
         address _to,
         uint256 _amountDBIT,
         uint256 _amountDGOV
-    ) public returns(bool) {
+    ) external returns(bool) {
         require(_proposalClass <= 2, "Gov: class not valid");
-        require(_to != address(0), "Executable: zero address");
 
         IGovStorage(govStorageAddress).claimFundForProposal(_to, _amountDBIT, _amountDGOV);
 
@@ -208,31 +209,63 @@ contract Executable is IExecutable, IGovSharedStorage {
     }
 
     /**
-    * @dev transfer tokens from Governance to address `to`
-    * @param _proposalClass proposal class
-    * @param _proposalNonce proposal nonce
-    * @param _tokenContract address of the token to transfer
-    * @param _proposer the proposer address
-    * @param _to the receiver address of tokens
-    * @param _amount the amount of tokens to transfer
+    * @dev migrate tokens from an address to another address
+    * @param _class proposal class
+    * @param _token token address
+    * @param _from sender address
+    * @param _to recepient address
+    * @param _amount amount of tokens to transfer
     */
-    function transferTokenFromGovernance(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        address _tokenContract,
-        address _proposer,
+    /*
+    function migrateTokens(
+        uint128 _class,
+        address _token,
+        address _from,
         address _to,
         uint256 _amount
-    ) public returns(bool) {
-        require(_proposalClass <= 2, "Executable: class not valid");
+    ) external returns(bool) {
+        require(_class <= 1, "Executable: invalid proposal class");
 
-        Proposal memory proposal = IGovStorage(
-            govStorageAddress
-        ).getProposalStruct(_proposalClass, _proposalNonce);
+        return true;
+    }
+    */
 
-        require(_proposer == proposal.proposer, "GovStorage: permission denied");
 
-        require(IERC20(_tokenContract).transfer(_to, _amount));
+    /**
+    * @dev internal function to check DBIT and DGOV supply
+    * @param _to the recipient in mintAllocatedToken and changeTeamAllocation
+    * @param _amountDBIT amount of DBIT to mint or new DBIT allocation percentage
+    * @param _amountDGOV amount of DGOV to mint or new DGOV allocation percentage
+    */
+    function _checkSupply(
+        address _to,
+        uint256 _amountDBIT,
+        uint256 _amountDGOV
+    ) internal view returns(bool) {
+        (
+            uint256 dbitAllocPPM,
+            uint256 dgovAllocPPM
+        ) = IGovStorage(govStorageAddress).getAllocatedToken(_to);
+       
+        require(
+            IDebondToken(
+                IGovStorage(govStorageAddress).getDBITAddress()
+            ).getAllocatedBalance(_to) + _amountDBIT <=
+            IDebondToken(
+                IGovStorage(govStorageAddress).getDBITAddress()
+            ).getTotalCollateralisedSupply() * dbitAllocPPM / 1 ether,
+            "Executable: Not enough DBIT supply"
+        );
+
+        require(
+            IDebondToken(
+                IGovStorage(govStorageAddress).getDGOVAddress()
+            ).getAllocatedBalance(_to) + _amountDGOV <=
+            IDebondToken(
+                IGovStorage(govStorageAddress).getDGOVAddress()
+            ).getTotalCollateralisedSupply() * dgovAllocPPM / 1 ether,
+            "Executable: not enough DGOV supply"
+        );
 
         return true;
     }

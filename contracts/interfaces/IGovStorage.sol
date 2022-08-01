@@ -145,30 +145,26 @@ interface IGovStorage is IGovSharedStorage {
         address _executor
     ) external returns(bool);
 
-    function updateBenchmarkIR(
-        uint256 _newBenchmarkInterestRate,
-        address _executor
-    ) external returns(bool);
+    function setBenchmarkIR(
+        uint256 _newBenchmarkInterestRate
+    ) external;
 
-    function changeCommunityFundSize(
+    function setFundSize(
         uint256 _newDBITBudgetPPM,
-        uint256 _newDGOVBudgetPPM,
-        address _executor
-    ) external returns(bool);
+        uint256 _newDGOVBudgetPPM
+    ) external;
 
-    function changeTeamAllocation(
+    function setTeamAllocation(
         address _to,
         uint256 _newDBITPPM,
-        uint256 _newDGOVPPM,
-        address _executor
-    ) external returns(bool);
+        uint256 _newDGOVPPM
+    ) external;
 
     function mintAllocatedToken(
         address _to,
         uint256 _amountDBIT,
-        uint256 _amountDGOV,
-        address _executor
-    ) external returns(bool);
+        uint256 _amountDGOV
+    ) external;
 
     function claimFundForProposal(
         address _to,
