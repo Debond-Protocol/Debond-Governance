@@ -28,7 +28,7 @@ contract GovSettings is IGovSettings {
     modifier onlyDebondExecutor {
         require(
             msg.sender == IGovStorage(govStorageAddress).getDebondTeamAddress() ||
-            msg.sender == IGovStorage(govStorageAddress).getDebondOperator(),
+            msg.sender == IGovStorage(govStorageAddress).getVetoOperator(),
             "Gov: can't execute this task"
         );
         _;

@@ -24,14 +24,14 @@ import "../interfaces/IProposalLogic.sol";
 import "../interfaces/IGovSharedStorage.sol";
 
 contract ProposalLogic is IProposalLogic {
-    address debondOperator;
+    address vetoOperator;
     address govStorageAddress;
     address voteTokenAddress;
     address stakingAddress;
     address voteCountingAddress;
 
-    modifier onlyDebondOperator {
-        require(msg.sender == debondOperator, "ProposalLogic: permission denied");
+    modifier onlyVetoOperator {
+        require(msg.sender == vetoOperator, "ProposalLogic: permission denied");
         _;
     }
 
@@ -44,12 +44,12 @@ contract ProposalLogic is IProposalLogic {
     }
 
     constructor(
-        address _debondOperator,
+        address _vetoOperator,
         address _govStorageAddress,
         address _voteTokenAddress,
         address _voteCountingAddress
     ) {
-        debondOperator = _debondOperator;
+        vetoOperator = _vetoOperator;
         govStorageAddress = _govStorageAddress;
         voteTokenAddress = _voteTokenAddress;
         voteCountingAddress = _voteCountingAddress;
@@ -92,6 +92,16 @@ contract ProposalLogic is IProposalLogic {
  
         nonce = _generateNewNonce(_class);     
         approval = getApprovalMode(_class);
+
+        IVoteToken(
+            IGovStorage(govStorageAddress).getVoteTokenContract()
+        ).lockTokens(
+            _proposer,
+            _proposer,
+            IGovStorage(govStorageAddress).getThreshold(),
+            _class,
+            nonce
+        );
 
         start = block.timestamp + IGovSettings(
             IGovStorage(govStorageAddress).getGovSettingContract()
@@ -239,10 +249,15 @@ contract ProposalLogic is IProposalLogic {
             block.timestamp > _proposal.endTime,
             "Gov: still voting"
         );
-        require(
-            IVoteCounting(voteCountingAddress).hasVoted(_class, _nonce, _tokenOwner),
-            "Gov: you haven't voted"
-        );
+
+        if(
+            _tokenOwner != IGovStorage(govStorageAddress).getProposalProposer(_class, _nonce)
+        ) {
+            require(
+                IVoteCounting(voteCountingAddress).hasVoted(_class, _nonce, _tokenOwner),
+                "Gov: you haven't voted"
+            );
+        }
         
         uint256 _amount = IVoteToken(
             IGovStorage(govStorageAddress).getVoteTokenContract()
@@ -302,7 +317,7 @@ contract ProposalLogic is IProposalLogic {
         );
     }
 
-    function setStakingContract(address _stakingAddress) public onlyDebondOperator {
+    function setStakingContract(address _stakingAddress) public onlyVetoOperator {
         stakingAddress = _stakingAddress;
     }
 

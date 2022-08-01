@@ -23,18 +23,18 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     mapping(address => mapping(uint128 => mapping(uint128 => uint256))) private _lockedBalance;
     mapping(address => uint256) private _availableBalance;
 
-    address debondOperator;
+    address vetoOperator;
     address govAddress;
     address stakingDGOV;
     address proposalLogic;
 
     modifier onlyGov {
-        require(msg.sender == govAddress, "VoteToken: not governance");
+        require(msg.sender == govAddress, "VoteToken: only Gov");
         _;
     }
 
-    modifier onlyDebondOperator {
-        require(msg.sender == debondOperator, "VoteToken: not governance");
+    modifier onlyVetoOperator {
+        require(msg.sender == vetoOperator, "VoteToken: permission denied");
         _;
     }
 
@@ -51,9 +51,9 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     constructor(
         string memory _name,
         string memory _symbol,
-        address _debondOperator
+        address _vetoOperator
     ) ERC20(_name, _symbol) {
-        debondOperator = _debondOperator;
+        vetoOperator = _vetoOperator;
     }
 
     /**
@@ -208,7 +208,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     */
     function setGovernanceContract(
         address _governance
-    ) external override onlyDebondOperator {
+    ) external override onlyVetoOperator {
         require(_governance != address(0), "VoteToken: zero address");
 
         govAddress = _governance;
@@ -228,7 +228,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     */
     function setStakingDGOVContract(
         address _stakingDGOV
-    ) external override onlyDebondOperator {
+    ) external override onlyVetoOperator {
         require(_stakingDGOV != address(0), "VoteToken: zero address");
 
         stakingDGOV = _stakingDGOV;
@@ -248,7 +248,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     */
     function setproposalLogicContract(
         address _proposalLogic
-    ) external onlyDebondOperator {
+    ) external onlyVetoOperator {
         proposalLogic = _proposalLogic;
     }
 }

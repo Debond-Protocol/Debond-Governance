@@ -39,7 +39,6 @@ contract GovStorage is IGovStorage {
 
     bool public initialized;
 
-    address public debondOperator;
     address public debondTeam;
     address public governance;
     address public exchangeContract;
@@ -81,8 +80,8 @@ contract GovStorage is IGovStorage {
     // key1: proposal class, key2: proposal nonce, key3: voting day (1, 2, 3, etc.)
     mapping(uint128 => mapping(uint128 => mapping(uint256 => uint256))) public totalVoteTokenPerDay;
 
-    modifier onlyDebondOperator {
-        require(msg.sender == debondOperator, "Gov: Need rights");
+    modifier onlyVetoOperator {
+        require(msg.sender == vetoOperator, "Gov: Need rights");
         _;
     }
 
@@ -96,8 +95,7 @@ contract GovStorage is IGovStorage {
 
     modifier onlyDebondExecutor(address _executor) {
         require(
-            _executor == getDebondTeamAddress() ||
-            _executor == getDebondOperator(),
+            _executor == getDebondTeamAddress(),
             "Gov: can't execute this task"
         );
         _;
@@ -137,13 +135,11 @@ contract GovStorage is IGovStorage {
 
     constructor(
         address _debondTeam,
-        address _vetoOperator,
-        address _debondOperator
+        address _vetoOperator
     ) {
         _proposalThreshold = 10 ether;
         interestRateForStakingDGOV = 5;
 
-        debondOperator = _debondOperator;
         debondTeam = _debondTeam;
         vetoOperator = _vetoOperator;
 
@@ -190,7 +186,7 @@ contract GovStorage is IGovStorage {
         address _stakingContract,
         address _voteContract,
         address _voteCounting
-    ) external onlyDebondOperator {
+    ) external onlyVetoOperator {
         governance = _governance;
         dgovContract = _dgovContract;
         dbitContract = _dbitContract;
@@ -207,7 +203,7 @@ contract GovStorage is IGovStorage {
         address _exchangeContract,
         address _exchangeStorageContract,
         address _airdropContract
-    ) external onlyDebondOperator {
+    ) external onlyVetoOperator {
         govSettingsContract = _settingsContrats;
         proposalLogicContract = _proposalLogicContract;
         executable = _executable;
@@ -221,7 +217,7 @@ contract GovStorage is IGovStorage {
         return initialized;
     }
 
-    function initializeDebond() public onlyDebondOperator returns(bool) {
+    function initializeDebond() public onlyVetoOperator returns(bool) {
         require(initialized == false, "Gov: Debond alraedy initialized");
         require(dbitContract != address(0), "GovStorage: check DBIT address");
         require(dgovContract != address(0), "GovStorage: check DGOV address");
@@ -265,10 +261,6 @@ contract GovStorage is IGovStorage {
 
     function getThreshold() public view returns(uint256) {
         return _proposalThreshold;
-    }
-
-    function getDebondOperator() public view returns(address) {
-        return debondOperator;
     }
 
     function getVetoOperator() public view returns(address) {
@@ -384,6 +376,18 @@ contract GovStorage is IGovStorage {
     }
 
     /**
+    * @dev return proposal proposer
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    */
+    function getProposalProposer(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(address) {
+        return proposal[_class][_nonce].proposer;
+    }
+
+    /**
     * @dev return the proposal class info for a given class and index
     * @param _class proposal class
     * @param _index index in the proposal class info array
@@ -412,6 +416,7 @@ contract GovStorage is IGovStorage {
         address[] memory,
         uint256[] memory,
         bytes[] memory,
+        string memory,
         bytes32
     ) {
         Proposal memory _proposal = proposal[_class][_nonce];
@@ -425,6 +430,7 @@ contract GovStorage is IGovStorage {
             _proposal.targets,
             _proposal.values,
             _proposal.calldatas,
+            _proposal.title,
             _proposal.descriptionHash
         );
     }

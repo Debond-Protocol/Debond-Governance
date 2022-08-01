@@ -24,6 +24,7 @@ interface IGovSharedStorage {
         address[] targets;
         uint256[] values;
         bytes[] calldatas;
+        string title;
         bytes32 descriptionHash;
     }
 

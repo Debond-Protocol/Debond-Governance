@@ -40,7 +40,7 @@ contract VoteCounting is IVoteCounting {
     modifier onlyDebondExecutor(address _govStorageAddress) {
         require(
             msg.sender == IGovStorage(_govStorageAddress).getDebondTeamAddress() ||
-            msg.sender == IGovStorage(_govStorageAddress).getDebondOperator(),
+            msg.sender == IGovStorage(_govStorageAddress).getVetoOperator(),
             "VoteCounting: permission denied"
         );
         _;

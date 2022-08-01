@@ -19,7 +19,6 @@ import "./IGovSharedStorage.sol";
 interface IGovStorage is IGovSharedStorage {
     function isInitialized() external view returns(bool);
     function getThreshold() external view returns(uint256);
-    function getDebondOperator() external view returns(address);
     function getVetoOperator() external view returns(address);
     function getInterestForStakingDGOV() external view returns(uint256);
     function getExecutableContract() external view returns(address);
@@ -52,6 +51,7 @@ interface IGovStorage is IGovSharedStorage {
         address[] memory,
         uint256[] memory,
         bytes[] memory,
+        string memory,
         bytes32
     );
 
@@ -69,6 +69,11 @@ interface IGovStorage is IGovSharedStorage {
         uint256[] memory,
         bytes[] memory
     );
+
+    function getProposalProposer(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(address);
 
     function getNumberOfVotingDays(
         uint128 _class

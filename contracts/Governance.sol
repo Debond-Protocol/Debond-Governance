@@ -40,16 +40,10 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     address govStorageAddress;
     address voteCountingAddress;
 
-    modifier onlyDebondOperator {
-        require(msg.sender == IGovStorage(govStorageAddress).getDebondOperator(),
-        "Gov: Need rights");
-        _;
-    }
-
     modifier onlyDebondExecutor(address _executor) {
         require(
             _executor == IGovStorage(govStorageAddress).getDebondTeamAddress() ||
-            _executor == IGovStorage(govStorageAddress).getDebondOperator(),
+            _executor == IGovStorage(govStorageAddress).getVetoOperator(),
             "Gov: can't execute this task"
         );
         _;
@@ -308,8 +302,16 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).unlockVoteTokens(_class, _nonce, tokenOwner);
 
-        // transfer the rewards earned for this vote
-        _transferDBITInterest(_class, _nonce, tokenOwner);
+        IGovStorage(
+            govStorageAddress
+        ).getProposalProposer(_class, _nonce);
+
+        if (
+            tokenOwner != IGovStorage(govStorageAddress).getProposalProposer(_class, _nonce)
+        ) {
+           // transfer the rewards earned for this vote
+            _transferDBITInterest(_class, _nonce, tokenOwner); 
+        }
     }
 
     /**
@@ -341,7 +343,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     function setProposalQuorum(
         uint128 _class,
         uint256 _quorum
-    ) public onlyDebondOperator {
+    ) public onlyVetoOperator {
         IGovStorage(govStorageAddress).setProposalClassInfo(_class, 1, _quorum);
     }
 
@@ -363,7 +365,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     function setProposalThreshold(
         uint256 _newThreshold,
         address _executor
-    ) public onlyDebondOperator {
+    ) public onlyVetoOperator {
         IGovStorage(govStorageAddress).setThreshold(_newThreshold, _executor);
     }
 
@@ -433,7 +435,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     **********************************************************************************/  
     function setMaxSupply(
         uint256 maxSupply
-    ) public onlyDebondOperator returns (bool) {
+    ) public onlyVetoOperator returns (bool) {
         IDGOV(
             IGovStorage(govStorageAddress).getDGOVAddress()
         ).setMaxSupply(maxSupply);
@@ -449,7 +451,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     function setMaxAirdropSupply(
         uint256 newSupply,
         address _tokenAddress
-    ) public onlyDebondOperator onlyDBITorDGOV(_tokenAddress) returns (bool) {
+    ) public onlyVetoOperator onlyDBITorDGOV(_tokenAddress) returns (bool) {
         require(_tokenAddress != address(0), "Gov: zero address");
 
         IDebondToken(_tokenAddress).setMaxAirdropSupply(newSupply);
@@ -465,7 +467,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     function setMaxAllocationPercentage(
         uint256 newPercentage,
         address _tokenAddress
-    ) public onlyDebondOperator onlyDBITorDGOV(_tokenAddress) returns (bool) {
+    ) public onlyVetoOperator onlyDBITorDGOV(_tokenAddress) returns (bool) {
         require(_tokenAddress != address(0), "Gov: zero address");
 
         IDebondToken(_tokenAddress).setMaxAllocationPercentage(newPercentage);
@@ -482,7 +484,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     function setBankAddressInDebondToken(
         address _bankAddress,
         address _tokenAddress
-    ) public onlyDebondOperator onlyDBITorDGOV(_tokenAddress) returns(bool) {
+    ) public onlyVetoOperator onlyDBITorDGOV(_tokenAddress) returns(bool) {
         require(
             _bankAddress != address(0) && _tokenAddress != address(0),
             "Gov: zero address"
@@ -502,7 +504,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     function setAirdropAddressInDebondToken(
         address _airdropAddress,
         address _tokenAddress
-    ) public onlyDebondOperator onlyDBITorDGOV(_tokenAddress) returns(bool) {
+    ) public onlyVetoOperator onlyDBITorDGOV(_tokenAddress) returns(bool) {
         require(
             _airdropAddress != address(0) && _tokenAddress != address(0),
             "Gov: zero address"
@@ -522,7 +524,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     function setExchangeAddressInDebondToken(
         address _exchangeAddress,
         address _tokenAddress
-    ) public onlyDebondOperator onlyDBITorDGOV(_tokenAddress) returns(bool) {
+    ) public onlyVetoOperator onlyDBITorDGOV(_tokenAddress) returns(bool) {
         require(
             _exchangeAddress != address(0) && _tokenAddress != address(0),
             "Gov: zero address"
@@ -539,7 +541,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     */
     function setExchangeNewAddress(
         address _exchangeAddress
-    ) public onlyDebondOperator returns(bool) {
+    ) public onlyVetoOperator returns(bool) {
         require(_exchangeAddress != address(0), "Gov: zero address");
 
         IExchangeStorage(
@@ -555,7 +557,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     */
     function setMaxAuctionDuration(
         uint256 _maxAuctionDuration
-    ) public onlyDebondOperator returns(bool) {
+    ) public onlyVetoOperator returns(bool) {
         IExchangeStorage(
             IGovStorage(govStorageAddress).getExchangeStorageAddress()
         ).setMaxAuctionDuration(_maxAuctionDuration);
@@ -569,7 +571,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     */
     function setMinAuctionDuration(
         uint256 _minAuctionDuration
-    ) public onlyDebondOperator returns(bool) {
+    ) public onlyVetoOperator returns(bool) {
         IExchangeStorage(
             IGovStorage(govStorageAddress).getExchangeStorageAddress()
         ).setMinAuctionDuration(_minAuctionDuration);

@@ -25,9 +25,9 @@ contract Executable is IExecutable, IGovSharedStorage {
     address public govStorageAddress;
     address public voteCountingAddress;
 
-    modifier onlyDebondOperator {
+    modifier onlyVetoOperator {
         require(
-            msg.sender == IGovStorage(govStorageAddress).getDebondOperator(),
+            msg.sender == IGovStorage(govStorageAddress).getVetoOperator(),
             "Executable: permission denied"
         );
         _;
@@ -36,7 +36,7 @@ contract Executable is IExecutable, IGovSharedStorage {
     modifier onlyDebondExecutor(address _executor) {
         require(
             _executor == IGovStorage(govStorageAddress).getDebondTeamAddress() ||
-            _executor == IGovStorage(govStorageAddress).getDebondOperator(),
+            _executor == IGovStorage(govStorageAddress).getVetoOperator(),
             "Gov: can't execute this task"
         );
         _;
@@ -55,7 +55,7 @@ contract Executable is IExecutable, IGovSharedStorage {
     */
     function setGovStorageAddress(
         address _newGovStorageAddress
-    ) public onlyDebondOperator {
+    ) public onlyVetoOperator {
         require(
             _newGovStorageAddress != address(0), "Executable: zero address"
         );
