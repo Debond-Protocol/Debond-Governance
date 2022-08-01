@@ -659,7 +659,8 @@ contract("Governance", async (accounts) => {
 
     it.only('Check DBIT earned by voting', async () => {
         let _class = 2;
-        let desc = "Propsal-1: Update the benchMark interest rate";
+        let title = "Propsal-1: Update the benchMark interest rate";
+        let desc = await web3.utils.soliditySha3(title);
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             '10'
         ).encodeABI();
@@ -669,6 +670,7 @@ contract("Governance", async (accounts) => {
             [exec.address],
             [0],
             [callData],
+            title,
             desc,
             { from: operator }
         );
@@ -700,7 +702,6 @@ contract("Governance", async (accounts) => {
     it.only('Check proposer can unstake their vote tokens', async () => {
         let _class = 2;
         let title = "Propsal-1: Update the benchMark interest rate";
-        let desc = "Lorem ipsum dolor sit amet, consectetur adipiscing elit";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             '10'
         ).encodeABI();
@@ -710,7 +711,8 @@ contract("Governance", async (accounts) => {
             [exec.address],
             [0],
             [callData],
-            desc,
+            title,
+            web3.utils.soliditySha3(title),
             { from: operator }
         );
 

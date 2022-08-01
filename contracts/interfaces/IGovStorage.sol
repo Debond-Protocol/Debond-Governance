@@ -100,6 +100,7 @@ interface IGovStorage is IGovSharedStorage {
         uint256 _newProposalThreshold,
         address _executor
     ) external;
+
     function setProposal(
         uint128 _class,
         uint128 _nonce,
@@ -110,7 +111,13 @@ interface IGovStorage is IGovSharedStorage {
         address[] memory _targets,
         uint256[] memory _values,
         bytes[] memory _calldatas,
-        string memory _description
+        string memory _title
+    ) external;
+
+    function setProposalDescriptionHash(
+        uint128 _class,
+        uint128 _nonce,
+        bytes32 _descriptionHash
     ) external;
 
     function setProposalStatus(

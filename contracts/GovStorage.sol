@@ -538,7 +538,7 @@ contract GovStorage is IGovStorage {
         address[] memory _targets,
         uint256[] memory _values,
         bytes[] memory _calldatas,
-        string memory _description
+        string memory _title
     ) public onlyProposalLogic {
         require(_proposer != address(0), "GovStorage: zero address");
 
@@ -549,7 +549,15 @@ contract GovStorage is IGovStorage {
         proposal[_class][_nonce].targets = _targets;
         proposal[_class][_nonce].values = _values;
         proposal[_class][_nonce].calldatas = _calldatas;
-        proposal[_class][_nonce].descriptionHash = keccak256(bytes(_description));
+        proposal[_class][_nonce].title = _title;
+    }
+
+    function setProposalDescriptionHash(
+        uint128 _class,
+        uint128 _nonce,
+        bytes32 _descriptionHash
+    ) external onlyGov {
+        proposal[_class][_nonce].descriptionHash = _descriptionHash;
     }
 
     function setProposalStatus(

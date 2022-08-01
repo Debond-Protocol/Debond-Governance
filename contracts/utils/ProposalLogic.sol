@@ -61,7 +61,7 @@ contract ProposalLogic is IProposalLogic {
     * @param _targets array of contract to interact with if the proposal passes
     * @param _values array contraining ethers to send (can be array of zeros)
     * @param _calldatas array of encoded functions to call if the proposal passes
-    * @param _description proposal description
+    * @param _title proposal title
     */
     function setProposalData(
         uint128 _class,
@@ -69,7 +69,7 @@ contract ProposalLogic is IProposalLogic {
         address[] memory _targets,
         uint256[] memory _values,
         bytes[] memory _calldatas,
-        string memory _description
+        string memory _title
     ) external onlyGov returns(
         uint128 nonce,
         uint256 start,
@@ -121,7 +121,7 @@ contract ProposalLogic is IProposalLogic {
             _targets,
             _values,
             _calldatas,
-            _description
+            _title
         );
     }
 

@@ -80,14 +80,16 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     * @param _targets array of contract to interact with if the proposal passes
     * @param _values array contraining ethers to send (can be array of zeros)
     * @param _calldatas array of encoded functions to call if the proposal passes
-    * @param _description proposal description
+    * @param _title proposal title
+    * @param _descriptionHash proposal description Hash
     */
     function createProposal(
         uint128 _class,
         address[] memory _targets,
         uint256[] memory _values,
         bytes[] memory _calldatas,
-        string memory _description
+        string memory _title,
+        bytes32 _descriptionHash
     ) public {
         (
             uint128 nonce,
@@ -98,8 +100,12 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).setProposalData(
-            _class, _msgSender(), _targets, _values, _calldatas, _description
+            _class, _msgSender(), _targets, _values, _calldatas, _title
         );
+
+        IGovStorage(
+            govStorageAddress
+        ).setProposalDescriptionHash(_class, nonce, _descriptionHash);
 
         emit ProposalCreated(
             _class,
@@ -110,7 +116,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
             _targets,
             _values,
             _calldatas,
-            _description,
+            _title,
             approval
         );
     }
