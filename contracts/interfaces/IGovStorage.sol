@@ -141,6 +141,11 @@ interface IGovStorage is IGovSharedStorage {
         uint128 _nonce
     ) external;
 
+    function estimateInterestEarned(
+        uint256 _amount,
+        uint256 _duration
+    ) external view returns(uint256 interest);
+
     //== FROM EXECUTABLE
     function updateGovernanceContract(
         address _newGovernanceAddress,

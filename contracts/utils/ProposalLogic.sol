@@ -56,7 +56,7 @@ contract ProposalLogic is IProposalLogic {
     }
 
     /**
-    * @dev see {INewGovernance} for description
+    * @dev store proposal data
     * @param _class proposal class
     * @param _targets array of contract to interact with if the proposal passes
     * @param _values array contraining ethers to send (can be array of zeros)
@@ -184,7 +184,7 @@ contract ProposalLogic is IProposalLogic {
 
         uint256 _dgovStaked = IStaking(
             IGovStorage(govStorageAddress).getStakingContract()
-        ).getStakedDGOV(_tokenOwner, _stakingCounter);
+        ).getStakedDGOVAmount(_tokenOwner, _stakingCounter);
         
         uint256 approvedToSpend = IERC20(
             IGovStorage(govStorageAddress).getDGOVAddress()
@@ -229,6 +229,7 @@ contract ProposalLogic is IProposalLogic {
             IGovStorage(govStorageAddress).getInterestForStakingDGOV()
         );
     }
+
 
     /**
     * @dev internal unlockVoteTokens function

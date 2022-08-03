@@ -75,7 +75,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     }
 
     /**
-    * @dev see {INewGovernance} for description
+    * @dev store a new proposal onchain
     * @param _class proposal class
     * @param _targets array of contract to interact with if the proposal passes
     * @param _values array contraining ethers to send (can be array of zeros)
@@ -117,6 +117,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
             _values,
             _calldatas,
             _title,
+            _descriptionHash,
             approval
         );
     }
@@ -278,10 +279,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         address staker = _msgSender();
         require(staker != address(0), "Gov: zero address");
 
-        (
-            uint256 amountStaked,
-            uint256 interest
-        ) = IProposalLogic(
+        (uint256 amountStaked, uint256 interest) = IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).unstakeDGOVandCalculateInterest(staker, _stakingCounter);
 
@@ -291,6 +289,45 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         ).transfer(staker, amountStaked * interest / 1 ether);
 
         unstaked = true;
+    }
+
+    /**
+    * @dev withdraw interest earned by staking DGOV
+    * @param _stakingCounter counter that returns the rank of staking dGoV
+    */
+    function withdrawInterest(
+        uint256 _stakingCounter
+    ) public {
+        address staker = _msgSender();
+        uint256 StackedDGOV = IStaking(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).getStakedDGOVAmount(staker, _stakingCounter);
+
+        require(StackedDGOV > 0, "Gov: no DGOV staked");
+
+        (uint256 startTime, uint256 duration, uint256 lastWithdrawTime) = IStaking(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).getStartTimeDurationAndLastWithdrawTime(staker, _stakingCounter);
+
+        require(
+            block.timestamp >= startTime && block.timestamp <= startTime + duration,
+            "Gov: Unstake DGOV to get interests"
+        );
+
+        uint256 currentDuration = block.timestamp - lastWithdrawTime;
+
+        uint256 interestEarned = IGovStorage(
+            govStorageAddress
+        ).estimateInterestEarned(StackedDGOV, currentDuration);
+
+        IStaking(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).setLastTimeInterestWithdraw(staker, _stakingCounter);
+
+        // MUST BE TRANSFERRED FROM APM
+        IERC20(
+            IGovStorage(govStorageAddress).getDBITAddress()
+        ).transfer(staker, interestEarned);
     }
 
     /**
@@ -373,21 +410,6 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         address _executor
     ) public onlyVetoOperator {
         IGovStorage(govStorageAddress).setThreshold(_newThreshold, _executor);
-    }
-
-    /**
-    * @dev Estimate how much Interest the user has gained since he staked dGoV
-    * @param _amount the amount of DGOV staked
-    * @param _duration staking duration to estimate interest from
-    * @param interest the estimated interest earned so far
-    */
-    function estimateInterestEarned(
-        uint256 _amount,
-        uint256 _duration
-    ) external view returns(uint256 interest) {
-        interest = (
-            _amount * IGovStorage(govStorageAddress).getInterestForStakingDGOV() * _duration
-        ) / (100 * IGovStorage(govStorageAddress).getNumberOfSecondInYear());
     }
 
     /**

@@ -17,6 +17,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IVoteToken.sol";
+import "./interfaces/IGovStorage.sol";
 import "./interfaces/IStaking.sol";
 
 contract StakingDGOV is IStaking, ReentrancyGuard {
@@ -25,7 +26,9 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
     */
     struct StackedDGOV {
         uint256 amountDGOV;
+        uint256 interestAlreadyWithdrawn;
         uint256 startTime;
+        uint256 lastInterestWithdrawTime;
         uint256 duration;
     }
 
@@ -42,6 +45,7 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
     address public voteToken;
     address public governance;
     address public proposalLogic;
+    address public govStorageAddress;
 
     modifier onlyGov() {
         require(msg.sender == governance, "StakingDGOV: only governance");
@@ -60,12 +64,14 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
         address _dgovToken,
         address _voteToken,
         address _governance,
-        address _proposalLogic
+        address _proposalLogic,
+        address _govStorageAddress
     ) {
         dGov = _dgovToken;
         voteToken = _voteToken;
         governance = _governance;
         proposalLogic = _proposalLogic;
+        govStorageAddress = _govStorageAddress;
         IdGov = IERC20(_dgovToken);
         Ivote = IVoteToken(_voteToken);
     }
@@ -89,6 +95,7 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
         uint256 counter = stakingCounter[_staker];
 
         stackedDGOV[_staker][counter + 1].startTime = block.timestamp;
+        stackedDGOV[_staker][counter + 1].lastInterestWithdrawTime = block.timestamp;
         stackedDGOV[_staker][counter + 1].duration = _duration;
         stackedDGOV[_staker][counter + 1].amountDGOV += _amount;
         stakingCounter[_staker] = counter + 1;
@@ -109,13 +116,12 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
         uint256 _stakingCounter
     ) external override onlyProposalLogic nonReentrant returns(uint256 unstakedAmount) {
         StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
+        require(_staked.amountDGOV > 0, "Staking: no dGoV staked");
 
         require(
             block.timestamp >= _staked.startTime + _staked.duration,
             "Staking: still staking"
         );
-
-        require(_staked.amountDGOV > 0, "Staking: no dGoV staked");
 
         unstakedAmount = _staked.amountDGOV;
         _staked.amountDGOV = 0;
@@ -128,6 +134,35 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
     }
 
     /**
+    * @dev set last interest withdraw time for DGOV staked
+    * @param _staker DGOV staker
+    * @param _stakingCounter the staking rank
+    */
+    function setLastTimeInterestWithdraw(
+        address _staker,
+        uint256 _stakingCounter
+    ) external onlyGov {
+        StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
+        require(_staked.amountDGOV > 0, "Staking: no DGOV staked");
+
+        require(
+            block.timestamp >= _staked.lastInterestWithdrawTime &&
+            block.timestamp < _staked.startTime + _staked.duration,
+            "Staking: Unstake DGOV to withdraw interest"
+        );
+
+        stackedDGOV[_staker][_stakingCounter].lastInterestWithdrawTime = block.timestamp;
+    }
+
+    function setInterestAlreadyWithdrawn(
+        address _staker,
+        uint256 _stakingCounter,
+        uint256 _amount
+    ) external onlyGov {
+        stackedDGOV[_staker][_stakingCounter].interestAlreadyWithdrawn = _amount;
+    }
+
+    /**
     * @dev calculate the interest earned by DGOV staker
     * @param _staker DGOV staker
     * @param _stakingCounter the staking rank
@@ -137,11 +172,16 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
         address _staker,
         uint256 _stakingCounter,
         uint256 _interestRate
-    ) external view override returns(uint256 interest) {
+    ) external view returns(uint256 interest) {
         StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
-        require(_staked.amountDGOV > 0, "Staking: not dGoV staked");
 
-        interest = (_interestRate * _staked.duration * 1 ether) / (100 * NUMBER_OF_SECONDS_IN_YEAR);
+        uint256 duration = block.timestamp - _staked.lastInterestWithdrawTime;
+
+        if (block.timestamp > _staked.startTime + _staked.duration) {
+            duration = _staked.startTime + _staked.duration - _staked.lastInterestWithdrawTime;
+        }
+
+        interest = (_interestRate * duration * 1 ether) / (100 * NUMBER_OF_SECONDS_IN_YEAR);
     }
 
     /**
@@ -150,7 +190,26 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
     * @param _stakingCounter the staking rank
     * @param _stakedAmount amount of dGoV staked by the user
     */
-    function getStakedDGOV(address _staker, uint256 _stakingCounter) external view override returns(uint256 _stakedAmount) {
+    function getStakedDGOVAmount(
+        address _staker,
+        uint256 _stakingCounter
+    ) external view returns(uint256 _stakedAmount) {
         _stakedAmount = stackedDGOV[_staker][_stakingCounter].amountDGOV;
+    }
+
+    function getStartTimeDurationAndLastWithdrawTime(
+        address _staker,
+        uint256 _stakingCounter
+    ) external view returns(uint256 startTime, uint256 duration, uint256 lastWithdrawTime) {
+        (
+            startTime,
+            duration,
+            lastWithdrawTime
+        ) =
+        (
+            stackedDGOV[_staker][_stakingCounter].startTime,
+            stackedDGOV[_staker][_stakingCounter].duration,
+            stackedDGOV[_staker][_stakingCounter].lastInterestWithdrawTime
+        );
     }
 }

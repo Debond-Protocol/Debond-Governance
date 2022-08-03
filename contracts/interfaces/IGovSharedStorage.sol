@@ -77,6 +77,7 @@ interface IGovSharedStorage {
         uint256[] values,
         bytes[] calldatas,
         string title,
+        bytes32 descriptionHash,
         ProposalApproval approval
     );
 

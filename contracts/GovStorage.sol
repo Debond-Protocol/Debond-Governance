@@ -595,6 +595,21 @@ contract GovStorage is IGovStorage {
         proposalNonce[_class] = _nonce;
     }
 
+    /**
+    * @dev Estimate how much Interest the user has gained since he staked dGoV
+    * @param _amount the amount of DGOV staked
+    * @param _duration staking duration to estimate interest from
+    * @param interest the estimated interest earned so far
+    */
+    function estimateInterestEarned(
+        uint256 _amount,
+        uint256 _duration
+    ) external view returns(uint256 interest) {
+        interest = (
+            _amount * getInterestForStakingDGOV() * _duration
+        ) / (100 * getNumberOfSecondInYear());
+    }
+
     //==== FROM EXECUTABLE
 
     function updateGovernanceContract(

@@ -26,14 +26,24 @@ interface IStaking {
         uint256 _stakingCounter
     ) external returns(uint256 unstakedAmount);
 
-    function getStakedDGOV(
+    function getStakedDGOVAmount(
         address _staker,
         uint256 _stakingCounter
     ) external view returns(uint256 _stakedAmount);
+
+    function setLastTimeInterestWithdraw(
+        address _staker,
+        uint256 _stakingCounter
+    ) external;
 
     function calculateInterestEarned(
         address _staker,
         uint256 _stakingCounter,
         uint256 _interestRate
     ) external view returns(uint256 interest);
+
+    function getStartTimeDurationAndLastWithdrawTime(
+        address _staker,
+        uint256 _stakingCounter
+    ) external view returns(uint256 startTime, uint256 duration, uint256 lastWithdrawTime);
 }

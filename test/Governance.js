@@ -41,6 +41,7 @@ contract("Governance", async (accounts) => {
     let user3 = accounts[4];
     let user4 = accounts[5];
     let user5 = accounts[6];
+    let user6 = accounts[7];
 
     let ProposalStatus = {
         Active: '0',
@@ -61,7 +62,7 @@ contract("Governance", async (accounts) => {
         dgov = await DGOV.new(gov.address, operator, operator, operator);
         exec = await Executable.new(storage.address, count.address);
         logic = await ProposalLogic.new(operator, storage.address, vote.address, count.address);
-        stak = await StakingDGOV.new(dgov.address, vote.address, gov.address, logic.address);
+        stak = await StakingDGOV.new(dgov.address, vote.address, gov.address, logic.address, storage.address);
 
         // initialize all contracts
         await storage.setUpGoup1(
@@ -103,7 +104,8 @@ contract("Governance", async (accounts) => {
         // set the staking contract address into proposalLogic
         await logic.setStakingContract(stak.address);
 
-        let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
+        //let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
+        let amount = await web3.utils.toWei(web3.utils.toBN(10000), 'ether');
         await dbit.mintCollateralisedSupply(debondTeam, amount, { from: operator });
         await dbit.transfer(gov.address, amount, { from: debondTeam });
 
@@ -168,7 +170,7 @@ contract("Governance", async (accounts) => {
         await wait(12000);
 
         await gov.unstakeDGOV(1, { from: user1 });
-        let estimate = await gov.estimateInterestEarned(amountToStake, 10);
+        let estimate = await storage.estimateInterestEarned(amountToStake, 10);
 
         let balanceAfter = await dbit.balanceOf(user1);
 
@@ -192,6 +194,63 @@ contract("Governance", async (accounts) => {
         );
     });
 
+    it("Withdraw staking DGOV interest before end of staking", async () => {
+        amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
+
+        await dgov.mintCollateralisedSupply(debondTeam, amountToStake, { from: operator });
+        await dgov.transfer(user6, amountToStake, { from: debondTeam });
+        await dgov.approve(stak.address, amountToStake, { from: user6 });
+        await dgov.approve(user6, amountToStake, { from: user6 });
+
+        await gov.stakeDGOV(amountToStake, 10, { from: user6 });
+
+        await wait(4000);
+
+        await gov.withdrawInterest(1, { from: user6 });
+
+        await wait(8000);
+
+        await gov.unstakeDGOV(1, { from: user6 });
+
+        let userBalanceFinal = await dbit.balanceOf(user6);
+        let estimate = await storage.estimateInterestEarned(amountToStake, 10);
+
+        expect(
+            (Number(userBalanceFinal.toString()) / 1000).toFixed(0)
+        ).to.equal(
+            (Number(estimate.toString()) / 1000).toFixed(0)
+        );
+    });
+
+    it.only("Several inetrest withdraw before end of staking", async () => {
+        amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
+
+        await dgov.mintCollateralisedSupply(debondTeam, amountToStake, { from: operator });
+        await dgov.transfer(user6, amountToStake, { from: debondTeam });
+        await dgov.approve(stak.address, amountToStake, { from: user6 });
+        await dgov.approve(user6, amountToStake, { from: user6 });
+
+        await gov.stakeDGOV(amountToStake, 10, { from: user6 });
+
+        await wait(4000);
+        await gov.withdrawInterest(1, { from: user6 });
+        await wait(3000);
+        await gov.withdrawInterest(1, { from: user6 });
+
+        await wait(6000);
+
+        await gov.unstakeDGOV(1, { from: user6 });
+
+        let userBalanceFinal = await dbit.balanceOf(user6);
+        let estimate = await storage.estimateInterestEarned(amountToStake, 10);
+
+        expect(
+            (Number(userBalanceFinal.toString()) / 1000).toFixed(0)
+        ).to.equal(
+            (Number(estimate.toString()) / 1000).toFixed(0)
+        );
+    });
+
     it('Cannot unstake DGOV before staking ends', async () => {
         amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
 
@@ -211,10 +270,9 @@ contract("Governance", async (accounts) => {
 
     it("Create a proposal", async () => {
         let _class = 0;
-        let desc = "Propsal-1: Update the benchMark interest rate";
+        let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
-            '10',
-            operator
+            '10'
         ).encodeABI();
         
         let res = await gov.createProposal(
@@ -222,7 +280,9 @@ contract("Governance", async (accounts) => {
             [exec.address],
             [0],
             [callData],
-            desc
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
         );
 
         // fetch data from the emitted event
@@ -251,15 +311,15 @@ contract("Governance", async (accounts) => {
         expect(proposal.approvalMode.toString())
             .to.equal(approvalMode.toString());
 
-        expect(event.description).to.equal(desc);
+        expect(event.title).to.equal(title);
+        expect(event.descriptionHash).to.equal(web3.utils.soliditySha3(title));
     });
 
     it("Cancel a proposal", async () => {
         let _class = 0;
-        let desc = "Propsal-1: Update the benchMark interest rate";
+        let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
-            '10',
-            operator
+            '10'
         ).encodeABI();
       
         let res = await gov.createProposal(
@@ -267,7 +327,8 @@ contract("Governance", async (accounts) => {
             [exec.address],
             [0],
             [callData],
-            desc,
+            title,
+            web3.utils.soliditySha3(title),
             { from: operator }
         );
 
@@ -283,7 +344,7 @@ contract("Governance", async (accounts) => {
     it("Change the benchmark interest rate", async () => {
         // create a proposal
         let _class = 0;
-        let desc = "Propsal-1: Update the benchMark interest rate";
+        let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             '10'
         ).encodeABI();
@@ -293,7 +354,8 @@ contract("Governance", async (accounts) => {
             [exec.address],
             [0],
             [callData],
-            desc,
+            title,
+            web3.utils.soliditySha3(title),
             { from: operator }
         );
 
@@ -337,7 +399,7 @@ contract("Governance", async (accounts) => {
 
         // create a proposal
         let _class = 0;
-        let desc = "Propsal-1: Update the budget part per million";
+        let title = "Propsal-1: Update the budget part per million";
         let callData = await exec.contract.methods.changeCommunityFundSize(
             _class,
             newDBITBudget,
@@ -349,7 +411,8 @@ contract("Governance", async (accounts) => {
             [exec.address],
             [0],
             [callData],
-            desc,
+            title,
+            web3.utils.soliditySha3(title),
             { from: operator }
         );
 
@@ -389,7 +452,7 @@ contract("Governance", async (accounts) => {
 
         // create a proposal
         let _class = 0;
-        let desc = "Propsal-1: Mint the team allocation token";
+        let title = "Propsal-1: Mint the team allocation token";
         let callData = await exec.contract.methods.mintAllocatedToken(
             debondTeam,
             amountDBIT,
@@ -401,7 +464,8 @@ contract("Governance", async (accounts) => {
             [exec.address],
             [0],
             [callData],
-            desc,
+            title,
+            web3.utils.soliditySha3(title),
             {from: operator}
         );
 
@@ -441,7 +505,7 @@ contract("Governance", async (accounts) => {
         let newDGOVAmount = await web3.utils.toWei(web3.utils.toBN(90000), 'ether');
 
         let _class = 0;
-        let desc = "Propsal-1: Change the team allocation token amount";
+        let title = "Propsal-1: Change the team allocation token amount";
         callData = await exec.contract.methods.changeTeamAllocation(
             debondTeam,
             newDBITAmount,
@@ -453,7 +517,8 @@ contract("Governance", async (accounts) => {
             [exec.address],
             [0],
             [callData],
-            desc,
+            title,
+            web3.utils.soliditySha3(title),
             {from: operator}
         );
 
@@ -487,7 +552,7 @@ contract("Governance", async (accounts) => {
 
         // create a proposal
         let _class = 0;
-        let desc = "Propsal-1: Claim Funds for a proposal";
+        let title = "Propsal-1: Claim Funds for a proposal";
         let callData = await exec.contract.methods.claimFundForProposal(
             _class,
             debondTeam,
@@ -500,7 +565,8 @@ contract("Governance", async (accounts) => {
             [exec.address],
             [0],
             [callData],
-            desc,
+            title,
+            web3.utils.soliditySha3(title),
             {from: operator}
         );
 
@@ -537,7 +603,7 @@ contract("Governance", async (accounts) => {
     it("check a proposal didn't pass", async () => {
         // create a proposal
         let _class = 2;
-        let desc = "Propsal-1: Update the benchMark interest rate";
+        let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             '10'
         ).encodeABI();
@@ -547,7 +613,8 @@ contract("Governance", async (accounts) => {
             [exec.address],
             [0],
             [callData],
-            desc,
+            title,
+            web3.utils.soliditySha3(title),
             { from: operator }
         );
 
@@ -576,7 +643,7 @@ contract("Governance", async (accounts) => {
     it("check the delegate vote", async () => {
         // create a proposal
         let _class = 0;
-        let desc = "Propsal-1: Update the benchMark interest rate";
+        let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             '10'
         ).encodeABI();
@@ -586,7 +653,8 @@ contract("Governance", async (accounts) => {
             [exec.address],
             [0],
             [callData],
-            desc,
+            title,
+            web3.utils.soliditySha3(title),
             { from: operator }
         );
 
@@ -611,7 +679,7 @@ contract("Governance", async (accounts) => {
 
     it('check proposal of class 2 passes', async () => {
         let _class = 2;
-        let desc = "Propsal-1: Update the benchMark interest rate";
+        let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             '10'
         ).encodeABI();
@@ -621,7 +689,8 @@ contract("Governance", async (accounts) => {
             [exec.address],
             [0],
             [callData],
-            desc,
+            title,
+            web3.utils.soliditySha3(title),
             { from: operator }
         );
 
@@ -657,7 +726,7 @@ contract("Governance", async (accounts) => {
             );
     });
 
-    it.only('Check DBIT earned by voting', async () => {
+    it('Check DBIT earned by voting', async () => {
         let _class = 2;
         let title = "Propsal-1: Update the benchMark interest rate";
         let desc = await web3.utils.soliditySha3(title);
@@ -699,7 +768,7 @@ contract("Governance", async (accounts) => {
     });
 
 
-    it.only('Check proposer can unstake their vote tokens', async () => {
+    it('Check proposer can unstake their vote tokens', async () => {
         let _class = 2;
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
