@@ -56,7 +56,7 @@ contract("Governance", async (accounts) => {
         count = await VoteCounting.new();
         vote = await VoteToken.new("Debond Vote Token", "DVT", operator);
         storage = await GovStorage.new(debondTeam, operator);
-        settings = await GovSettings.new(17, 17, storage.address);
+        settings = await GovSettings.new(storage.address);
         gov = await Governance.new(storage.address, count.address);
         dbit = await DBIT.new(gov.address, operator, operator, operator);
         dgov = await DGOV.new(gov.address, operator, operator, operator);
@@ -109,6 +109,7 @@ contract("Governance", async (accounts) => {
         await dbit.mintCollateralisedSupply(debondTeam, amount, { from: operator });
         await dbit.transfer(gov.address, amount, { from: debondTeam });
 
+        //amountToMint = await web3.utils.toWei(web3.utils.toBN(200), 'ether');
         amountToMint = await web3.utils.toWei(web3.utils.toBN(200), 'ether');
         amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
 
@@ -174,6 +175,9 @@ contract("Governance", async (accounts) => {
 
         let balanceAfter = await dbit.balanceOf(user1);
 
+        console.log("estimate:", estimate.toString());
+        console.log("estimate:", balanceAfter.toString());
+
         let balAfter = await dgov.balanceOf(user1);
         let balContractAfter = await dgov.balanceOf(stak.address);
 
@@ -222,7 +226,7 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it.only("Several inetrest withdraw before end of staking", async () => {
+    it("Several inetrest withdraw before end of staking", async () => {
         amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
 
         await dgov.mintCollateralisedSupply(debondTeam, amountToStake, { from: operator });
@@ -232,7 +236,7 @@ contract("Governance", async (accounts) => {
 
         await gov.stakeDGOV(amountToStake, 10, { from: user6 });
 
-        await wait(4000);
+        await wait(2000);
         await gov.withdrawInterest(1, { from: user6 });
         await wait(3000);
         await gov.withdrawInterest(1, { from: user6 });
@@ -361,8 +365,6 @@ contract("Governance", async (accounts) => {
 
         let event = res.logs[0].args;
 
-        await wait(18000);
-
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
@@ -418,8 +420,6 @@ contract("Governance", async (accounts) => {
 
         let event = res.logs[0].args;
 
-        await wait(18000);
-
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
@@ -470,8 +470,6 @@ contract("Governance", async (accounts) => {
         );
 
         let event = res.logs[0].args;
-
-        await wait(18000);
 
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, {from: user1});
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, {from: user2});
@@ -524,8 +522,6 @@ contract("Governance", async (accounts) => {
 
         let event = res.logs[0].args;
 
-        await wait(18000);
-
         await gov.vote(event.class, event.nonce, user1, 0, toStake, 1, {from: user1});
         await gov.vote(event.class, event.nonce, user2, 1, toStake, 1, {from: user2});
         await gov.vote(event.class, event.nonce, user3, 0, toStake, 1, {from: user3});
@@ -540,11 +536,6 @@ contract("Governance", async (accounts) => {
             {from: operator}
         );
     });
-
-
-
-
-
 
     it("claim fund for proposal", async () => {
         let amountDBIT = await web3.utils.toWei(web3.utils.toBN(2), 'ether');
@@ -571,8 +562,6 @@ contract("Governance", async (accounts) => {
         );
 
         let event = res.logs[0].args;
-
-        await wait(18000);
 
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, {from: user1});
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, {from: user2});
@@ -620,8 +609,6 @@ contract("Governance", async (accounts) => {
 
         let event = res.logs[0].args;
 
-        await wait(18000);
-
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 1, amountToStake, 1, { from: user3 });
@@ -638,6 +625,7 @@ contract("Governance", async (accounts) => {
             Error,
             "VM Exception while processing transaction: revert Gov: proposal not successful -- Reason given: Gov: proposal not successful"
         );
+
     });
 
     it("check the delegate vote", async () => {
@@ -659,8 +647,6 @@ contract("Governance", async (accounts) => {
         );
 
         let event = res.logs[0].args;
-
-        await wait(18000);
 
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user4 });
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
@@ -696,8 +682,6 @@ contract("Governance", async (accounts) => {
 
         let event = res.logs[0].args;
 
-        await wait(18000);
-
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
@@ -726,7 +710,7 @@ contract("Governance", async (accounts) => {
             );
     });
 
-    it('Check DBIT earned by voting', async () => {
+    it.only('Check DBIT earned by voting', async () => {
         let _class = 2;
         let title = "Propsal-1: Update the benchMark interest rate";
         let desc = await web3.utils.soliditySha3(title);
@@ -746,11 +730,10 @@ contract("Governance", async (accounts) => {
 
         let event = res.logs[0].args;
 
-        await wait(18000);
-
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
+        await gov.vote(event.class, event.nonce, operator, 0, amountToStake, 1, { from: operator });
 
         await wait(18000);
 
@@ -759,14 +742,18 @@ contract("Governance", async (accounts) => {
 
         let balanceVoteAfter = await dbit.balanceOf(user1);
         balanceVoteAfter = Number(balanceVoteAfter.toString()) / 1e18;
-        balanceVoteAfter = balanceVoteAfter.toFixed(15)
+        balanceVoteAfter = balanceVoteAfter.toFixed(15);
 
-        let reward = amountToStake * 5 / (3 * amountToStake);
+        let balanceProposer = await dbit.balanceOf(operator);
+        balanceProposer = Number(balanceProposer.toString()) / 1e18;
+        balanceProposer = balanceProposer.toFixed(15);
+
+        let reward = amountToStake * 5 / (4 * amountToStake);
         reward = reward.toFixed(15);
 
         expect(balanceVoteAfter).to.equal(reward);
+        expect(balanceProposer).to.equal(reward);
     });
-
 
     it('Check proposer can unstake their vote tokens', async () => {
         let _class = 2;
@@ -787,8 +774,6 @@ contract("Governance", async (accounts) => {
 
         let event = res.logs[0].args;
 
-        await wait(18000);
-
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
@@ -804,12 +789,6 @@ contract("Governance", async (accounts) => {
 
         expect(balanceAfter.toString()).to.equal(balanceBefore.add(thresold).toString())
     });
-
-
-
-
-
-
 
     it('update DGOV max supply', async () => {
         let toAdd = await web3.utils.toWei(web3.utils.toBN(4000000), 'ether');

@@ -152,10 +152,20 @@ contract VoteCounting is IVoteCounting {
     ) public onlyProposalLogic {
         require(_account != address(0), "VoteCounting: zero address");
         require(
-            _proposalVotes[_class][_nonce].user[_account].hasVoted == true &&
             _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded == false,
-            "VoteCounting: didn't vote or have been rewarded already"
+            "VoteCounting: already rewarded"
         );
+
+        address proposer = IGovStorage(
+            govStorageAddress
+        ).getProposalProposer(_class, _nonce);
+
+        if(_account != proposer) {
+            require(
+                _proposalVotes[_class][_nonce].user[_account].hasVoted == true,
+                "VoteCounting: you didn't vote"
+            );        
+        }
 
         _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded = true;
     }

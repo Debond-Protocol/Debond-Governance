@@ -18,12 +18,14 @@ import "../interfaces/IGovSettings.sol";
 import "../interfaces/IGovStorage.sol";
 
 contract GovSettings is IGovSettings {
-    uint256 private _votingDelay;
-    uint256 private _votingPeriod;
+    mapping(uint128 => uint256) private _votingPeriod;
+
     address govStorageAddress;
 
     event votingDelaySet(uint256 oldDelay, uint256 newDelay);
     event votingPeriodSet(uint256 oldPeriod, uint256 newPeriod);
+
+    event periodSet(uint128 _class, uint256 _period);
 
     modifier onlyDebondExecutor {
         require(
@@ -35,40 +37,27 @@ contract GovSettings is IGovSettings {
     }
 
     constructor(
-        uint256 _initialVotingDelay,
-        uint256 _initialVotingPeriod,
         address _govStorageAddress
     ) {
-        _votingDelay = _initialVotingDelay;
-        _votingPeriod = _initialVotingPeriod;
         govStorageAddress = _govStorageAddress;
+
+        _votingPeriod[0] = 17;
+        _votingPeriod[1] = 17;
+        _votingPeriod[2] = 17;
     }
 
-    function votingDelay() public view override returns(uint256) {
-        return _votingDelay;
+    //===
+    function getVotingPeriod(uint128 _class) public view returns(uint256) {
+        return _votingPeriod[_class];
     }
 
-    function votingPeriod() public view override returns(uint256) {
-        return _votingPeriod;
+    function setVotingPeriod(uint128 _class, uint256 _period) public onlyDebondExecutor {
+        _setPeriod(_class, _period);
+        emit periodSet(_class, _period);
     }
 
-    function setVotingDelay(uint256 _newDelay) public onlyDebondExecutor override {
-        _setVotingDelay(_newDelay);
-    }
-
-    function setVotingPeriod(uint256 _newPeriod) public onlyDebondExecutor override {
-        _setVotingPeriod(_newPeriod);
-    }
-
-
-
-    function _setVotingDelay(uint256 _newDelay) internal {
-        emit votingDelaySet(_votingDelay, _newDelay);
-        _votingDelay = _newDelay;
-    }
-
-    function _setVotingPeriod(uint256 _newPeriod) internal {
-        emit votingPeriodSet(_votingPeriod, _newPeriod);
-        _votingPeriod = _newPeriod;
+    function _setPeriod(uint128 _class, uint256 _period) private {
+        emit periodSet(_class, _period);
+        _votingPeriod[_class] = _period;
     }
 }

@@ -26,7 +26,6 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
     */
     struct StackedDGOV {
         uint256 amountDGOV;
-        uint256 interestAlreadyWithdrawn;
         uint256 startTime;
         uint256 lastInterestWithdrawTime;
         uint256 duration;
@@ -154,14 +153,6 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
         stackedDGOV[_staker][_stakingCounter].lastInterestWithdrawTime = block.timestamp;
     }
 
-    function setInterestAlreadyWithdrawn(
-        address _staker,
-        uint256 _stakingCounter,
-        uint256 _amount
-    ) external onlyGov {
-        stackedDGOV[_staker][_stakingCounter].interestAlreadyWithdrawn = _amount;
-    }
-
     /**
     * @dev calculate the interest earned by DGOV staker
     * @param _staker DGOV staker
@@ -181,7 +172,7 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
             duration = _staked.startTime + _staked.duration - _staked.lastInterestWithdrawTime;
         }
 
-        interest = (_interestRate * duration * 1 ether) / (100 * NUMBER_OF_SECONDS_IN_YEAR);
+        interest = (_interestRate * duration) / (100 * NUMBER_OF_SECONDS_IN_YEAR);
     }
 
     /**

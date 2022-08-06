@@ -20,7 +20,6 @@ interface IGovStorage is IGovSharedStorage {
     function isInitialized() external view returns(bool);
     function getThreshold() external view returns(uint256);
     function getVetoOperator() external view returns(address);
-    function getInterestForStakingDGOV() external view returns(uint256);
     function getExecutableContract() external view returns(address);
     function getStakingContract() external view returns(address);
     function getProposalLogicContract() external view returns(address);
@@ -198,6 +197,8 @@ interface IGovStorage is IGovSharedStorage {
     function getVoteCountingAddress() external view returns(address);
     function getDebondTeamAddress() external view returns(address);
     function getBenchmarkIR() external view returns(uint256);
+    function votingInterestRate() external view returns(uint256);
+    function stakingInterestRate() external view returns(uint256);
     function getBudget() external view returns(uint256, uint256);
     function getAllocationDistributed() external view returns(uint256, uint256);
     function getTotalAllocationDistributed() external view returns(uint256, uint256);

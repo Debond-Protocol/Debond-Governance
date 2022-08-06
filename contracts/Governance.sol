@@ -345,16 +345,8 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).unlockVoteTokens(_class, _nonce, tokenOwner);
 
-        IGovStorage(
-            govStorageAddress
-        ).getProposalProposer(_class, _nonce);
-
-        if (
-            tokenOwner != IGovStorage(govStorageAddress).getProposalProposer(_class, _nonce)
-        ) {
-           // transfer the rewards earned for this vote
-            _transferDBITInterest(_class, _nonce, tokenOwner); 
-        }
+        // MUST BE TRANSFERRED FROM APM
+        _transferDBITInterest(_class, _nonce, tokenOwner);
     }
 
     /**
@@ -370,7 +362,7 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     ) internal {
         uint256 reward = IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
-        ).transferInterest(_class, _nonce, _tokenOwner);
+        ).calculateReward(_class, _nonce, _tokenOwner);
 
         // MUST BE TRANSFERRED FROM APM
         IERC20(

@@ -15,8 +15,6 @@ pragma solidity ^0.8.0;
 */
 
 interface IGovSettings {
-    function votingDelay() external view returns(uint256);
-    function votingPeriod() external view returns(uint256);
-    function setVotingDelay(uint256 _newDelay) external;
-    function setVotingPeriod(uint256 _newPeriod) external;
+    function getVotingPeriod(uint128 _class) external view returns(uint256);
+    function setVotingPeriod(uint128 _class, uint256 _period) external;
 }

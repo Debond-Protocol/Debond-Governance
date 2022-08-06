@@ -17,6 +17,7 @@ pragma solidity ^0.8.0;
 import "@debond-protocol/debond-token-contracts/interfaces/IDGOV.sol";
 import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
 import "@debond-protocol/debond-exchange-contracts/interfaces/IExchangeStorage.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IGovStorage.sol";
 import "./interfaces/IVoteCounting.sol";
 
@@ -64,8 +65,7 @@ contract GovStorage is IGovStorage {
     uint256 public dgovTotalAllocationDistributed;
 
     uint256 public benchmarkInterestRate;
-    uint256 public interestRateForStakingDGOV;
-    uint256 public _proposalThreshold;
+    uint256 private _proposalThreshold;
     uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
 
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
@@ -124,6 +124,13 @@ contract GovStorage is IGovStorage {
         _;
     }
 
+    modifier onlyVoteCounting {
+        require(
+            msg.sender == getVoteCountingAddress()
+        );
+        _;
+    }
+
     modifier onlyDebondContracts() {
         require(
             msg.sender == getGovernanceAddress() ||
@@ -138,7 +145,6 @@ contract GovStorage is IGovStorage {
         address _vetoOperator
     ) {
         _proposalThreshold = 10 ether;
-        interestRateForStakingDGOV = 5;
 
         debondTeam = _debondTeam;
         vetoOperator = _vetoOperator;
@@ -154,12 +160,12 @@ contract GovStorage is IGovStorage {
 
         // proposal class info
         proposalClassInfo[0][0] = 3;
-        proposalClassInfo[0][1] = 50;
+        proposalClassInfo[0][1] = 70;
         proposalClassInfo[0][3] = 1;
         proposalClassInfo[0][4] = 1;
 
         proposalClassInfo[1][0] = 3;
-        proposalClassInfo[1][1] = 50;
+        proposalClassInfo[1][1] = 60;
         proposalClassInfo[1][3] = 1;
         proposalClassInfo[1][4] = 1;
 
@@ -175,7 +181,7 @@ contract GovStorage is IGovStorage {
         votingReward[1].numberOfVotingDays = 3;
         votingReward[1].numberOfDBITDistributedPerDay = 5;
 
-        votingReward[2].numberOfVotingDays = 1; // 3
+        votingReward[2].numberOfVotingDays = 1;
         votingReward[2].numberOfDBITDistributedPerDay = 5;
     }
 
@@ -291,10 +297,6 @@ contract GovStorage is IGovStorage {
         return airdropContract;
     }
 
-    function getInterestForStakingDGOV() public view returns(uint256) {
-        return interestRateForStakingDGOV;
-    }
-
     function getNumberOfSecondInYear() public pure returns(uint256) {
         return NUMBER_OF_SECONDS_IN_YEAR;
     }
@@ -340,6 +342,10 @@ contract GovStorage is IGovStorage {
 
     function getBenchmarkIR() public view returns(uint256) {
         return benchmarkInterestRate;
+    }
+
+    function _getDGOVBalanceOfStakingContract() internal view returns(uint256) {
+        return IERC20(dgovContract).balanceOf(stakingContract);
     }
 
     function getBudget() public view returns(uint256, uint256) {
@@ -452,10 +458,6 @@ contract GovStorage is IGovStorage {
 
         if (_proposal.status == ProposalStatus.Executed) {
             return ProposalStatus.Executed;
-        }
-
-        if (block.timestamp <= _proposal.startTime) {
-            return ProposalStatus.Pending;
         }
 
         if (block.timestamp <= _proposal.endTime) {
@@ -606,8 +608,37 @@ contract GovStorage is IGovStorage {
         uint256 _duration
     ) external view returns(uint256 interest) {
         interest = (
-            _amount * getInterestForStakingDGOV() * _duration
+            (_amount * stakingInterestRate() / 1 ether) * _duration
         ) / (100 * getNumberOfSecondInYear());
+    }
+
+    /**
+    * @dev return the daily interest rate for voting (in percent)
+    * return "totalDGOVLocked * benchmark * CDP * (30 / 100) / (360)
+    * reducing the number of operations from 5 to 3 to save gas
+    */
+    function votingInterestRate() public view returns(uint256) {
+        uint256 cdpPrice = _cdpDGOVToDBIT();
+        
+        return benchmarkInterestRate * cdpPrice / 1200;
+    }
+
+    /**
+    * @dev return the daily interest rate for staking DGOV (in percent)
+    */
+    function stakingInterestRate() public view returns(uint256) {
+        uint256 cdpPrice = _cdpDGOVToDBIT();
+        
+        return benchmarkInterestRate * cdpPrice * 70 / 100;
+    }
+
+    /**
+    * return the CDP of DGOV to DBIT
+    */
+    function _cdpDGOVToDBIT() private view returns(uint256) {
+        uint256 dgovTotalSupply = IDebondToken(getDGOVAddress()).getTotalCollateralisedSupply();
+
+        return 100 ether + ((dgovTotalSupply / 33333)**2 / 1 ether);
     }
 
     //==== FROM EXECUTABLE

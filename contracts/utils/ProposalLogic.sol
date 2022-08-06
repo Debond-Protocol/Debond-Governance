@@ -103,13 +103,11 @@ contract ProposalLogic is IProposalLogic {
             nonce
         );
 
-        start = block.timestamp + IGovSettings(
-            IGovStorage(govStorageAddress).getGovSettingContract()
-        ).votingDelay();
+        start = block.timestamp;
         
         end = start + IGovSettings(
             IGovStorage(govStorageAddress).getGovSettingContract()
-        ).votingPeriod();
+        ).getVotingPeriod(_class);
 
         IGovStorage(govStorageAddress).setProposal(
             _class,
@@ -193,23 +191,25 @@ contract ProposalLogic is IProposalLogic {
         require(
             _amountVoteTokens <= _dgovStaked &&
             _amountVoteTokens <= approvedToSpend,
-            "Gov: not approved or not enough dGoV staked"
-        );
-    
-        require(
-            _amountVoteTokens <= 
-            IERC20(
-                IGovStorage(govStorageAddress).getVoteTokenContract()
-            ).balanceOf(_tokenOwner) - 
-            IVoteToken(
-                IGovStorage(govStorageAddress).getVoteTokenContract()
-            ).lockedBalanceOf(_tokenOwner, _class, _nonce),
-            "Gov: not enough vote tokens"
+            "ProposalLogic: not approved or not enough dGoV staked"
         );
 
-        IVoteToken(
-            IGovStorage(govStorageAddress).getVoteTokenContract()
-        ).lockTokens(_tokenOwner, _voter, _amountVoteTokens, _class, _nonce);
+        if (_voter != _tokenOwner) {
+            require(
+                _amountVoteTokens <= 
+                IERC20(
+                    IGovStorage(govStorageAddress).getVoteTokenContract()
+                ).balanceOf(_tokenOwner) - 
+                IVoteToken(
+                    IGovStorage(govStorageAddress).getVoteTokenContract()
+                ).lockedBalanceOf(_tokenOwner, _class, _nonce),
+                "Gov: not enough vote tokens"
+            );
+
+            IVoteToken(
+                IGovStorage(govStorageAddress).getVoteTokenContract()
+            ).lockTokens(_tokenOwner, _voter, _amountVoteTokens, _class, _nonce);          
+        }
     }
 
     function unstakeDGOVandCalculateInterest(
@@ -226,7 +226,7 @@ contract ProposalLogic is IProposalLogic {
         ).calculateInterestEarned(
             _staker,
             _stakingCounter,
-            IGovStorage(govStorageAddress).getInterestForStakingDGOV()
+            IGovStorage(govStorageAddress).stakingInterestRate()
         );
     }
 
@@ -242,22 +242,26 @@ contract ProposalLogic is IProposalLogic {
         uint128 _nonce,
         address _tokenOwner
     ) external onlyGov {
-        Proposal memory _proposal = IGovStorage(
+        ProposalStatus status = IGovStorage(
             govStorageAddress
-        ).getProposalStruct(_class, _nonce);
+        ).getProposalStatus(_class, _nonce);
+
+        address proposer = IGovStorage(
+            govStorageAddress
+        ).getProposalProposer(_class, _nonce);
 
         require(
-            block.timestamp > _proposal.endTime,
-            "Gov: still voting"
+            status == ProposalStatus.Canceled ||
+            status == ProposalStatus.Succeeded ||
+            status == ProposalStatus.Defeated ||
+            status == ProposalStatus.Executed
         );
 
-        if(
-            _tokenOwner != IGovStorage(govStorageAddress).getProposalProposer(_class, _nonce)
-        ) {
+        if(_tokenOwner != proposer) {
             require(
                 IVoteCounting(voteCountingAddress).hasVoted(_class, _nonce, _tokenOwner),
                 "Gov: you haven't voted"
-            );
+            );          
         }
         
         uint256 _amount = IVoteToken(
@@ -269,7 +273,7 @@ contract ProposalLogic is IProposalLogic {
         ).unlockTokens(_tokenOwner, _amount, _class, _nonce);
     }
 
-    function transferInterest(
+    function calculateReward(
         uint128 _class,
         uint128 _nonce,
         address _tokenOwner
