@@ -291,7 +291,7 @@ contract ProposalLogic is IProposalLogic {
         }
 
         reward = _reward * IVoteCounting(voteCountingAddress).getVoteWeight(_class, _nonce, _tokenOwner) * 
-                  IGovStorage(govStorageAddress).getNumberOfDBITDistributedPerDay(_class) / 1 ether;
+                  IGovStorage(govStorageAddress).dbitDistributedPerDay() / (1 ether * 1 ether);
     }
 
     function vote(

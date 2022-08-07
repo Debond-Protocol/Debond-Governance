@@ -91,9 +91,7 @@ interface IGovStorage is IGovSharedStorage {
         uint256 _amountVoteTokens
     ) external;
 
-    function getNumberOfDBITDistributedPerDay(
-        uint128 _class
-    ) external view returns(uint256);
+    function dbitDistributedPerDay() external view returns(uint256);
 
     function setThreshold(
         uint256 _newProposalThreshold,

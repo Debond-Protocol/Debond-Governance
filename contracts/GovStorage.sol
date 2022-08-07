@@ -524,10 +524,8 @@ contract GovStorage is IGovStorage {
         totalVoteTokenPerDay[_class][_nonce][_votingDay] += _amountVoteTokens;
     }
 
-    function getNumberOfDBITDistributedPerDay(
-        uint128 _class
-    ) public view returns(uint256) {
-        return votingReward[_class].numberOfDBITDistributedPerDay;
+    function dbitDistributedPerDay() public view returns(uint256) {
+        return votingInterestRate() / (36500);
     }
  
     function setProposal(
@@ -620,7 +618,7 @@ contract GovStorage is IGovStorage {
     function votingInterestRate() public view returns(uint256) {
         uint256 cdpPrice = _cdpDGOVToDBIT();
         
-        return benchmarkInterestRate * cdpPrice / 1200;
+        return benchmarkInterestRate * cdpPrice * 34 / 100;
     }
 
     /**
@@ -629,7 +627,7 @@ contract GovStorage is IGovStorage {
     function stakingInterestRate() public view returns(uint256) {
         uint256 cdpPrice = _cdpDGOVToDBIT();
         
-        return benchmarkInterestRate * cdpPrice * 70 / 100;
+        return benchmarkInterestRate * cdpPrice * 66 / 100;
     }
 
     /**

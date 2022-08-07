@@ -175,9 +175,6 @@ contract("Governance", async (accounts) => {
 
         let balanceAfter = await dbit.balanceOf(user1);
 
-        console.log("estimate:", estimate.toString());
-        console.log("estimate:", balanceAfter.toString());
-
         let balAfter = await dgov.balanceOf(user1);
         let balContractAfter = await dgov.balanceOf(stak.address);
 
@@ -710,7 +707,7 @@ contract("Governance", async (accounts) => {
             );
     });
 
-    it.only('Check DBIT earned by voting', async () => {
+    it('Check DBIT earned by voting', async () => {
         let _class = 2;
         let title = "Propsal-1: Update the benchMark interest rate";
         let desc = await web3.utils.soliditySha3(title);
@@ -748,7 +745,9 @@ contract("Governance", async (accounts) => {
         balanceProposer = Number(balanceProposer.toString()) / 1e18;
         balanceProposer = balanceProposer.toFixed(15);
 
-        let reward = amountToStake * 5 / (4 * amountToStake);
+        let dbitPerDay = await storage.dbitDistributedPerDay();
+        dbitPerDay = Number(dbitPerDay.toString()) / 1e18;
+        let reward = amountToStake * dbitPerDay / (4 * amountToStake);
         reward = reward.toFixed(15);
 
         expect(balanceVoteAfter).to.equal(reward);
