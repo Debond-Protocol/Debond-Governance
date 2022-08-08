@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@debond-protocol/debond-apm-contracts": "^0.0.3",
     "@debond-protocol/debond-exchange-contracts": "^0.0.1",
     "@debond-protocol/debond-governance-contracts": "^0.0.1",
     "@debond-protocol/debond-token-contracts": "^0.0.2",

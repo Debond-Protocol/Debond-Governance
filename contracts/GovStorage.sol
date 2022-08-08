@@ -44,9 +44,14 @@ contract GovStorage is IGovStorage {
     address public governance;
     address public exchangeContract;
     address public exchangeStorageContract;
+    address public erc3475Contract;
     address public bankContract;
+    address public bankDataContract;
     address public dgovContract;
     address public dbitContract;
+    address public apmContract;
+    address public apmRouterContract;
+    address public bankBondManagerContract;
     address public stakingContract;
     address public voteTokenContract;
     address public govSettingsContract;
@@ -189,6 +194,9 @@ contract GovStorage is IGovStorage {
         address _governance,
         address _dgovContract,
         address _dbitContract,
+        address _apmContract,
+        address _apmRouterContract,
+        address _bankBondManagerContract,
         address _stakingContract,
         address _voteContract,
         address _voteCounting
@@ -196,6 +204,9 @@ contract GovStorage is IGovStorage {
         governance = _governance;
         dgovContract = _dgovContract;
         dbitContract = _dbitContract;
+        apmContract = _apmContract;
+        apmRouterContract = _apmRouterContract;
+        bankBondManagerContract = _bankBondManagerContract;
         stakingContract = _stakingContract;
         voteTokenContract = _voteContract;
         voteCountingContract = _voteCounting;
@@ -206,6 +217,8 @@ contract GovStorage is IGovStorage {
         address _proposalLogicContract,
         address _executable,
         address _bankContract,
+        address _bankDataContract,
+        address _erc3475Contract,
         address _exchangeContract,
         address _exchangeStorageContract,
         address _airdropContract
@@ -216,6 +229,8 @@ contract GovStorage is IGovStorage {
         exchangeContract = _bankContract;
         exchangeStorageContract = _exchangeStorageContract;
         bankContract = _exchangeContract;
+        bankDataContract = _bankDataContract;
+        erc3475Contract = _erc3475Contract;
         airdropContract = _airdropContract;
     }
 
@@ -330,6 +345,22 @@ contract GovStorage is IGovStorage {
 
     function getDBITAddress() public view returns(address) {
         return dbitContract;
+    }
+
+    function getAPMAddress() public view returns(address) {
+        return apmContract;
+    }
+
+    function getERC3475Address() public view returns(address) {
+        return erc3475Contract;
+    }
+
+    function getBankBondManagerAddress() public view returns(address) {
+        return bankBondManagerContract;
+    }
+
+    function getBankDataContract() public view returns(address) {
+        return bankDataContract;
     }
 
     function getVoteCountingAddress() public view returns(address) {
@@ -526,6 +557,31 @@ contract GovStorage is IGovStorage {
 
     function dbitDistributedPerDay() public view returns(uint256) {
         return votingInterestRate() / (36500);
+    }
+
+    function updateBankAddress(address _bankAddress) external onlyGov {
+        require(_bankAddress != address(0), "GovStorage: zero address");
+        bankContract = _bankAddress;
+    }
+
+    function updateExchangeAddress(address _exchangeAddress) external onlyGov {
+        require(_exchangeAddress != address(0), "GovStorage: zero address");
+        exchangeContract = _exchangeAddress;
+    }
+
+    function updateBankBondManagerAddress(address _bankBondManagerAddress) external onlyGov {
+        require(_bankBondManagerAddress != address(0), "GovStorage: zero address");
+        bankBondManagerContract = _bankBondManagerAddress;
+    }
+
+    function updateAPMRouterAddress(address _apmRouterAddress) external onlyGov {
+        require(_apmRouterAddress != address(0), "GovStorage: zero address");
+        apmRouterContract = _apmRouterAddress;
+    }
+
+    function updateGovernanceAddress(address _governanceAddress) external onlyGov {
+        require(_governanceAddress != address(0), "GovStorage: zero address");
+        governance = _governanceAddress;
     }
  
     function setProposal(

@@ -28,6 +28,33 @@ interface IGovStorage is IGovSharedStorage {
     function getAirdropContract() external view returns(address);
     function getNumberOfSecondInYear() external pure returns(uint256);
 
+    function getGovernanceAddress() external view returns(address);
+    function getExchangeAddress() external view returns(address);
+    function getExchangeStorageAddress() external view returns(address);
+    function getBankAddress() external view returns(address);
+    function getDGOVAddress() external view returns(address);
+    function getDBITAddress() external view returns(address);
+    function getAPMAddress() external view returns(address);
+    function getERC3475Address() external view returns(address);
+    function getBankBondManagerAddress() external view returns(address);
+    function getBankDataContract() external view returns(address);
+    function getVoteCountingAddress() external view returns(address);
+    function getDebondTeamAddress() external view returns(address);
+    function getBenchmarkIR() external view returns(uint256);
+    function votingInterestRate() external view returns(uint256);
+    function stakingInterestRate() external view returns(uint256);
+    function getBudget() external view returns(uint256, uint256);
+    function getAllocationDistributed() external view returns(uint256, uint256);
+    function getTotalAllocationDistributed() external view returns(uint256, uint256);
+    function getAllocatedToken(address _account) external view returns(uint256, uint256);
+    function getAllocatedTokenMinted(address _account) external view returns(uint256, uint256);
+
+    function updateBankAddress(address _bankAddress) external;
+    function updateExchangeAddress(address _exchangeAddress) external;
+    function updateBankBondManagerAddress(address _bankBondManagerAddress) external;
+    function updateAPMRouterAddress(address _apmRouterAddress) external;
+    function updateGovernanceAddress(address _governanceAddress) external;
+
     function getProposalStruct(
         uint128 _class,
         uint128 _nonce
@@ -185,21 +212,4 @@ interface IGovStorage is IGovSharedStorage {
         uint256 _amountDBIT,
         uint256 _amountDGOV
     ) external returns(bool);
-
-    function getGovernanceAddress() external view returns(address);
-    function getExchangeAddress() external view returns(address);
-    function getExchangeStorageAddress() external view returns(address);
-    function getBankAddress() external view returns(address);
-    function getDGOVAddress() external view returns(address);
-    function getDBITAddress() external view returns(address);
-    function getVoteCountingAddress() external view returns(address);
-    function getDebondTeamAddress() external view returns(address);
-    function getBenchmarkIR() external view returns(uint256);
-    function votingInterestRate() external view returns(uint256);
-    function stakingInterestRate() external view returns(uint256);
-    function getBudget() external view returns(uint256, uint256);
-    function getAllocationDistributed() external view returns(uint256, uint256);
-    function getTotalAllocationDistributed() external view returns(uint256, uint256);
-    function getAllocatedToken(address _account) external view returns(uint256, uint256);
-    function getAllocatedTokenMinted(address _account) external view returns(uint256, uint256);
 }

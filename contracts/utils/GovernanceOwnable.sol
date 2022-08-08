@@ -19,15 +19,25 @@ import "../interfaces/IGovernanceAddressUpdatable.sol";
 
 contract GovernanceOwnable is IActivable {
     address governanceAddress;
+    address executable;
     bool private isActive;
 
-    constructor(address _governanceAddress) {
+    constructor(address _governanceAddress, address _executable) {
         governanceAddress = _governanceAddress;
+        executable = _executable;
         isActive = true;
     }
 
     modifier onlyGovernance() {
         require(msg.sender == governanceAddress, "Governance Restriction: Not allowed");
+        _;
+    }
+
+    modifier onlyGovernanceOrExecutable() {
+        require(
+            msg.sender == governanceAddress || msg.sender == executable,
+            "GovernanceOwnable: only Gov or Exec"
+        );
         _;
     }
 

@@ -14,21 +14,23 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@debond-protocol/debond-apm-contracts/interfaces/IAPM.sol";
 import "@debond-protocol/debond-token-contracts/interfaces/IDGOV.sol";
 import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
 import "@debond-protocol/debond-exchange-contracts/interfaces/IExchangeStorage.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "./interfaces/IVoteToken.sol";
-import "./interfaces/IVoteCounting.sol";
-import "./interfaces/IGovSettings.sol";
-import "./interfaces/IGovStorage.sol";
-import "./interfaces/IGovSharedStorage.sol";
 import "./interfaces/IStaking.sol";
+import "./interfaces/IVoteToken.sol";
+import "./interfaces/IGovStorage.sol";
 import "./interfaces/IExecutable.sol";
+import "./interfaces/IGovSettings.sol";
+import "./interfaces/IVoteCounting.sol";
 import "./interfaces/IProposalLogic.sol";
+import "./interfaces/IGovSharedStorage.sol";
+import "./interfaces/IUpdateContractsAddress.sol";
 import "./Pausable.sol";
 
 /**
@@ -279,14 +281,19 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
         address staker = _msgSender();
         require(staker != address(0), "Gov: zero address");
 
-        (uint256 amountStaked, uint256 interest) = IProposalLogic(
+        (uint256 amountStaked, uint256 interest, uint256 duration) = IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).unstakeDGOVandCalculateInterest(staker, _stakingCounter);
 
-        // MUST BE TRANSFERRED FROM APM
-        IERC20(
-            IGovStorage(govStorageAddress).getDBITAddress()
-        ).transfer(staker, amountStaked * interest / 1 ether);
+        IAPM(
+            IGovStorage(govStorageAddress).getAPMAddress()
+        ).removeLiquidity(
+            staker,
+            IGovStorage(govStorageAddress).getDBITAddress(),
+            amountStaked * interest / 1 ether
+        );
+
+        emit dgovUnstaked(amountStaked, _stakingCounter, duration);
 
         unstaked = true;
     }
@@ -324,10 +331,15 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
             IGovStorage(govStorageAddress).getStakingContract()
         ).setLastTimeInterestWithdraw(staker, _stakingCounter);
 
-        // MUST BE TRANSFERRED FROM APM
-        IERC20(
-            IGovStorage(govStorageAddress).getDBITAddress()
-        ).transfer(staker, interestEarned);
+        IAPM(
+            IGovStorage(govStorageAddress).getAPMAddress()
+        ).removeLiquidity(
+            staker,
+            IGovStorage(govStorageAddress).getDBITAddress(),
+            interestEarned
+        );
+
+        emit inetrestWithdrawn(_stakingCounter, interestEarned);
     }
 
     /**
@@ -345,7 +357,6 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).unlockVoteTokens(_class, _nonce, tokenOwner);
 
-        // MUST BE TRANSFERRED FROM APM
         _transferDBITInterest(_class, _nonce, tokenOwner);
     }
 
@@ -364,10 +375,13 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).calculateReward(_class, _nonce, _tokenOwner);
 
-        // MUST BE TRANSFERRED FROM APM
-        IERC20(
-            IGovStorage(govStorageAddress).getDBITAddress()
-        ).transfer(_tokenOwner, reward);
+        IAPM(
+            IGovStorage(govStorageAddress).getAPMAddress()
+        ).removeLiquidity(
+            _tokenOwner,
+            IGovStorage(govStorageAddress).getDBITAddress(),
+            reward
+        );
     }
 
     /**
@@ -452,7 +466,39 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     
     /**********************************************************************************
     * External Executable functions (used to change params in contracts like Bank, etc)
-    **********************************************************************************/  
+    **********************************************************************************/
+    /**
+    * @notice no need permission because the update is done only if a proposal passed
+    */
+    function updateBankAddress(address _bankAddress) public {
+        IGovStorage(govStorageAddress).updateBankAddress(_bankAddress);
+
+        IUpdateContractsAddress(IGovStorage(govStorageAddress).getDBITAddress()).updateBankAddress(_bankAddress);
+        IUpdateContractsAddress(IGovStorage(govStorageAddress).getDGOVAddress()).updateBankAddress(_bankAddress);
+        IUpdateContractsAddress(IGovStorage(govStorageAddress).getERC3475Address()).updateBankAddress(_bankAddress);
+        IUpdateContractsAddress(IGovStorage(govStorageAddress).getBankDataContract()).updateBankAddress(_bankAddress);
+        IUpdateContractsAddress(IGovStorage(govStorageAddress).getBankBondManagerAddress()).updateBankAddress(_bankAddress);
+    }
+
+    function updateExchangeAddress(address _exchangeAddress) public {
+        IGovStorage(govStorageAddress).updateExchangeAddress(_exchangeAddress);
+    }
+
+    function updateBankBondManagerAddress(address _bankBondManagerAddress) public {
+        IGovStorage(govStorageAddress).updateBankBondManagerAddress(_bankBondManagerAddress);
+    }
+
+    function updateAPMRouterAddress(address _apmRouterAddress) public {
+        IGovStorage(govStorageAddress).updateAPMRouterAddress(_apmRouterAddress);
+    }
+
+    function updateGovernanceAddress(address _governanceAddress) public {
+        IGovStorage(govStorageAddress).updateGovernanceAddress(_governanceAddress);
+    }
+
+
+
+
     function setMaxSupply(
         uint256 maxSupply
     ) public onlyVetoOperator returns (bool) {

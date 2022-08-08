@@ -40,7 +40,7 @@ interface IStaking {
         address _staker,
         uint256 _stakingCounter,
         uint256 _interestRate
-    ) external view returns(uint256 interest);
+    ) external view returns(uint256 interest, uint256 duration);
 
     function getStartTimeDurationAndLastWithdrawTime(
         address _staker,

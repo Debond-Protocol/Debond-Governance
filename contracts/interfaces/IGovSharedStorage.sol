@@ -85,4 +85,8 @@ interface IGovSharedStorage {
     * @dev Emitted when a proposal is executed
     */
     event ProposalExecuted(uint128, uint128);
+
+    event dgovUnstaked(uint256 amountDGOV, uint256 counter, uint256 duration);
+
+    event inetrestWithdrawn(uint256 counter, uint256 duration);
 }

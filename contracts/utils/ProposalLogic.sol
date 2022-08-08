@@ -215,13 +215,13 @@ contract ProposalLogic is IProposalLogic {
     function unstakeDGOVandCalculateInterest(
         address _staker,
         uint256 _stakingCounter
-    ) external onlyGov returns(uint256 amountStaked, uint256 interest) {
+    ) external onlyGov returns(uint256 amountStaked, uint256 interest, uint256 duration) {
         amountStaked = IStaking(
             IGovStorage(govStorageAddress).getStakingContract()
         ).unstakeDgovToken(_staker, _stakingCounter);
 
         // the interest calculated from this function is in ether unit
-        interest = IStaking(
+        (interest, duration) = IStaking(
             IGovStorage(govStorageAddress).getStakingContract()
         ).calculateInterestEarned(
             _staker,
@@ -254,7 +254,8 @@ contract ProposalLogic is IProposalLogic {
             status == ProposalStatus.Canceled ||
             status == ProposalStatus.Succeeded ||
             status == ProposalStatus.Defeated ||
-            status == ProposalStatus.Executed
+            status == ProposalStatus.Executed,
+            "ProposalLogic: still voting"
         );
 
         if(_tokenOwner != proposer) {

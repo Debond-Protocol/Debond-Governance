@@ -8,6 +8,7 @@ const expect = chai.expect;
 
 const DBIT = artifacts.require("DBITToken");
 const DGOV = artifacts.require("DGOVToken");
+const APMTest = artifacts.require("APMTest");
 const VoteToken = artifacts.require("VoteToken");
 const StakingDGOV = artifacts.require("StakingDGOV");
 const GovSettings = artifacts.require("GovSettings");
@@ -18,18 +19,19 @@ const GovStorage = artifacts.require("GovStorage");
 const ProposalLogic = artifacts.require("ProposalLogic");
 
 contract("Governance", async (accounts) => {
+    let gov;
+    let apm;
     let dbit;
     let dgov;
     let stak;
     let vote;
-    let settings;
-    let gov;
-    let amountToMint;
-    let amountToStake;
     let exec;
-    let storage;
     let count;
     let logic;
+    let storage;
+    let settings;
+    let amountToMint;
+    let amountToStake;
 
     let balanceUser1BeforeStake;
     let balanceStakingContractBeforeStake;
@@ -58,6 +60,7 @@ contract("Governance", async (accounts) => {
         storage = await GovStorage.new(debondTeam, operator);
         settings = await GovSettings.new(storage.address);
         gov = await Governance.new(storage.address, count.address);
+        apm = await APMTest.new(gov.address, operator);
         dbit = await DBIT.new(gov.address, operator, operator, operator);
         dgov = await DGOV.new(gov.address, operator, operator, operator);
         exec = await Executable.new(storage.address, count.address);
@@ -69,6 +72,9 @@ contract("Governance", async (accounts) => {
             gov.address,
             dgov.address,
             dbit.address,
+            apm.address,
+            operator,
+            operator,
             stak.address,
             vote.address,
             count.address,
@@ -79,6 +85,8 @@ contract("Governance", async (accounts) => {
             settings.address,
             logic.address,
             exec.address,
+            operator,
+            operator,
             operator,
             operator,
             operator,
@@ -105,9 +113,22 @@ contract("Governance", async (accounts) => {
         await logic.setStakingContract(stak.address);
 
         //let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
-        let amount = await web3.utils.toWei(web3.utils.toBN(10000), 'ether');
+        let amount = await web3.utils.toWei(web3.utils.toBN(20000), 'ether');
+        let amountToSend = await web3.utils.toWei(web3.utils.toBN(10000), 'ether');
         await dbit.mintCollateralisedSupply(debondTeam, amount, { from: operator });
-        await dbit.transfer(gov.address, amount, { from: debondTeam });
+        await dbit.transfer(gov.address, amountToSend, { from: debondTeam });
+        await dbit.transfer(apm.address, amountToSend, { from: debondTeam });
+
+        await dgov.mintCollateralisedSupply(debondTeam, amountToSend, { from: operator  });
+        await dgov.transfer(apm.address, amountToSend, { from: debondTeam });
+
+        await apm.updateWhenAddLiquidity(
+            amountToSend,
+            amountToSend,
+            dbit.address,
+            dgov.address,
+            { from: operator }
+        );
 
         //amountToMint = await web3.utils.toWei(web3.utils.toBN(200), 'ether');
         amountToMint = await web3.utils.toWei(web3.utils.toBN(200), 'ether');
@@ -170,8 +191,11 @@ contract("Governance", async (accounts) => {
 
         await wait(12000);
 
-        await gov.unstakeDGOV(1, { from: user1 });
-        let estimate = await storage.estimateInterestEarned(amountToStake, 10);
+        let unstake = await gov.unstakeDGOV(1, { from: user1 });
+        let event = unstake.logs[0].args;
+        let duration = event.duration.toString();
+
+        let estimate = await storage.estimateInterestEarned(amountToStake, duration);
 
         let balanceAfter = await dbit.balanceOf(user1);
 
@@ -211,10 +235,13 @@ contract("Governance", async (accounts) => {
 
         await wait(8000);
 
-        await gov.unstakeDGOV(1, { from: user6 });
+        let unstake = await gov.unstakeDGOV(1, { from: user6 });
+        let event = unstake.logs[0].args;
+        let duration = event.duration.toString();
+
+        let estimate = await storage.estimateInterestEarned(amountToStake, duration);
 
         let userBalanceFinal = await dbit.balanceOf(user6);
-        let estimate = await storage.estimateInterestEarned(amountToStake, 10);
 
         expect(
             (Number(userBalanceFinal.toString()) / 1000).toFixed(0)
@@ -240,10 +267,12 @@ contract("Governance", async (accounts) => {
 
         await wait(6000);
 
-        await gov.unstakeDGOV(1, { from: user6 });
+        let unstake = await gov.unstakeDGOV(1, { from: user6 });
+        let event = unstake.logs[0].args;
+        let duration = event.duration.toString();
 
         let userBalanceFinal = await dbit.balanceOf(user6);
-        let estimate = await storage.estimateInterestEarned(amountToStake, 10);
+        let estimate = await storage.estimateInterestEarned(amountToStake, duration);
 
         expect(
             (Number(userBalanceFinal.toString()) / 1000).toFixed(0)

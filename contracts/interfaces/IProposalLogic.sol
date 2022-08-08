@@ -53,7 +53,7 @@ interface IProposalLogic is IGovSharedStorage {
     function unstakeDGOVandCalculateInterest(
         address _staker,
         uint256 _stakingCounter
-    ) external returns(uint256 amountStaked, uint256 interest);
+    ) external returns(uint256 amountStaked, uint256 interest, uint256 duration);
 
     function calculateReward(
         uint128 _class,

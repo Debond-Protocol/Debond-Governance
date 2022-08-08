@@ -163,14 +163,11 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
         address _staker,
         uint256 _stakingCounter,
         uint256 _interestRate
-    ) external view returns(uint256 interest) {
+    ) external view returns(uint256 interest, uint256 totalDuration) {
         StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
 
         uint256 duration = block.timestamp - _staked.lastInterestWithdrawTime;
-
-        if (block.timestamp > _staked.startTime + _staked.duration) {
-            duration = _staked.startTime + _staked.duration - _staked.lastInterestWithdrawTime;
-        }
+        totalDuration = block.timestamp - _staked.startTime;
 
         interest = (_interestRate * duration) / (100 * NUMBER_OF_SECONDS_IN_YEAR);
     }
