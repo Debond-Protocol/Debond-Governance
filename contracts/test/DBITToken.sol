@@ -16,11 +16,43 @@ pragma solidity ^0.8.0;
 
 import "@debond-protocol/debond-token-contracts/DBIT.sol";
 
-contract DBITToken is DBIT {
+interface IUpdatable {
+    function updateBank(
+        address _bankAddress
+    ) external;
+}
+
+contract DBITExecutable is IUpdatable {
+    address governance;
+    address executable;
+    address bank;
+
+    modifier onlyExec {
+        require(msg.sender == executable, "Bank: only exec");
+        _;
+    }
+    
+    function updateBank(
+        address _bankAddress
+    ) external onlyExec {
+        bank = _bankAddress;
+    }
+}
+
+contract DBITToken is DBIT, DBITExecutable {
     constructor(
         address _governace,
         address _bank,
         address _airdrop,
-        address _exchange
-    ) DBIT(_governace, _bank, _airdrop, _exchange) {}
+        address _exchange,
+        address _executable
+    ) DBIT(_governace, _bank, _airdrop, _exchange) {
+        governance = _governace;
+        bank = _bank;
+        executable = _executable;
+    }
+
+    function getBankAddress() public view returns(address) {
+        return bank;
+    }
 }

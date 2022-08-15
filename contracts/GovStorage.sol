@@ -59,6 +59,9 @@ contract GovStorage is IGovStorage {
     address public executable;
     address public voteCountingContract;
     address public airdropContract;
+    address public governanceOwnableContract;
+    address public oracleContract;
+    address public governanceMigrator;
 
     address public vetoOperator;
 
@@ -145,6 +148,15 @@ contract GovStorage is IGovStorage {
         _;
     }
 
+    modifier onlyDBITorDGOV(address _tokenAddress) {
+        require(
+            _tokenAddress == dbitContract ||
+            _tokenAddress == dgovContract,
+            "Gov: wrong token address"
+        );
+        _;
+    }
+
     constructor(
         address _debondTeam,
         address _vetoOperator
@@ -221,17 +233,19 @@ contract GovStorage is IGovStorage {
         address _erc3475Contract,
         address _exchangeContract,
         address _exchangeStorageContract,
-        address _airdropContract
+        address _airdropContract,
+        address _governanceOwnableContract
     ) external onlyVetoOperator {
         govSettingsContract = _settingsContrats;
         proposalLogicContract = _proposalLogicContract;
         executable = _executable;
-        exchangeContract = _bankContract;
+        exchangeContract = _exchangeContract;
         exchangeStorageContract = _exchangeStorageContract;
-        bankContract = _exchangeContract;
+        bankContract = _bankContract;
         bankDataContract = _bankDataContract;
         erc3475Contract = _erc3475Contract;
         airdropContract = _airdropContract;
+        governanceOwnableContract = _governanceOwnableContract;
     }
 
     function isInitialized() public view returns(bool) {
@@ -359,12 +373,20 @@ contract GovStorage is IGovStorage {
         return bankBondManagerContract;
     }
 
-    function getBankDataContract() public view returns(address) {
+    function getBankDataAddress() public view returns(address) {
         return bankDataContract;
+    }
+
+    function getOracleAddress() public view returns(address) {
+        return oracleContract;
     }
 
     function getVoteCountingAddress() public view returns(address) {
         return voteCountingContract;
+    }
+
+    function getGovernanceOwnableAddress() public view returns(address) {
+        return governanceOwnableContract;
     }
 
     function getDebondTeamAddress() public view returns(address) {
@@ -556,30 +578,40 @@ contract GovStorage is IGovStorage {
     }
 
     function dbitDistributedPerDay() public view returns(uint256) {
-        return votingInterestRate() / (36500);
+        return votingInterestRate() / 36500;
     }
 
-    function updateBankAddress(address _bankAddress) external onlyGov {
+    function updateBankAddress(address _bankAddress) external onlyExec {
         require(_bankAddress != address(0), "GovStorage: zero address");
         bankContract = _bankAddress;
     }
 
-    function updateExchangeAddress(address _exchangeAddress) external onlyGov {
+    function updateExchangeAddress(address _exchangeAddress) external onlyExec {
         require(_exchangeAddress != address(0), "GovStorage: zero address");
         exchangeContract = _exchangeAddress;
     }
 
-    function updateBankBondManagerAddress(address _bankBondManagerAddress) external onlyGov {
+    function updateBankBondManagerAddress(address _bankBondManagerAddress) external onlyExec {
         require(_bankBondManagerAddress != address(0), "GovStorage: zero address");
         bankBondManagerContract = _bankBondManagerAddress;
     }
 
-    function updateAPMRouterAddress(address _apmRouterAddress) external onlyGov {
+    function updateAPMRouterAddress(address _apmRouterAddress) external onlyExec {
         require(_apmRouterAddress != address(0), "GovStorage: zero address");
         apmRouterContract = _apmRouterAddress;
     }
 
-    function updateGovernanceAddress(address _governanceAddress) external onlyGov {
+    function updateOracleAddress(address _oracleAddress) external onlyExec {
+        require(_oracleAddress != address(0), "GovStorage: zero address");
+        oracleContract = _oracleAddress;
+    }
+
+    function updateAirdropAddress(address _airdropAddress) external onlyExec {
+        require(_airdropAddress != address(0), "GovStorage: zero address");
+        airdropContract = _airdropAddress;
+    }
+
+    function updateGovernanceAddress(address _governanceAddress) external onlyExec {
         require(_governanceAddress != address(0), "GovStorage: zero address");
         governance = _governanceAddress;
     }
@@ -740,34 +772,50 @@ contract GovStorage is IGovStorage {
     function setFundSize(
         uint256 _newDBITBudgetPPM,
         uint256 _newDGOVBudgetPPM
-    ) external onlyExec {
+    ) external onlyGov returns(bool) {
         dbitBudgetPPM = _newDBITBudgetPPM;
         dgovBudgetPPM = _newDGOVBudgetPPM;
+
+        return true;
     }
 
     function setTeamAllocation(
         address _to,
         uint256 _newDBITPPM,
         uint256 _newDGOVPPM
-    ) external onlyExec {
+    ) external onlyGov returns(bool) {
         require(_to != address(0), "Gov: zero address");
+        require(
+            checkSupply(_to, _newDBITPPM, _newDGOVPPM),
+            "Executable: Fails, not enough supply"
+        );
 
         allocatedToken[_to].dbitAllocationPPM = _newDBITPPM;
         allocatedToken[_to].dgovAllocationPPM = _newDGOVPPM;
+
+        return true;
     }
 
-    function mintAllocatedToken(
+    function setAllocatedToken(
+        address _token,
         address _to,
-        uint256 _amountDBIT,
-        uint256 _amountDGOV
-    ) public onlyExec {
+        uint256 _amount
+    ) external onlyExec {
         require(_to != address(0), "Gov: zero address");
-        
-        allocatedToken[_to].allocatedDBITMinted += _amountDBIT;
-        dbitTotalAllocationDistributed += _amountDBIT;
+        require(
+            _checkSupply(_token, _to, _amount),
+            "GovStorage: not enough supply"
+        );
 
-        allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
-        dgovTotalAllocationDistributed += _amountDGOV;
+        if(_token == dbitContract) {
+            allocatedToken[_to].allocatedDBITMinted += _amount;
+            dbitTotalAllocationDistributed += _amount;
+        }
+        
+        if (_token == dgovContract) {
+            allocatedToken[_to].allocatedDGOVMinted += _amount;
+            dgovTotalAllocationDistributed += _amount;
+        }
     }
 
     function claimFundForProposal(
@@ -797,6 +845,73 @@ contract GovStorage is IGovStorage {
 
         allocatedToken[_to].allocatedDGOVMinted += _amountDGOV;
         dgovTotalAllocationDistributed += _amountDGOV;
+
+        return true;
+    }
+
+    function _checkSupply(
+        address _token,
+        address _account,
+        uint256 _amount
+    ) private view onlyDBITorDGOV(_token) returns(bool) {
+        uint256 tokenAllocPPM;
+
+        if(_token == dbitContract) {
+            tokenAllocPPM = allocatedToken[_account].dbitAllocationPPM;
+        }
+
+        if(_token == dgovContract) {
+            tokenAllocPPM = allocatedToken[_account].dgovAllocationPPM;
+        }
+
+        require(
+            IDebondToken(
+                _token
+            ).getAllocatedBalance(_account) + _amount <=
+            IDebondToken(
+                _token
+            ).getTotalCollateralisedSupply() * tokenAllocPPM / 1 ether,
+            "Executable: Not enough token supply"
+        );
+
+        return true;
+    }
+
+    /**
+    * @dev internal function to check DBIT and DGOV supply
+    * @param _to the recipient in mintAllocatedToken and changeTeamAllocation
+    * @param _amountDBIT amount of DBIT to mint or new DBIT allocation percentage
+    * @param _amountDGOV amount of DGOV to mint or new DGOV allocation percentage
+    */
+    function checkSupply(
+        address _to,
+        uint256 _amountDBIT,
+        uint256 _amountDGOV
+    ) public view returns(bool) {
+        (
+            uint256 dbitAllocPPM,
+            uint256 dgovAllocPPM
+        ) = getAllocatedToken(_to);
+       
+        require(
+            IDebondToken(
+                getDBITAddress()
+            ).getAllocatedBalance(_to) + _amountDBIT <=
+            IDebondToken(
+                getDBITAddress()
+            ).getTotalCollateralisedSupply() * dbitAllocPPM / 1 ether,
+            "Executable: Not enough DBIT supply"
+        );
+
+        require(
+            IDebondToken(
+                getDGOVAddress()
+            ).getAllocatedBalance(_to) + _amountDGOV <=
+            IDebondToken(
+                getDGOVAddress()
+            ).getTotalCollateralisedSupply() * dgovAllocPPM / 1 ether,
+            "Executable: Not enough DGOV supply"
+        );
 
         return true;
     }

@@ -15,7 +15,6 @@ pragma solidity ^0.8.0;
 */
 
 import "../interfaces/IActivable.sol";
-import "../interfaces/IGovernanceAddressUpdatable.sol";
 
 contract GovernanceOwnable is IActivable {
     address governanceAddress;

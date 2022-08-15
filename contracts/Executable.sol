@@ -15,107 +15,37 @@ pragma solidity ^0.8.0;
 */
 
 import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
+import "@debond-protocol/debond-token-contracts/interfaces/IDGOV.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IGovStorage.sol";
 import "./interfaces/IGovSharedStorage.sol";
-import "./interfaces/IVoteCounting.sol";
 import "./interfaces/IExecutable.sol";
+import "./interfaces/IUpdatable.sol";
 
 contract Executable is IExecutable, IGovSharedStorage {
+    using SafeERC20 for IERC20;
     address public govStorageAddress;
-    address public voteCountingAddress;
 
-    modifier onlyVetoOperator {
+    modifier onlyGov {
         require(
-            msg.sender == IGovStorage(govStorageAddress).getVetoOperator(),
-            "Executable: permission denied"
+            msg.sender == IGovStorage(govStorageAddress).getGovernanceAddress(),
+            "Executable: Only Gov"
         );
         _;
     }
 
-    modifier onlyDebondExecutor(address _executor) {
+    modifier onlyDBITorDGOV(address _tokenAddress) {
         require(
-            _executor == IGovStorage(govStorageAddress).getDebondTeamAddress() ||
-            _executor == IGovStorage(govStorageAddress).getVetoOperator(),
-            "Gov: can't execute this task"
+            _tokenAddress == IGovStorage(govStorageAddress).getDGOVAddress() ||
+            _tokenAddress == IGovStorage(govStorageAddress).getDBITAddress(),
+            "Gov: wrong token address"
         );
         _;
     }
 
-    constructor(
-        address _govStorageAddress,
-        address _voteCountingAddress
-    ) {
+    constructor(address _govStorageAddress) {
         govStorageAddress = _govStorageAddress;
-        voteCountingAddress = _voteCountingAddress;
-    }
-
-    /**
-    * @dev set gov storage address
-    */
-    function setGovStorageAddress(
-        address _newGovStorageAddress
-    ) public onlyVetoOperator {
-        require(
-            _newGovStorageAddress != address(0), "Executable: zero address"
-        );
-
-        govStorageAddress = _newGovStorageAddress;
-    }
-
-    /**********************************************************************************
-    *         Executable functions (executed only after a proposal has passed)
-    **********************************************************************************/
-
-    /**
-    * @dev update the governance contract
-    * @param _newGovernanceAddress new address for the Governance contract
-    */
-    function updateGovernanceContract(
-        address _newGovernanceAddress,
-        address _executor
-    ) external onlyDebondExecutor(_executor) returns(bool) {
-        require(
-            _newGovernanceAddress != address(0), "Executable: zero address"
-        );
-
-        IGovStorage(govStorageAddress).updateGovernanceContract(_newGovernanceAddress, _executor);
-
-        return true;
-    }
-
-    /**
-    * @dev update the exchange contract
-    * @param _newExchangeAddress new address for the Exchange contract
-    */
-    function updateExchangeContract(
-        address _newExchangeAddress,
-        address _executor
-    ) external onlyDebondExecutor(_executor) returns(bool) {
-        require(
-            _newExchangeAddress != address(0), "Executable: zero address"
-        );
-
-        IGovStorage(govStorageAddress).updateExchangeContract(_newExchangeAddress, _executor);
-
-        return true;
-    }
-
-    /**
-    * @dev update the bank contract
-    * @param _newBankAddress new address for the Bank contract
-    */
-    function updateBankContract(
-        address _newBankAddress,
-        address _executor
-    ) external onlyDebondExecutor(_executor) returns(bool) {
-        require(
-            _newBankAddress != address(0), "Executable: zero address"
-        );
-
-        IGovStorage(govStorageAddress).updateBankContract(_newBankAddress, _executor);
-
-        return true;
     }
 
     /**
@@ -124,149 +54,214 @@ contract Executable is IExecutable, IGovSharedStorage {
     */
     function updateBenchmarkInterestRate(
         uint256 _newBenchmarkInterestRate
-    ) external returns(bool) {
+    ) external onlyGov returns(bool) {
         IGovStorage(govStorageAddress).setBenchmarkIR(_newBenchmarkInterestRate);
 
-        return true;
-    }
-
-    /**
-    * @dev change the community fund size (DBIT, DGOV)
-    * @param _newDBITBudgetPPM new DBIT budget for community
-    * @param _newDGOVBudgetPPM new DGOV budget for community
-    */
-    function changeCommunityFundSize(
-        uint128 _proposalClass,
-        uint256 _newDBITBudgetPPM,
-        uint256 _newDGOVBudgetPPM
-    ) external returns(bool) {
-        require(_proposalClass < 1, "Executable: class not valid");
-
-        IGovStorage(govStorageAddress).setFundSize(_newDBITBudgetPPM, _newDGOVBudgetPPM);
+        IUpdatable(
+            IGovStorage(govStorageAddress).getBankAddress()
+        ).setBenchmarkIR(_newBenchmarkInterestRate);
 
         return true;
     }
 
-    /**
-    * @dev change the team allocation - (DBIT, DGOV)
-    * @param _to the address that should receive the allocation tokens
-    * @param _newDBITPPM the new DBIT allocation
-    * @param _newDGOVPPM the new DGOV allocation
-    */
-    function changeTeamAllocation(
-        address _to,
-        uint256 _newDBITPPM,
-        uint256 _newDGOVPPM
-    ) external returns(bool) {
-        require(
-            _checkSupply(_to, _newDBITPPM, _newDGOVPPM),
-            "Executable: Fails, not enough supply"
-        );
-
-        IGovStorage(govStorageAddress).setTeamAllocation(_to, _newDBITPPM, _newDGOVPPM);
+    function updataVoteClassInfo(
+        uint128 _ProposalClassInfoClass,
+        uint256 _timeLock,
+        uint256 _minimumApproval,
+        uint256 _quorum,
+        uint256 _needVeto,
+        uint256 _maximumExecutionTime,
+        uint256 _minimumExexutionInterval
+    ) external onlyGov returns(bool) {
+        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 0, _timeLock);
+        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 1, _minimumApproval);
+        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 2, _quorum);
+        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 3, _needVeto);
+        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 4, _maximumExecutionTime);
+        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 5, _minimumExexutionInterval);
 
         return true;
     }
 
-    /**
-    * @dev mint allocated DBIT to a given address
-    * @param _to the address to mint DBIT to
-    * @param _amountDBIT the amount of DBIT to mint
-    * @param _amountDGOV the amount of DGOV to mint
-    */
     function mintAllocatedToken(
+        address _token,
         address _to,
-        uint256 _amountDBIT,
-        uint256 _amountDGOV
-    ) external returns(bool) {
-        require(
-            _checkSupply(_to, _amountDBIT, _amountDGOV),
-            "Executable: Fails, not enough supply"
-        );
-
-        IGovStorage(govStorageAddress).mintAllocatedToken(_to, _amountDBIT, _amountDGOV);
+        uint256 _amount
+    ) external onlyGov onlyDBITorDGOV(_token) returns(bool) {
+        IGovStorage(
+            govStorageAddress
+        ).setAllocatedToken(_token, _to, _amount);
 
         return true;
     }
 
-    /**
-    * @dev claim fund for a proposal
-    * @param _to address to transfer fund
-    * @param _amountDBIT DBIT amount to transfer
-    * @param _amountDGOV DGOV amount to transfer
-    */
-    function claimFundForProposal(
-        uint128 _proposalClass,
-        address _to,
-        uint256 _amountDBIT,
-        uint256 _amountDGOV
-    ) external returns(bool) {
-        require(_proposalClass <= 2, "Gov: class not valid");
-
-        IGovStorage(govStorageAddress).claimFundForProposal(_to, _amountDBIT, _amountDGOV);
-
-        return true;
-    }
-
-    /**
-    * @dev migrate tokens from an address to another address
-    * @param _class proposal class
-    * @param _token token address
-    * @param _from sender address
-    * @param _to recepient address
-    * @param _amount amount of tokens to transfer
-    */
-    /*
-    function migrateTokens(
-        uint128 _class,
+    function migrateToken(
         address _token,
         address _from,
         address _to,
         uint256 _amount
-    ) external returns(bool) {
-        require(_class <= 1, "Executable: invalid proposal class");
+    ) external onlyGov returns(bool) {
+        IUpdatable(_from).migrate(_token, _to, _amount);
 
         return true;
     }
-    */
 
+    function updateBankAddress(
+        address _bankAddress
+    ) external onlyGov returns(bool) {
+        IGovStorage(govStorageAddress).updateBankAddress(_bankAddress);
 
-    /**
-    * @dev internal function to check DBIT and DGOV supply
-    * @param _to the recipient in mintAllocatedToken and changeTeamAllocation
-    * @param _amountDBIT amount of DBIT to mint or new DBIT allocation percentage
-    * @param _amountDGOV amount of DGOV to mint or new DGOV allocation percentage
-    */
-    function _checkSupply(
-        address _to,
-        uint256 _amountDBIT,
-        uint256 _amountDGOV
-    ) internal view returns(bool) {
-        (
-            uint256 dbitAllocPPM,
-            uint256 dgovAllocPPM
-        ) = IGovStorage(govStorageAddress).getAllocatedToken(_to);
-       
-        require(
-            IDebondToken(
-                IGovStorage(govStorageAddress).getDBITAddress()
-            ).getAllocatedBalance(_to) + _amountDBIT <=
-            IDebondToken(
-                IGovStorage(govStorageAddress).getDBITAddress()
-            ).getTotalCollateralisedSupply() * dbitAllocPPM / 1 ether,
-            "Executable: Not enough DBIT supply"
-        );
-
-        require(
-            IDebondToken(
-                IGovStorage(govStorageAddress).getDGOVAddress()
-            ).getAllocatedBalance(_to) + _amountDGOV <=
-            IDebondToken(
-                IGovStorage(govStorageAddress).getDGOVAddress()
-            ).getTotalCollateralisedSupply() * dgovAllocPPM / 1 ether,
-            "Executable: not enough DGOV supply"
-        );
+        // in DBIT
+        IUpdatable(
+            IGovStorage(govStorageAddress).getDBITAddress()
+        ).updateBank(_bankAddress);
+        // i DGOV
+        IUpdatable(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).updateBank(_bankAddress);
+        // in APM
+        IUpdatable(
+            IGovStorage(govStorageAddress).getAPMAddress()
+        ).updateBank(_bankAddress);
+        
+/*
+        // in Debond Bond
+        IUpdatable(
+            IGovStorage(govStorageAddress).getERC3475Address()
+        ).updateBank(_bankAddress);
+        // in Bank Data
+        IUpdatable(
+            IGovStorage(govStorageAddress).getBankDataAddress()
+        ).updateBank(_bankAddress);
+        // in Bank Bond Manager
+        IUpdatable(
+            IGovStorage(govStorageAddress).getBankBondManagerAddress()
+        ).updateBank(_bankAddress);
+*/
 
         return true;
     }
+
+    function updateExchangeAddress(
+        address _exchangeAddress
+    ) external onlyGov returns(bool) {
+        IGovStorage(govStorageAddress).updateExchangeAddress(_exchangeAddress);
+
+        IUpdatable(
+            IGovStorage(govStorageAddress).getExchangeStorageAddress()
+        ).updateExchange(_exchangeAddress);
+
+        return true;
+    }
+/*
+    function updateBankBondManagerAddress(
+        address _bankBondManagerAddress
+    ) external onlyGov returns(bool) {
+        IGovStorage(
+            govStorageAddress
+        ).updateBankBondManagerAddress(_bankBondManagerAddress);
+
+        // in Bank
+        IUpdatable(
+            IGovStorage(govStorageAddress).getBankAddress()
+        ).updateBankBondManagerAddress(_bankBondManagerAddress);
+        // in Debond Bond
+        IUpdatable(
+            IGovStorage(govStorageAddress).getERC3475Address()
+        ).updateBankBondManagerAddress(_bankBondManagerAddress);
+
+        return true;
+    }
+
+    function updateAPMRouterAddress(
+        address _apmRouterAddress
+    ) external onlyGov returns(bool) {
+        IGovStorage(govStorageAddress).updateAPMRouterAddress(_apmRouterAddress);
+
+        return true;
+    }
+
+    function updateOracleAddress(
+        address _oracleAddress
+    ) external onlyGov returns(bool) {
+        IGovStorage(govStorageAddress).updateOracleAddress(_oracleAddress);
+
+        // in Bank
+        IUpdatable(
+            IGovStorage(govStorageAddress).getBankAddress()
+        ).updateOracleAddress(_oracleAddress);
+
+        IUpdatable(
+            IGovStorage(govStorageAddress).getBankBondManagerAddress()
+        ).updateOracleAddress(_oracleAddress);
+
+        return true;
+    }
+
+    function updateAirdropAddress(
+        address _airdropAddress
+    ) external onlyGov returns(bool) {
+        IGovStorage(govStorageAddress).updateAirdropAddress(_airdropAddress);
+
+        // in DBIT
+        IUpdatable(
+            IGovStorage(govStorageAddress).getDBITAddress()
+        ).updateAirdropAddress(_airdropAddress);
+        // in DGOV
+        IUpdatable(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).updateAirdropAddress(_airdropAddress);
+
+        return true;
+    }
+
+    function updateGovernanceAddress(
+        address _governanceAddress
+    ) external onlyGov returns(bool) {
+        IGovStorage(govStorageAddress).updateGovernanceAddress(_governanceAddress);
+
+        // in Bank
+        IUpdatable(
+            IGovStorage(govStorageAddress).getBankAddress()
+        ).updateGovernanceAddress(_governanceAddress);
+        // in DBIT
+        IUpdatable(
+            IGovStorage(govStorageAddress).getDBITAddress()
+        ).updateGovernanceAddress(_governanceAddress);
+        // in DGOV
+        IUpdatable(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).updateGovernanceAddress(_governanceAddress);
+        // in Bank data
+        IUpdatable(IGovStorage(
+            govStorageAddress).getBankDataAddress()
+        ).updateGovernanceAddress(_governanceAddress);
+        // in Exchange
+        IUpdatable(
+            IGovStorage(govStorageAddress).getExchangeAddress()
+        ).updateGovernanceAddress(_governanceAddress);
+        // in APM
+        IUpdatable(
+            IGovStorage(govStorageAddress).getAPMAddress()
+        ).updateGovernanceAddress(_governanceAddress);
+        // in Staking contract
+        IUpdatable(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).updateGovernanceAddress(_governanceAddress);
+        // in Governance ownable
+        IUpdatable(
+            IGovStorage(govStorageAddress).getGovernanceOwnableAddress()
+        ).updateGovernanceAddress(_governanceAddress);
+        // in Exchange storage
+        IUpdatable(
+            IGovStorage(govStorageAddress).getExchangeStorageAddress()
+        ).updateGovernanceAddress(_governanceAddress);
+        // in Debond Bond
+        IUpdatable(
+            IGovStorage(govStorageAddress).getERC3475Address()
+        ).updateGovernanceAddress(_governanceAddress);
+
+        return true;
+    }
+*/
 }

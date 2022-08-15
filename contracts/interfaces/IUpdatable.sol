@@ -14,10 +14,22 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-interface IUpdateContractsAddress {
-    function updateBankAddress(address _bankAddress) external;
-    function updateExchangeAddress(address _exchangeAddress) external;
-    function updateBankBondManagerAddress(address _bankBondManager) external;
-    function updateAPMRouterAddress(address _apmRouter) external;
-    function updateGovernanceAddress(address _governance) external;
+interface IUpdatable {
+    function setBenchmarkIR(
+        uint256 _newBenchmarkInterestRate
+    ) external;
+
+    function migrate(
+        address _token,
+        address _to,
+        uint256 _amount
+    ) external;
+
+    function updateBank(
+        address _bankAddress
+    ) external;
+
+    function updateExchange(
+        address _exchangeAddress
+    ) external;
 }

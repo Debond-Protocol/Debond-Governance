@@ -37,8 +37,10 @@ interface IGovStorage is IGovSharedStorage {
     function getAPMAddress() external view returns(address);
     function getERC3475Address() external view returns(address);
     function getBankBondManagerAddress() external view returns(address);
-    function getBankDataContract() external view returns(address);
+    function getBankDataAddress() external view returns(address);
+    function getOracleAddress() external view returns(address);
     function getVoteCountingAddress() external view returns(address);
+    function getGovernanceOwnableAddress() external view returns(address);
     function getDebondTeamAddress() external view returns(address);
     function getBenchmarkIR() external view returns(uint256);
     function votingInterestRate() external view returns(uint256);
@@ -53,6 +55,8 @@ interface IGovStorage is IGovSharedStorage {
     function updateExchangeAddress(address _exchangeAddress) external;
     function updateBankBondManagerAddress(address _bankBondManagerAddress) external;
     function updateAPMRouterAddress(address _apmRouterAddress) external;
+    function updateOracleAddress(address _oracleAddress) external;
+    function updateAirdropAddress(address _airdropAddress) external;
     function updateGovernanceAddress(address _governanceAddress) external;
 
     function getProposalStruct(
@@ -193,18 +197,18 @@ interface IGovStorage is IGovSharedStorage {
     function setFundSize(
         uint256 _newDBITBudgetPPM,
         uint256 _newDGOVBudgetPPM
-    ) external;
+    ) external returns(bool);
 
     function setTeamAllocation(
         address _to,
         uint256 _newDBITPPM,
         uint256 _newDGOVPPM
-    ) external;
+    ) external returns(bool);
 
-    function mintAllocatedToken(
+    function setAllocatedToken(
+        address _token,
         address _to,
-        uint256 _amountDBIT,
-        uint256 _amountDGOV
+        uint256 _amount
     ) external;
 
     function claimFundForProposal(
@@ -212,4 +216,10 @@ interface IGovStorage is IGovSharedStorage {
         uint256 _amountDBIT,
         uint256 _amountDGOV
     ) external returns(bool);
+
+    function checkSupply(
+        address _to,
+        uint256 _amountDBIT,
+        uint256 _amountDGOV
+    ) external view returns(bool);
 }

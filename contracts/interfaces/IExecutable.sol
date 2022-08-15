@@ -15,55 +15,60 @@ pragma solidity ^0.8.0;
 */
 
 interface IExecutable {
-    // update the bank contract
-    function updateGovernanceContract(
-        address _newGovernanceAddress,
-        address _executor
-    ) external returns(bool);
-
-    // update the exchange contract
-    function updateExchangeContract(
-        address _newExchangeAddress,
-        address _executor
-    ) external returns(bool);
-
-    // update the bank contract
-    function updateBankContract(
-        address _newBankAddress,
-        address _executor
-    ) external returns(bool);
-
     //Update benchmark intrest rate
     function updateBenchmarkInterestRate(
         uint256 _newBenchmarkInterestRate
     ) external returns(bool);
 
-    // change the community fund size
-    function changeCommunityFundSize(
-        uint128 _proposalClass,
-        uint256 _newDBITBudgetPPM,
-        uint256 _newDGOVBudgetPPM
+    function updataVoteClassInfo(
+        uint128 _ProposalClassInfoClass,
+        uint256 _timeLock,
+        uint256 _minimumApproval,
+        uint256 _quorum,
+        uint256 _needVeto,
+        uint256 _maximumExecutionTime,
+        uint256 _minimumExexutionInterval
     ) external returns(bool);
 
-    // change the team allocation
-    function changeTeamAllocation(
+    function migrateToken(
+        address _token,
+        address _from,
         address _to,
-        uint256 _newDBITPPM,
-        uint256 _newDGOVPPM
+        uint256 _amount
     ) external returns(bool);
 
-    // mint allocated tokens
     function mintAllocatedToken(
+        address _token,
         address _to,
-        uint256 _amountDBIT,
-        uint256 _amountDGOV
+        uint256 _amount
     ) external returns(bool);
 
-    // claim fund for proposal
-    function claimFundForProposal(
-        uint128 _proposalClass,
-        address _to,
-        uint256 _amountDBIT,
-        uint256 _amountDGOV
+    function updateBankAddress(
+        address _bankAddress
     ) external returns(bool);
+
+    function updateExchangeAddress(
+        address _exchangeAddress
+    ) external returns(bool);
+/*
+    function updateBankBondManagerAddress(
+        address _bankBondManagerAddress
+    ) external returns(bool);
+
+    function updateAPMRouterAddress(
+        address _apmRouterAddress
+    ) external returns(bool);
+
+    function updateOracleAddress(
+        address _oracleAddress
+    ) external returns(bool);
+
+    function updateAirdropAddress(
+        address _airdropAddress
+    ) external returns(bool);
+
+    function updateGovernanceAddress(
+        address _governanceAddress
+    ) external returns(bool);
+*/
 }

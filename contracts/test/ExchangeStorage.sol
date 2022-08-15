@@ -14,45 +14,34 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-token-contracts/DGOV.sol";
-
 interface IUpdatable {
-    function updateBank(
-        address _bankAddress
+    function updateExchange(
+        address _exchangeAddress
     ) external;
 }
 
-contract DGOVExecutable is IUpdatable {
-    address governance;
+contract ExchangeStorageExecutable is IUpdatable {
+    address exchange;
     address executable;
-    address bank;
 
     modifier onlyExec {
         require(msg.sender == executable, "Bank: only exec");
         _;
     }
     
-    function updateBank(
-        address _bankAddress
+    function updateExchange(
+        address _exchangeAddress
     ) external onlyExec {
-        bank = _bankAddress;
+        exchange = _exchangeAddress;
     }
 }
 
-contract DGOVToken is DGOV, DGOVExecutable {
-    constructor(
-        address _governace,
-        address _bank,
-        address _airdrop,
-        address _exchange,
-        address _executable
-    ) DGOV(_governace, _bank, _airdrop, _exchange) {
-        governance = _governace;
-        bank = _bank;
-        executable = _executable;
+contract ExchangeStorage is ExchangeStorageExecutable {
+    constructor(address _exchangeAddress) {
+        exchange = _exchangeAddress;
     }
 
-    function getBankAddress() public view returns(address) {
-        return bank;
+    function getExchangeAddress() external view returns(address) {
+        return exchange;
     }
 }

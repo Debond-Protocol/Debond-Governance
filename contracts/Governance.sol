@@ -20,23 +20,21 @@ import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
 import "@debond-protocol/debond-exchange-contracts/interfaces/IExchangeStorage.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IVoteToken.sol";
-import "./interfaces/IGovStorage.sol";
 import "./interfaces/IExecutable.sol";
 import "./interfaces/IGovSettings.sol";
 import "./interfaces/IVoteCounting.sol";
 import "./interfaces/IProposalLogic.sol";
 import "./interfaces/IGovSharedStorage.sol";
-import "./interfaces/IUpdateContractsAddress.sol";
+import "./utils/GovernanceMigrator.sol";
 import "./Pausable.sol";
 
 /**
 * @author Samuel Gwlanold Edoumou (Debond Organization)
 */
-contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
+contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovSharedStorage {
     using SafeERC20 for IERC20;
 
     address govStorageAddress;
@@ -63,6 +61,14 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     modifier onlyVetoOperator {
         require(
             msg.sender == IGovStorage(govStorageAddress).getVetoOperator(),
+            "Gov: Only veto operator"
+        );
+        _;
+    }
+
+    modifier onlyExec {
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getExecutableContract(),
             "Gov: Only veto operator"
         );
         _;
@@ -148,9 +154,9 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).checkAndSetProposalStatus(_class, _nonce);
 
-        emit ProposalExecuted(_class, _nonce);
-
         _execute(proposal.targets, proposal.values, proposal.calldatas);
+
+        emit ProposalExecuted(_class, _nonce);
     }
 
     /**
@@ -385,6 +391,20 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
     }
 
     /**
+    * @dev transfer tokens from Governance contract to an address
+    * @param _token token address
+    * @param _to recipient address
+    * @param _amount amount of tokens to transfer
+    */
+    function migrate(
+        address _token,
+        address _to,
+        uint256 _amount
+    ) external override onlyExec {
+        IERC20(_token).safeTransfer(_to, _amount);
+    }
+
+    /**
     * @dev set the vote quorum for a given class (it's a percentage)
     * @param _class proposal class
     * @param _quorum the vote quorum
@@ -463,201 +483,230 @@ contract Governance is ReentrancyGuard, Pausable, IGovSharedStorage {
             return ProposalApproval.NoVote;
         }
     }
-    
-    /**********************************************************************************
-    * External Executable functions (used to change params in contracts like Bank, etc)
-    **********************************************************************************/
-    /**
-    * @notice no need permission because the update is done only if a proposal passed
-    */
-    function updateBankAddress(address _bankAddress) public {
-        IGovStorage(govStorageAddress).updateBankAddress(_bankAddress);
 
-        IUpdateContractsAddress(IGovStorage(govStorageAddress).getDBITAddress()).updateBankAddress(_bankAddress);
-        IUpdateContractsAddress(IGovStorage(govStorageAddress).getDGOVAddress()).updateBankAddress(_bankAddress);
-        IUpdateContractsAddress(IGovStorage(govStorageAddress).getERC3475Address()).updateBankAddress(_bankAddress);
-        IUpdateContractsAddress(IGovStorage(govStorageAddress).getBankDataContract()).updateBankAddress(_bankAddress);
-        IUpdateContractsAddress(IGovStorage(govStorageAddress).getBankBondManagerAddress()).updateBankAddress(_bankAddress);
+    function updateBenchmarkInterestRate(
+        uint128 _proposalClass,
+        uint256 _newBenchmarkInterestRate
+    ) external {
+        require(_proposalClass < 1, "Executable: invalid class");
+        require(
+            IExecutable(
+                IGovStorage(govStorageAddress).getExecutableContract()
+            ).updateBenchmarkInterestRate(_newBenchmarkInterestRate),
+            "Gov: Execution failed"            
+        );
+
     }
 
-    function updateExchangeAddress(address _exchangeAddress) public {
-        IGovStorage(govStorageAddress).updateExchangeAddress(_exchangeAddress);
+    function updateDGOVMaxSupply(uint128 _proposalClass, uint256 _maxSupply) external {
+        require(_proposalClass < 1, "Executable: invalid class");
+        require(
+            IDGOV(
+                IGovStorage(govStorageAddress).getDGOVAddress()
+            ).setMaxSupply(_maxSupply),
+            "Gov: Execution failed"
+        );
     }
 
-    function updateBankBondManagerAddress(address _bankBondManagerAddress) public {
-        IGovStorage(govStorageAddress).updateBankBondManagerAddress(_bankBondManagerAddress);
-    }
-
-    function updateAPMRouterAddress(address _apmRouterAddress) public {
-        IGovStorage(govStorageAddress).updateAPMRouterAddress(_apmRouterAddress);
-    }
-
-    function updateGovernanceAddress(address _governanceAddress) public {
-        IGovStorage(govStorageAddress).updateGovernanceAddress(_governanceAddress);
-    }
-
-
-
-
-    function setMaxSupply(
-        uint256 maxSupply
-    ) public onlyVetoOperator returns (bool) {
-        IDGOV(
-            IGovStorage(govStorageAddress).getDGOVAddress()
-        ).setMaxSupply(maxSupply);
-
-        return true;
-    }
-
-    /**
-    * @dev set the max supply of Debond token
-    * @param newSupply new supply of the Debond token
-    * @param _tokenAddress address of the Debond token (either DGOV or DBIT)
-    */
-    function setMaxAirdropSupply(
-        uint256 newSupply,
-        address _tokenAddress
-    ) public onlyVetoOperator onlyDBITorDGOV(_tokenAddress) returns (bool) {
-        require(_tokenAddress != address(0), "Gov: zero address");
-
-        IDebondToken(_tokenAddress).setMaxAirdropSupply(newSupply);
-
-        return true;
-    }
-
-    /**
-    * @dev set the maximum allocation percentage
-    * @dev new maximum allocation percentage
-    * @param _tokenAddress address of the Debond token (either DGOV or DBIT)
-    */
     function setMaxAllocationPercentage(
-        uint256 newPercentage,
+        uint128 _proposalClass,
+        uint256 _newPercentage,
         address _tokenAddress
-    ) public onlyVetoOperator onlyDBITorDGOV(_tokenAddress) returns (bool) {
-        require(_tokenAddress != address(0), "Gov: zero address");
-
-        IDebondToken(_tokenAddress).setMaxAllocationPercentage(newPercentage);
-
-        return true;
+    ) external onlyDBITorDGOV(_tokenAddress) {
+        require(_proposalClass < 1, "Executable: invalid class");
+        require(
+            IDebondToken(_tokenAddress).setMaxAllocationPercentage(_newPercentage),
+            "Gov: Execution failed"
+        );
     }
 
-    /**
-    * @dev set the bank address to Debond Token contract
-    * @dev new maximum allocation percentage
-    * @param _bankAddress new bank address
-    * @param _tokenAddress address of the Debond token (either DGOV or DBIT)
-    */
-    function setBankAddressInDebondToken(
-        address _bankAddress,
+    function setMaxAirdropSupply(
+        uint128 _proposalClass,
+        uint256 _newSupply,
         address _tokenAddress
-    ) public onlyVetoOperator onlyDBITorDGOV(_tokenAddress) returns(bool) {
+    ) external onlyDBITorDGOV(_tokenAddress) {
+        require(_proposalClass < 1, "Executable: invalid class");
         require(
-            _bankAddress != address(0) && _tokenAddress != address(0),
-            "Gov: zero address"
+            IDebondToken(_tokenAddress).setMaxAirdropSupply(_newSupply),
+            "Gov: Execution failed"
+        );
+    }
+
+    function updataVoteClassInfo(
+        uint128 _proposalClass,
+        uint128 _ProposalClassInfoClass,
+        uint256 _timeLock,
+        uint256 _minimumApproval,
+        uint256 _quorum,
+        uint256 _needVeto,
+        uint256 _maximumExecutionTime,
+        uint256 _minimumExexutionInterval
+    ) external {
+        require(_proposalClass <= 1, "Executable: invalid class");
+        require(
+            IExecutable(
+                IGovStorage(govStorageAddress).getExecutableContract()
+            ).updataVoteClassInfo(
+                _ProposalClassInfoClass,
+                _timeLock,
+                _minimumApproval,
+                _quorum,
+                _needVeto,
+                _maximumExecutionTime,
+                _minimumExexutionInterval
+            ),
+            "Gov: execution failed" 
+        );
+    }
+
+    function changeCommunityFundSize(
+        uint128 _proposalClass,
+        uint256 _newDBITBudgetPPM,
+        uint256 _newDGOVBudgetPPM
+    ) external {
+        require(_proposalClass < 1, "Executable: invalid class");
+        require(
+            IGovStorage(govStorageAddress).setFundSize(_newDBITBudgetPPM, _newDGOVBudgetPPM)
+        );
+    }
+
+    function changeTeamAllocation(
+        uint128 _proposalClass,
+        address _to,
+        uint256 _newDBITPPM,
+        uint256 _newDGOVPPM
+    ) external {
+        require(_proposalClass < 1, "Executable: invalid proposal class");
+        require(
+            IGovStorage(
+                govStorageAddress
+            ).setTeamAllocation(_to, _newDBITPPM, _newDGOVPPM),
+            "Gov: executaion failed"
+        );
+    }
+
+    function mintAllocatedToken(
+        uint128 _proposalClass,
+        address _token,
+        address _to,
+        uint256 _amount
+    ) external {
+        require(_proposalClass < 1, "Executable: invalid proposal class");
+        require(
+            IExecutable(
+                IGovStorage(govStorageAddress).getExecutableContract()
+            ).mintAllocatedToken(_token, _to, _amount),
+            "Gov: execution failed" 
         );
 
-        IDebondToken(_tokenAddress).setBankAddress(_bankAddress);
-
-        return true;
+        IDebondToken(_token).mintAllocatedSupply(_to, _amount);
     }
 
-    /**
-    * @dev set the airdrop address to Debond Token contract
-    * @dev new maximum allocation percentage
-    * @param _airdropAddress new airdrop address
-    * @param _tokenAddress address of the Debond token (either DGOV or DBIT)
-    */
-    function setAirdropAddressInDebondToken(
-        address _airdropAddress,
-        address _tokenAddress
-    ) public onlyVetoOperator onlyDBITorDGOV(_tokenAddress) returns(bool) {
-        require(
-            _airdropAddress != address(0) && _tokenAddress != address(0),
-            "Gov: zero address"
-        );
-
-        IDebondToken(_tokenAddress).setAirdropAddress(_airdropAddress);
-
-        return true;
-    }
-
-    /**
-    * @dev set the exchange address to Debond Token contract
-    * @dev new maximum allocation percentage
-    * @param _exchangeAddress new exchange address
-    * @param _tokenAddress address of the Debond token (either DGOV or DBIT)
-    */
-    function setExchangeAddressInDebondToken(
-        address _exchangeAddress,
-        address _tokenAddress
-    ) public onlyVetoOperator onlyDBITorDGOV(_tokenAddress) returns(bool) {
-        require(
-            _exchangeAddress != address(0) && _tokenAddress != address(0),
-            "Gov: zero address"
-        );
-
-        IDebondToken(_tokenAddress).setExchangeAddress(_exchangeAddress);
-
-        return true;
-    }
-
-    /**
-    * @dev set the exchange address in exchange storage
-    * @param _exchangeAddress exchange new address
-    */
-    function setExchangeNewAddress(
-        address _exchangeAddress
-    ) public onlyVetoOperator returns(bool) {
-        require(_exchangeAddress != address(0), "Gov: zero address");
-
-        IExchangeStorage(
-            IGovStorage(govStorageAddress).getExchangeStorageAddress()
-        ).setExchangeAddress(_exchangeAddress);
-
-        return true;
-    }
-
-    /**
-    * @dev set the maximum auction duration in exchange
-    * @param _maxAuctionDuration new maximum auction duration
-    */
-    function setMaxAuctionDuration(
-        uint256 _maxAuctionDuration
-    ) public onlyVetoOperator returns(bool) {
-        IExchangeStorage(
-            IGovStorage(govStorageAddress).getExchangeStorageAddress()
-        ).setMaxAuctionDuration(_maxAuctionDuration);
-
-        return true;
-    }
-
-    /**
-    * @dev set the minimum auction duration in exchange
-    * @param _minAuctionDuration new minimum auction duration
-    */
-    function setMinAuctionDuration(
-        uint256 _minAuctionDuration
-    ) public onlyVetoOperator returns(bool) {
-        IExchangeStorage(
-            IGovStorage(govStorageAddress).getExchangeStorageAddress()
-        ).setMinAuctionDuration(_minAuctionDuration);
-
-        return true;
-    }
-
-    /**
-    * @dev Migrate ERC20 tokens from an address to another address
-    * @param _token address of the token
-    * @param _from token owner
-    * @param _to recipient address
-    * @param _amount the amount of tokens to trensfer
-    */
-    function MigrateTokens(
+    function migrateToken(
+        uint128 _proposalClass,
         address _token,
         address _from,
         address _to,
         uint256 _amount
     ) external {
-        SafeERC20.safeTransferFrom(IERC20(_token), _from, _to, _amount);
+        require(_proposalClass <= 2, "Executable: invalid proposal class");
+        require(
+            IExecutable(
+                IGovStorage(govStorageAddress).getExecutableContract()
+            ).migrateToken(_token, _from, _to, _amount),
+            "Gov: execution failed" 
+        );
     }
+
+    function updateBankAddress(
+        uint128 _proposalClass,
+        address _bankAddress
+    ) external {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+        require(
+            IExecutable(
+                IGovStorage(govStorageAddress).getExecutableContract()
+            ).updateBankAddress(_bankAddress),
+            "Gov: execution failed" 
+        );
+    }
+
+    function updateExchangeAddress(
+        uint128 _proposalClass,
+        address _exchangeAddress
+    ) external {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+        require(
+            IExecutable(
+                IGovStorage(govStorageAddress).getExecutableContract()
+            ).updateExchangeAddress(_exchangeAddress),
+            "Gov: execution failed" 
+        );
+    }
+/*
+    function updateBankBondManagerAddress(
+        uint128 _proposalClass,
+        address _bankBondManagerAddress
+    ) external {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+        require(
+            IExecutable(
+                IGovStorage(govStorageAddress).getExecutableContract()
+            ).updateBankBondManagerAddress(_bankBondManagerAddress),
+            "Gov: execution failed" 
+        );
+    }
+
+    function updateAPMRouterAddress(
+        uint128 _proposalClass,
+        address _apmRouterAddress
+    ) external {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+        require(
+            IExecutable(
+                IGovStorage(govStorageAddress).getExecutableContract()
+            ).updateAPMRouterAddress(_apmRouterAddress),
+            "Gov: execution failed" 
+        );
+    }
+
+    function updateOracleAddress(
+        uint128 _proposalClass,
+        address _oracleAddress
+    ) external {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+        require(
+            IExecutable(
+                IGovStorage(govStorageAddress).getExecutableContract()
+            ).updateOracleAddress(_oracleAddress),
+            "Gov: execution failed" 
+        );
+    }
+
+    function updateAirdropAddress(
+        uint128 _proposalClass,
+        address _airdropAddress
+    ) external  {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+        require(
+            IExecutable(
+                IGovStorage(govStorageAddress).getExecutableContract()
+            ).updateAirdropAddress(_airdropAddress),
+            "Gov: execution failed" 
+        );
+    }
+
+    function updateGovernanceAddress(
+        uint128 _proposalClass,
+        address _governanceAddress
+    ) external {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+        require(
+            IExecutable(
+                IGovStorage(govStorageAddress).getExecutableContract()
+            ).updateGovernanceAddress(_governanceAddress),
+            "Gov: execution failed" 
+        );
+    }
+*/
 }
