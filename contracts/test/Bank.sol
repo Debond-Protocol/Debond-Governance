@@ -108,7 +108,7 @@ contract Bank is BankExecutable {
         return benchmarkIR;
     }
 
-    function getGovernance() public view returns(address) {
+    function getGovernanceAddress() public view returns(address) {
         return governance;
     }
 

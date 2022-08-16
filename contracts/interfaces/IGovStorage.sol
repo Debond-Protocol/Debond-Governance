@@ -180,6 +180,10 @@ interface IGovStorage is IGovSharedStorage {
         address _executor
     ) external returns(bool);
 
+    function updateExecutableAddress(
+        address _executableAddress
+    ) external;
+
     function updateExchangeContract(
         address _newExchangeAddress,
         address _executor

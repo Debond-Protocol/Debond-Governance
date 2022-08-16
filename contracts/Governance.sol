@@ -528,7 +528,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         );
     }
 
-    function setMaxAirdropSupply(
+    function updateMaxAirdropSupply(
         uint128 _proposalClass,
         uint256 _newSupply,
         address _tokenAddress
@@ -650,6 +650,19 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         );
     }
 
+    function updateExecutableAddress(
+        uint128 _proposalClass,
+        address _executableAddress
+    ) external {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+        require(
+            IExecutable(
+                IGovStorage(govStorageAddress).getExecutableContract()
+            ).updateExecutableAddress(_executableAddress),
+            "Gov: execution failed"
+        );
+    }
+
     function updateBankAddress(
         uint128 _proposalClass,
         address _bankAddress
@@ -727,7 +740,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             "Gov: execution failed" 
         );
     }
-/*
+
     function updateGovernanceAddress(
         uint128 _proposalClass,
         address _governanceAddress
@@ -740,5 +753,4 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             "Gov: execution failed" 
         );
     }
-*/
 }

@@ -583,6 +583,11 @@ contract GovStorage is IGovStorage {
         return votingInterestRate() / 36500;
     }
 
+    function updateExecutableAddress(address _executableAddress) external onlyExec {
+        require(_executableAddress != address(0), "GovStorage: zero address");
+        executable = _executableAddress;
+    }
+
     function updateBankAddress(address _bankAddress) external onlyExec {
         require(_bankAddress != address(0), "GovStorage: zero address");
         bankContract = _bankAddress;

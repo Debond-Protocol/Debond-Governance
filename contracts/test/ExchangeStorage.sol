@@ -15,18 +15,29 @@ pragma solidity ^0.8.0;
 */
 
 interface IUpdatable {
+    function updateGovernance(
+        address _governanceAddress
+    ) external;
+
     function updateExchange(
         address _exchangeAddress
     ) external;
 }
 
 contract ExchangeStorageExecutable is IUpdatable {
+    address governance;
     address exchange;
     address executable;
 
     modifier onlyExec {
         require(msg.sender == executable, "Bank: only exec");
         _;
+    }
+    
+    function updateGovernance(
+        address _governanceAddress
+    ) external onlyExec {
+        governance = _governanceAddress;
     }
     
     function updateExchange(
@@ -37,9 +48,14 @@ contract ExchangeStorageExecutable is IUpdatable {
 }
 
 contract ExchangeStorage is ExchangeStorageExecutable {
-    constructor(address _exchangeAddress, address _executable) {
+    constructor(address _governance, address _exchangeAddress, address _executable) {
+        governance = _governance;
         exchange = _exchangeAddress;
         executable = _executable;
+    }
+
+    function getGovernanceAddress() public view returns(address) {
+        return governance;
     }
 
     function getExchangeAddress() external view returns(address) {

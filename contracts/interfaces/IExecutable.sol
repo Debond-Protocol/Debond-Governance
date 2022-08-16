@@ -53,6 +53,10 @@ interface IExecutable {
         uint256 _amount
     ) external returns(bool);
 
+    function updateExecutableAddress(
+        address _executableAddress
+    ) external returns(bool);
+
     function updateBankAddress(
         address _bankAddress
     ) external returns(bool);
@@ -76,9 +80,8 @@ interface IExecutable {
     function updateAirdropAddress(
         address _airdropAddress
     ) external returns(bool);
-/*
+
     function updateGovernanceAddress(
         address _governanceAddress
     ) external returns(bool);
-*/
 }

@@ -125,6 +125,14 @@ contract Executable is IExecutable, IGovSharedStorage {
         return true;
     }
 
+    function updateExecutableAddress(
+        address _executableAddress
+    ) external onlyGov returns(bool) {
+        IGovStorage(govStorageAddress).updateExecutableAddress(_executableAddress);
+
+        return true;
+    }
+
     function updateBankAddress(
         address _bankAddress
     ) external onlyGov returns(bool) {
@@ -233,7 +241,7 @@ contract Executable is IExecutable, IGovSharedStorage {
 
         return true;
     }
-/*
+
     function updateGovernanceAddress(
         address _governanceAddress
     ) external onlyGov returns(bool) {
@@ -242,45 +250,45 @@ contract Executable is IExecutable, IGovSharedStorage {
         // in Bank
         IUpdatable(
             IGovStorage(govStorageAddress).getBankAddress()
-        ).updateGovernanceAddress(_governanceAddress);
+        ).updateGovernance(_governanceAddress);
         // in DBIT
         IUpdatable(
             IGovStorage(govStorageAddress).getDBITAddress()
-        ).updateGovernanceAddress(_governanceAddress);
+        ).updateGovernance(_governanceAddress);
         // in DGOV
         IUpdatable(
             IGovStorage(govStorageAddress).getDGOVAddress()
-        ).updateGovernanceAddress(_governanceAddress);
+        ).updateGovernance(_governanceAddress);
         // in Bank data
         IUpdatable(IGovStorage(
             govStorageAddress).getBankDataAddress()
-        ).updateGovernanceAddress(_governanceAddress);
-        // in Exchange
-        IUpdatable(
-            IGovStorage(govStorageAddress).getExchangeAddress()
-        ).updateGovernanceAddress(_governanceAddress);
+        ).updateGovernance(_governanceAddress);
         // in APM
         IUpdatable(
             IGovStorage(govStorageAddress).getAPMAddress()
-        ).updateGovernanceAddress(_governanceAddress);
-        // in Staking contract
-        IUpdatable(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).updateGovernanceAddress(_governanceAddress);
-        // in Governance ownable
-        IUpdatable(
-            IGovStorage(govStorageAddress).getGovernanceOwnableAddress()
-        ).updateGovernanceAddress(_governanceAddress);
-        // in Exchange storage
-        IUpdatable(
-            IGovStorage(govStorageAddress).getExchangeStorageAddress()
-        ).updateGovernanceAddress(_governanceAddress);
+        ).updateGovernance(_governanceAddress);
         // in Debond Bond
         IUpdatable(
             IGovStorage(govStorageAddress).getERC3475Address()
-        ).updateGovernanceAddress(_governanceAddress);
-
+        ).updateGovernance(_governanceAddress);
+        // in Exchange storage
+        IUpdatable(
+            IGovStorage(govStorageAddress).getExchangeStorageAddress()
+        ).updateGovernance(_governanceAddress);
+        // in Staking contract
+        IUpdatable(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).updateGovernance(_governanceAddress);
+/*
+        // in Exchange
+        IUpdatable(
+            IGovStorage(govStorageAddress).getExchangeAddress()
+        ).updateGovernance(_governanceAddress);
+        // in Governance ownable
+        IUpdatable(
+            IGovStorage(govStorageAddress).getGovernanceOwnableAddress()
+        ).updateGovernance(_governanceAddress);
+*/
         return true;
     }
-*/
 }

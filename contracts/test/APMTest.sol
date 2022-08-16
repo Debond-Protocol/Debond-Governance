@@ -16,55 +16,18 @@ pragma solidity ^0.8.0;
 
 import "@debond-protocol/debond-apm-contracts/APM.sol";
 
-interface IUpdatable {
-    function updateGovernance(
-        address _governanceAddress
-    ) external;
-
-    function updateBank(
-        address _bankAddress
-    ) external;
-}
-
-contract APMExecutable is IUpdatable {
-    address governance;
-    address executable;
-    address bank;
-
-    modifier onlyExec {
-        require(msg.sender == executable, "Bank: only exec");
-        _;
-    }
-
-    function updateGovernance(
-        address _governanceAddress
-    ) external onlyExec {
-        governance = _governanceAddress;
-    }
-    
-    function updateBank(
-        address _bankAddress
-    ) external onlyExec {
-        bank = _bankAddress;
-    }
-}
-
-contract APMTest is APM, APMExecutable {
+contract APMTest is APM {
     constructor(
         address _governance,
         address _bank,
         address _executable
-    ) APM(_governance, _bank) {
-        governance = _governance;
-        bank = _bank;
-        executable = _executable;
-    }
+    ) APM(_governance, _bank, _executable) {}
 
     function getBankAddress() public view returns(address) {
-        return bank;
+        return bankAddress;
     }
 
     function getGovernanceAddress() public view returns(address) {
-        return governance;
+        return governanceAddress;
     }
 }

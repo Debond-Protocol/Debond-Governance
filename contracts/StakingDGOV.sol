@@ -20,7 +20,33 @@ import "./interfaces/IVoteToken.sol";
 import "./interfaces/IGovStorage.sol";
 import "./interfaces/IStaking.sol";
 
-contract StakingDGOV is IStaking, ReentrancyGuard {
+interface IUpdatable {
+    function updateGovernance(
+        address _governanceAddress
+    ) external;
+}
+
+contract StakingExecutable is IUpdatable {
+    address governance;
+    address executable;
+
+    modifier onlyExec {
+        require(msg.sender == executable, "Bank: only exec");
+        _;
+    }
+    
+    function updateGovernance(
+        address _governanceAddress
+    ) external onlyExec {
+        governance = _governanceAddress;
+    }
+
+    function getGovernanceAddress() public view returns(address) {
+        return governance;
+    }
+}
+
+contract StakingDGOV is IStaking, StakingExecutable, ReentrancyGuard {
     /**
     * @dev structure that stores information on stacked dGoV
     */
@@ -42,7 +68,6 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
 
     address public dGov;
     address public voteToken;
-    address public governance;
     address public proposalLogic;
     address public govStorageAddress;
 
@@ -64,11 +89,13 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
         address _voteToken,
         address _governance,
         address _proposalLogic,
-        address _govStorageAddress
+        address _govStorageAddress,
+        address _executable
     ) {
         dGov = _dgovToken;
         voteToken = _voteToken;
         governance = _governance;
+        executable = _executable;
         proposalLogic = _proposalLogic;
         govStorageAddress = _govStorageAddress;
         IdGov = IERC20(_dgovToken);
