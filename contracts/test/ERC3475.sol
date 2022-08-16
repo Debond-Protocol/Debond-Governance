@@ -14,7 +14,7 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-token-contracts/DGOV.sol";
+import "@debond-protocol/debond-erc3475-contracts/DebondERC3475.sol";
 
 interface IUpdatable {
     function updateGovernance(
@@ -25,26 +25,20 @@ interface IUpdatable {
         address _bankAddress
     ) external;
 
-    function updateAirdrop(
-        address _airdropAddress
+    function updateBankBondManager(
+        address _bankBondManagerAddress
     ) external;
 }
 
-contract DGOVExecutable is IUpdatable {
+contract ERC3475Executable is IUpdatable {
     address governance;
     address executable;
     address bank;
-    address airdrop;
+    address bankBondManager;
 
     modifier onlyExec {
         require(msg.sender == executable, "Bank: only exec");
         _;
-    }
-
-    function updateGovernance(
-        address _governanceAddress
-    ) external onlyExec {
-        governance = _governanceAddress;
     }
     
     function updateBank(
@@ -53,32 +47,45 @@ contract DGOVExecutable is IUpdatable {
         bank = _bankAddress;
     }
 
-    function updateAirdrop(
-        address _airdropAddress
+    function updateBankBondManager(
+        address _bankBondManagerAddress
     ) external onlyExec {
-        airdrop = _airdropAddress;
+        bankBondManager = _bankBondManagerAddress;
+    }
+
+    function updateGovernance(
+        address _governanceAddress
+    ) external onlyExec {
+        governance = _governanceAddress;
     }
 }
 
-contract DGOVToken is DGOV, DGOVExecutable {
+contract ERC3475 is ERC3475Executable {
     constructor(
-        address _governace,
-        address _bank,
-        address _airdrop,
-        address _exchange,
-        address _executable
-    ) DGOV(_governace, _bank, _airdrop, _exchange) {
-        governance = _governace;
-        bank = _bank;
-        executable = _executable;
-        airdrop = _airdrop;
+        address _governanceAddress,
+        address _excutableAddress,
+        address _bankAddress,
+        address _bankBondManagerAddress
+    ) {
+        governance = _governanceAddress;
+        executable = _excutableAddress;
+        bank = _bankAddress;
+        bankBondManager = _bankBondManagerAddress;
     }
 
     function getBankAddress() public view returns(address) {
         return bank;
     }
 
-    function getAirdropAddress() public view returns(address) {
-        return airdrop;
+    function getGovernanceAddress() public view returns(address) {
+        return governance;
+    }
+
+    function getBankBondManager() public view returns(address) {
+        return bankBondManager;
+    }
+
+    function getExecutableAddress() public view returns(address) {
+        return executable;
     }
 }

@@ -20,13 +20,27 @@ import "@debond-protocol/debond-apm-contracts/interfaces/IAPM.sol";
 interface IUpdatable {
     function setBenchmarkIR(
         uint256 _newBenchmarkInterestRate
-    ) external; 
+    ) external;
+
+    function updateGovernance(
+        address _governanceAddress
+    ) external;
+
+    function updateBankBondManager(
+        address _bankBondManagerAddress
+    ) external;
+
+    function updateOracle(
+        address _oracleAddress
+    ) external;
 }
 
 contract BankExecutable is IUpdatable {
     address governance;
     address executable;
+    address bankBondManager;
     address apm;
+    address oracle;
     uint256 benchmarkIR = 5;
 
     modifier onlyExec {
@@ -39,13 +53,38 @@ contract BankExecutable is IUpdatable {
     ) external onlyExec {
         benchmarkIR = _newBenchmarkInterestRate;
     }
+
+    function updateGovernance(
+        address _governanceAddress
+    ) external onlyExec {
+        governance = _governanceAddress;
+    }
+
+    function updateBankBondManager(
+        address _bankBondManagerAddress
+    ) external onlyExec {
+        bankBondManager = _bankBondManagerAddress;
+    }
+
+    function updateOracle(
+        address _oracleAddress
+    ) external onlyExec {
+        oracle = _oracleAddress;
+    }
 }
 
 contract Bank is BankExecutable {
 
-    constructor(address _governance, address _executable) {
+    constructor(
+        address _governance,
+        address _executable,
+        address _bankBondManager,
+        address _oracle
+    ) {
         governance = _governance;
         executable = _executable;
+        bankBondManager = _bankBondManager;
+        oracle = _oracle;
     }
 
     function mintCollateralisedSupply(address _token, address _to, uint256 _amount) public {
@@ -75,5 +114,13 @@ contract Bank is BankExecutable {
 
     function getAPM() public view returns(address) {
         return apm;
+    }
+
+    function getOracle() public view returns(address) {
+        return oracle;
+    }
+
+    function getBankBondManager() public view returns(address) {
+        return bankBondManager;
     }
 }

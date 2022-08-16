@@ -50,7 +50,7 @@ interface IExecutable {
     function updateExchangeAddress(
         address _exchangeAddress
     ) external returns(bool);
-/*
+
     function updateBankBondManagerAddress(
         address _bankBondManagerAddress
     ) external returns(bool);
@@ -66,7 +66,7 @@ interface IExecutable {
     function updateAirdropAddress(
         address _airdropAddress
     ) external returns(bool);
-
+/*
     function updateGovernanceAddress(
         address _governanceAddress
     ) external returns(bool);

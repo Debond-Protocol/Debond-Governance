@@ -124,11 +124,11 @@ contract Executable is IExecutable, IGovSharedStorage {
             IGovStorage(govStorageAddress).getAPMAddress()
         ).updateBank(_bankAddress);
         
-/*
         // in Debond Bond
         IUpdatable(
             IGovStorage(govStorageAddress).getERC3475Address()
         ).updateBank(_bankAddress);
+/*
         // in Bank Data
         IUpdatable(
             IGovStorage(govStorageAddress).getBankDataAddress()
@@ -153,7 +153,7 @@ contract Executable is IExecutable, IGovSharedStorage {
 
         return true;
     }
-/*
+
     function updateBankBondManagerAddress(
         address _bankBondManagerAddress
     ) external onlyGov returns(bool) {
@@ -164,11 +164,11 @@ contract Executable is IExecutable, IGovSharedStorage {
         // in Bank
         IUpdatable(
             IGovStorage(govStorageAddress).getBankAddress()
-        ).updateBankBondManagerAddress(_bankBondManagerAddress);
+        ).updateBankBondManager(_bankBondManagerAddress);
         // in Debond Bond
         IUpdatable(
             IGovStorage(govStorageAddress).getERC3475Address()
-        ).updateBankBondManagerAddress(_bankBondManagerAddress);
+        ).updateBankBondManager(_bankBondManagerAddress);
 
         return true;
     }
@@ -189,12 +189,12 @@ contract Executable is IExecutable, IGovSharedStorage {
         // in Bank
         IUpdatable(
             IGovStorage(govStorageAddress).getBankAddress()
-        ).updateOracleAddress(_oracleAddress);
-
+        ).updateOracle(_oracleAddress);
+/*
         IUpdatable(
             IGovStorage(govStorageAddress).getBankBondManagerAddress()
-        ).updateOracleAddress(_oracleAddress);
-
+        ).updateOracle(_oracleAddress);
+*/
         return true;
     }
 
@@ -206,15 +206,15 @@ contract Executable is IExecutable, IGovSharedStorage {
         // in DBIT
         IUpdatable(
             IGovStorage(govStorageAddress).getDBITAddress()
-        ).updateAirdropAddress(_airdropAddress);
+        ).updateAirdrop(_airdropAddress);
         // in DGOV
         IUpdatable(
             IGovStorage(govStorageAddress).getDGOVAddress()
-        ).updateAirdropAddress(_airdropAddress);
+        ).updateAirdrop(_airdropAddress);
 
         return true;
     }
-
+/*
     function updateGovernanceAddress(
         address _governanceAddress
     ) external onlyGov returns(bool) {

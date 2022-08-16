@@ -8,6 +8,7 @@ const expect = chai.expect;
 
 const DBIT = artifacts.require("DBITToken");
 const DGOV = artifacts.require("DGOVToken");
+const ERC3475 = artifacts.require("ERC3475");
 const Bank = artifacts.require("Bank");
 const APMTest = artifacts.require("APMTest");
 const VoteToken = artifacts.require("VoteToken");
@@ -32,6 +33,7 @@ contract("Governance", async (accounts) => {
     let exec;
     let count;
     let logic;
+    let erc3475;
     let storage;
     let settings;
     let amountToMint;
@@ -67,9 +69,10 @@ contract("Governance", async (accounts) => {
         storage = await GovStorage.new(debondTeam, operator);
         settings = await GovSettings.new(storage.address);
         exec = await Executable.new(storage.address);
-        exStorage = await ExchangeStorage.new(operator);
+        exStorage = await ExchangeStorage.new(operator, exec.address);
         gov = await Governance.new(storage.address, count.address);
-        bank = await Bank.new(gov.address, exec.address);
+        bank = await Bank.new(gov.address, exec.address, operator, operator);
+        erc3475 = await ERC3475.new(gov.address, exec.address, bank.address, operator);
         apm = await APMTest.new(gov.address, bank.address, exec.address);
         dbit = await DBIT.new(gov.address, bank.address, operator, operator, exec.address);
         dgov = await DGOV.new(gov.address, bank.address, operator, operator, exec.address);
@@ -84,6 +87,7 @@ contract("Governance", async (accounts) => {
             apm.address,
             operator,
             operator,
+            operator,
             stak.address,
             vote.address,
             count.address,
@@ -96,9 +100,9 @@ contract("Governance", async (accounts) => {
             exec.address,
             bank.address,
             operator,
+            erc3475.address,
             operator,
-            operator,
-            operator,
+            exStorage.address,
             operator,
             operator,
             {from: operator}
@@ -448,7 +452,7 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it("update the bank contract", async () => {
+    it.only("update the bank contract", async () => {
         // create a proposal
         let _class = 0;
         let title = "Propsal-1: Update the bank contract";
@@ -481,6 +485,7 @@ contract("Governance", async (accounts) => {
         let bankInDBITBefore = await dbit.getBankAddress();
         let bankInDGOVBefore = await dbit.getBankAddress();
         let bankInAPMBefore = await dbit.getBankAddress();
+        let bankInERC3475Before = await erc3475.getBankAddress();
 
         await gov.executeProposal(
             event.class,
@@ -492,18 +497,226 @@ contract("Governance", async (accounts) => {
         let bankInDBITAfter = await dbit.getBankAddress();
         let bankInDGOVAfter = await dbit.getBankAddress();
         let bankInAPMAfter = await dbit.getBankAddress();
+        let bankInERC3475After = await erc3475.getBankAddress();
 
         expect(bankBefore)
         .to.equal(bankInDBITBefore)
         .to.equal(bankInDGOVBefore)
         .to.equal(bankInAPMBefore)
+        .to.equal(bankInERC3475Before)
         .to.equal(bank.address);
 
         expect(bankAfter)
         .to.equal(bankInDBITAfter)
         .to.equal(bankInDGOVAfter)
         .to.equal(bankInAPMAfter)
-        .to.equal(user6);
+        .to.equal(bankInERC3475After)
+        .to.equal(user6)
+        .not.to.equal(bankBefore);
+    });
+
+    it("update the exchange contract", async () => {
+        // create a proposal
+        let _class = 0;
+        let title = "Propsal-1: Update the exchange contract";
+        let callData = await gov.contract.methods.updateExchangeAddress(
+            _class,
+            user6
+        ).encodeABI();
+
+        let res = await gov.createProposal(
+            _class,
+            [gov.address],
+            [0],
+            [callData],
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
+        );
+
+        let event = res.logs[0].args;
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
+        await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
+        await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
+        
+        await gov.veto(event.class, event.nonce, true, { from: operator });
+
+        await wait(18000);
+
+        let exchangeBefore = await storage.getExchangeAddress();
+        let exchangeInStorageBefore = await exStorage.getExchangeAddress();
+
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            { from: operator }
+        );
+
+        let exchangeAfter = await storage.getExchangeAddress();
+        let exchangeInStorageAfter = await exStorage.getExchangeAddress();
+
+        expect(exchangeBefore)
+        .to.equal(exchangeInStorageBefore);
+
+        expect(exchangeAfter)
+        .to.equal(exchangeInStorageAfter)
+        .not.to.equal(exchangeBefore);
+    });
+
+    it("update the bank bond manager contract", async () => {
+        // create a proposal
+        let _class = 0;
+        let title = "Propsal-1: Update the bank bond manager contract";
+        let callData = await gov.contract.methods.updateBankBondManagerAddress(
+            _class,
+            user6
+        ).encodeABI();
+
+        let res = await gov.createProposal(
+            _class,
+            [gov.address],
+            [0],
+            [callData],
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
+        );
+
+        let event = res.logs[0].args;
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
+        await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
+        await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
+        
+        await gov.veto(event.class, event.nonce, true, { from: operator });
+
+        await wait(18000);
+
+        let bankBondManagerBefore = await storage.getBankBondManagerAddress();
+        let inBankBefore = await bank.getBankBondManager();
+        let inDebondBondBefore = await erc3475.getBankBondManager();
+
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            { from: operator }
+        );
+
+        let bankBondManagerAfter = await storage.getBankBondManagerAddress();
+        let inBankAfter = await bank.getBankBondManager();
+        let inDebondBondAfter = await erc3475.getBankBondManager();
+
+        expect(bankBondManagerBefore)
+        .to.equal(inBankBefore)
+        .to.equal(inDebondBondBefore);
+
+        expect(bankBondManagerAfter)
+        .to.equal(inBankAfter)
+        .to.equal(inDebondBondAfter)
+        .not.to.equal(bankBondManagerBefore);
+    });
+
+    it("update the airdrop contract", async () => {
+        // create a proposal
+        let _class = 0;
+        let title = "Propsal-1: Update the airdrop contract";
+        let callData = await gov.contract.methods.updateAirdropAddress(
+            _class,
+            user6
+        ).encodeABI();
+
+        let res = await gov.createProposal(
+            _class,
+            [gov.address],
+            [0],
+            [callData],
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
+        );
+
+        let event = res.logs[0].args;
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
+        await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
+        await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
+        
+        await gov.veto(event.class, event.nonce, true, { from: operator });
+
+        await wait(18000);
+
+        let airdropBefore = await storage.getAirdropContract();
+        let inDBITBefore = await dbit.getAirdropAddress();
+        let inDGOVBefore = await dgov.getAirdropAddress();
+
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            { from: operator }
+        );
+
+        let airdropAfter = await storage.getAirdropContract();
+        let inDBITAfter = await dbit.getAirdropAddress();
+        let inDGOVAfter = await dgov.getAirdropAddress();
+
+        expect(airdropBefore)
+        .to.equal(inDBITBefore)
+        .to.equal(inDGOVBefore);
+
+        expect(airdropAfter)
+        .to.equal(inDBITAfter)
+        .to.equal(inDGOVAfter)
+        .not.to.equal(airdropBefore);
+    });
+
+    it("update the oracle contract", async () => {
+        // create a proposal
+        let _class = 0;
+        let title = "Propsal-1: Update the oracle contract";
+        let callData = await gov.contract.methods.updateOracleAddress(
+            _class,
+            user6
+        ).encodeABI();
+
+        let res = await gov.createProposal(
+            _class,
+            [gov.address],
+            [0],
+            [callData],
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
+        );
+
+        let event = res.logs[0].args;
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
+        await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
+        await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
+        
+        await gov.veto(event.class, event.nonce, true, { from: operator });
+
+        await wait(18000);
+
+        let oracleBefore = await storage.getOracleAddress();
+        let inBankBefore = await bank.getOracle();
+
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            { from: operator }
+        );
+
+        let oracleAfter = await storage.getOracleAddress();
+        let inBankAfter = await bank.getOracle();
+
+        expect(oracleBefore)
+        .to.equal(inBankBefore);
+
+        expect(oracleAfter)
+        .to.equal(inBankAfter)
+        .not.to.equal(oracleBefore);
     });
 
     it("Change the benchmark interest rate", async () => {
@@ -565,7 +778,7 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it.only("change the budget in Part Per Million", async () => {
+    it("change the budget in Part Per Million", async () => {
         let newDBITBudget = await web3.utils.toWei(web3.utils.toBN(5000000), 'ether');
         let newDGOVBudget = await web3.utils.toWei(web3.utils.toBN(7000000), 'ether');
 

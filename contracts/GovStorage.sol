@@ -209,6 +209,7 @@ contract GovStorage is IGovStorage {
         address _apmContract,
         address _apmRouterContract,
         address _bankBondManagerContract,
+        address _oracleContract,
         address _stakingContract,
         address _voteContract,
         address _voteCounting
@@ -219,6 +220,7 @@ contract GovStorage is IGovStorage {
         apmContract = _apmContract;
         apmRouterContract = _apmRouterContract;
         bankBondManagerContract = _bankBondManagerContract;
+        oracleContract = _oracleContract;
         stakingContract = _stakingContract;
         voteTokenContract = _voteContract;
         voteCountingContract = _voteCounting;
@@ -239,11 +241,11 @@ contract GovStorage is IGovStorage {
         govSettingsContract = _settingsContrats;
         proposalLogicContract = _proposalLogicContract;
         executable = _executable;
-        exchangeContract = _exchangeContract;
-        exchangeStorageContract = _exchangeStorageContract;
         bankContract = _bankContract;
         bankDataContract = _bankDataContract;
         erc3475Contract = _erc3475Contract;
+        exchangeContract = _exchangeContract;
+        exchangeStorageContract = _exchangeStorageContract;
         airdropContract = _airdropContract;
         governanceOwnableContract = _governanceOwnableContract;
     }

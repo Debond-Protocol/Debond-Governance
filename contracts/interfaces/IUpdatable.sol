@@ -25,11 +25,27 @@ interface IUpdatable {
         uint256 _amount
     ) external;
 
+    function updateGovernance(
+        address _governanceAddress
+    ) external;
+
     function updateBank(
         address _bankAddress
     ) external;
 
     function updateExchange(
         address _exchangeAddress
+    ) external;
+
+    function updateBankBondManager(
+        address _bankBondManagerAddress
+    ) external;
+
+    function updateOracle(
+        address _oracleAddress
+    ) external;
+
+    function updateAirdrop(
+        address _airdropAddress
     ) external;
 }

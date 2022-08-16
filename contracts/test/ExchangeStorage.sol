@@ -37,8 +37,9 @@ contract ExchangeStorageExecutable is IUpdatable {
 }
 
 contract ExchangeStorage is ExchangeStorageExecutable {
-    constructor(address _exchangeAddress) {
+    constructor(address _exchangeAddress, address _executable) {
         exchange = _exchangeAddress;
+        executable = _executable;
     }
 
     function getExchangeAddress() external view returns(address) {

@@ -643,7 +643,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             "Gov: execution failed" 
         );
     }
-/*
+
     function updateBankBondManagerAddress(
         uint128 _proposalClass,
         address _bankBondManagerAddress
@@ -695,7 +695,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             "Gov: execution failed" 
         );
     }
-
+/*
     function updateGovernanceAddress(
         uint128 _proposalClass,
         address _governanceAddress
