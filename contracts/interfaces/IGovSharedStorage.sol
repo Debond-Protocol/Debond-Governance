@@ -64,6 +64,11 @@ interface IGovSharedStorage {
         Abstain
     }
 
+    enum InterestRateType {
+        FixedRate,
+        FloatingRate
+    }
+
     /**
      * @dev Emitted when a proposal is created.
      */

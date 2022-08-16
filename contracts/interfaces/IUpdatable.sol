@@ -14,10 +14,20 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
+import "./IGovSharedStorage.sol";
+
 interface IUpdatable {
     function setBenchmarkIR(
         uint256 _newBenchmarkInterestRate
     ) external;
+
+    function createBonClass(
+        uint256 _classId,
+        string memory _symbol,
+        address _tokenAddress,
+        IGovSharedStorage.InterestRateType _interestRateType,
+        uint256 _period
+    )  external;
 
     function migrate(
         address _token,

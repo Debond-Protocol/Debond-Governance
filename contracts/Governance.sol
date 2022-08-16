@@ -540,6 +540,30 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         );
     }
 
+    function createNewBondClass(
+        uint128 _proposalClass,
+        uint256 _classId,
+        string memory _symbol,
+        address _tokenAddress,
+        InterestRateType _interestRateType,
+        uint256 _period
+    ) external {
+        require(_proposalClass <= 1, "Executable: invalid class");
+        require(
+            IExecutable(
+                IGovStorage(govStorageAddress).getExecutableContract()
+            ).createNewBondClass(
+                _classId,
+                _symbol,
+                _tokenAddress,
+                _interestRateType,
+                _period
+            ),
+            "Gov: execution failed"
+        );
+        
+    }
+
     function updataVoteClassInfo(
         uint128 _proposalClass,
         uint128 _ProposalClassInfoClass,

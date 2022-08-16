@@ -64,6 +64,25 @@ contract Executable is IExecutable, IGovSharedStorage {
         return true;
     }
 
+    function createNewBondClass(
+        uint256 _classId,
+        string memory _symbol,
+        address _tokenAddress,
+        InterestRateType _interestRateType,
+        uint256 _period
+    ) external onlyGov returns(bool) {
+        IUpdatable(
+            IGovStorage(govStorageAddress).getBankBondManagerAddress()
+        ).createBonClass(
+            _classId,
+            _symbol,
+            _tokenAddress,
+            _interestRateType,
+            _period
+        );
+        return true;
+    }
+
     function updataVoteClassInfo(
         uint128 _ProposalClassInfoClass,
         uint256 _timeLock,

@@ -14,10 +14,20 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
+import "./IGovSharedStorage.sol";
+
 interface IExecutable {
     //Update benchmark intrest rate
     function updateBenchmarkInterestRate(
         uint256 _newBenchmarkInterestRate
+    ) external returns(bool);
+
+    function createNewBondClass(
+        uint256 _classId,
+        string memory _symbol,
+        address _tokenAddress,
+        IGovSharedStorage.InterestRateType _interestRateType,
+        uint256 _period
     ) external returns(bool);
 
     function updataVoteClassInfo(
