@@ -17,6 +17,10 @@ pragma solidity ^0.8.0;
 import "@debond-protocol/debond-apm-contracts/APM.sol";
 
 interface IUpdatable {
+    function updateGovernance(
+        address _governanceAddress
+    ) external;
+
     function updateBank(
         address _bankAddress
     ) external;
@@ -30,6 +34,12 @@ contract APMExecutable is IUpdatable {
     modifier onlyExec {
         require(msg.sender == executable, "Bank: only exec");
         _;
+    }
+
+    function updateGovernance(
+        address _governanceAddress
+    ) external onlyExec {
+        governance = _governanceAddress;
     }
     
     function updateBank(
@@ -52,5 +62,9 @@ contract APMTest is APM, APMExecutable {
 
     function getBankAddress() public view returns(address) {
         return bank;
+    }
+
+    function getGovernanceAddress() public view returns(address) {
+        return governance;
     }
 }

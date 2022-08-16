@@ -81,4 +81,8 @@ contract DGOVToken is DGOV, DGOVExecutable {
     function getAirdropAddress() public view returns(address) {
         return airdrop;
     }
+
+    function getGovernanceAddress() public view returns(address) {
+        return governance;
+    }
 }
