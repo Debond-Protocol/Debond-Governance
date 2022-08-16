@@ -21,6 +21,8 @@ const GovStorage = artifacts.require("GovStorage");
 const ProposalLogic = artifacts.require("ProposalLogic");
 const GovernanceMigrator = artifacts.require("GovernanceMigrator");
 const ExchangeStorage = artifacts.require("ExchangeStorage");
+const BankData = artifacts.require("BankData");
+const BankBondManager = artifacts.require("BankBondManager");
 
 contract("Governance", async (accounts) => {
     let gov;
@@ -40,6 +42,8 @@ contract("Governance", async (accounts) => {
     let amountToStake;
     let migrator;
     let exStorage;
+    let bankData;
+    let bondManager;
 
     let balanceUser1BeforeStake;
     let balanceStakingContractBeforeStake;
@@ -71,9 +75,11 @@ contract("Governance", async (accounts) => {
         exec = await Executable.new(storage.address);
         exStorage = await ExchangeStorage.new(operator, exec.address);
         gov = await Governance.new(storage.address, count.address);
-        bank = await Bank.new(gov.address, exec.address, operator, operator);
-        erc3475 = await ERC3475.new(gov.address, exec.address, bank.address, operator);
+        bondManager = await BankBondManager.new(gov.address, exec.address, operator);
+        bank = await Bank.new(gov.address, exec.address, bondManager.address, operator);
+        erc3475 = await ERC3475.new(gov.address, exec.address, bank.address, bondManager.address);
         apm = await APMTest.new(gov.address, bank.address, exec.address);
+        bankData = await BankData.new(gov.address, bank.address, exec.address);
         dbit = await DBIT.new(gov.address, bank.address, operator, operator, exec.address);
         dgov = await DGOV.new(gov.address, bank.address, operator, operator, exec.address);
         logic = await ProposalLogic.new(operator, storage.address, vote.address, count.address);
@@ -86,7 +92,7 @@ contract("Governance", async (accounts) => {
             dbit.address,
             apm.address,
             operator,
-            operator,
+            bondManager.address,
             operator,
             stak.address,
             vote.address,
@@ -99,7 +105,7 @@ contract("Governance", async (accounts) => {
             logic.address,
             exec.address,
             bank.address,
-            operator,
+            bankData.address,
             erc3475.address,
             operator,
             exStorage.address,
@@ -131,6 +137,9 @@ contract("Governance", async (accounts) => {
 
         // set govStorage address in GovernanceMigrator
         await migrator.setGovStorageAddress(gov.address);
+
+        // set Bank in Bank Bond Manager
+        await bondManager.setBank(bank.address);
 
         //let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
         let amount = await web3.utils.toWei(web3.utils.toBN(20000), 'ether');
@@ -452,7 +461,7 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it.only("update the bank contract", async () => {
+    it("update the bank contract", async () => {
         // create a proposal
         let _class = 0;
         let title = "Propsal-1: Update the bank contract";
@@ -486,6 +495,8 @@ contract("Governance", async (accounts) => {
         let bankInDGOVBefore = await dbit.getBankAddress();
         let bankInAPMBefore = await dbit.getBankAddress();
         let bankInERC3475Before = await erc3475.getBankAddress();
+        let bankInBankDataBefore = await bankData.getBankAddress();
+        let bankInBondManagerBefore = await bondManager.getBankAddress();
 
         await gov.executeProposal(
             event.class,
@@ -498,12 +509,16 @@ contract("Governance", async (accounts) => {
         let bankInDGOVAfter = await dbit.getBankAddress();
         let bankInAPMAfter = await dbit.getBankAddress();
         let bankInERC3475After = await erc3475.getBankAddress();
+        let bankInBankDataAfter = await bankData.getBankAddress();
+        let bankInBondManagerAfter = await bondManager.getBankAddress();
 
         expect(bankBefore)
         .to.equal(bankInDBITBefore)
         .to.equal(bankInDGOVBefore)
         .to.equal(bankInAPMBefore)
         .to.equal(bankInERC3475Before)
+        .to.equal(bankInBankDataBefore)
+        .to.equal(bankInBondManagerBefore)
         .to.equal(bank.address);
 
         expect(bankAfter)
@@ -511,6 +526,8 @@ contract("Governance", async (accounts) => {
         .to.equal(bankInDGOVAfter)
         .to.equal(bankInAPMAfter)
         .to.equal(bankInERC3475After)
+        .to.equal(bankInBankDataAfter)
+        .to.equal(bankInBondManagerAfter)
         .to.equal(user6)
         .not.to.equal(bankBefore);
     });
@@ -608,8 +625,8 @@ contract("Governance", async (accounts) => {
         let inDebondBondAfter = await erc3475.getBankBondManager();
 
         expect(bankBondManagerBefore)
-        .to.equal(inBankBefore)
-        .to.equal(inDebondBondBefore);
+        .to.equal(inDebondBondBefore)
+        .to.equal(inBankBefore);
 
         expect(bankBondManagerAfter)
         .to.equal(inBankAfter)
@@ -700,7 +717,8 @@ contract("Governance", async (accounts) => {
         await wait(18000);
 
         let oracleBefore = await storage.getOracleAddress();
-        let inBankBefore = await bank.getOracle();
+        let inBankBefore = await bank.getOracleAddress();
+        let inBondManagerBefore = await bondManager.getOracleAddress();
 
         await gov.executeProposal(
             event.class,
@@ -709,17 +727,20 @@ contract("Governance", async (accounts) => {
         );
 
         let oracleAfter = await storage.getOracleAddress();
-        let inBankAfter = await bank.getOracle();
+        let inBankAfter = await bank.getOracleAddress();
+        let inBondManagerAfter = await bondManager.getOracleAddress();
 
         expect(oracleBefore)
-        .to.equal(inBankBefore);
+        .to.equal(inBankBefore)
+        .to.equal(inBondManagerBefore);
 
         expect(oracleAfter)
         .to.equal(inBankAfter)
+        .to.equal(inBondManagerAfter)
         .not.to.equal(oracleBefore);
     });
 
-    it("Change the benchmark interest rate", async () => {
+    it.only("Change the benchmark interest rate", async () => {
         // create a proposal
         let _class = 0;
         let title = "Propsal-1: Update the benchMark interest rate";

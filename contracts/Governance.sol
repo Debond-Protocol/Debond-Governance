@@ -74,6 +74,14 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         _;
     }
 
+    modifier onlySuccededProposals(uint128 _class, uint128 _nonce) {
+        require(
+            IGovStorage(govStorageAddress).getProposalStatus(_class, _nonce) == ProposalStatus.Succeeded,
+            "Gov: only succeded proposals"
+        );
+        _;
+    }
+
     constructor(
         address _govStorageAddress,
         address _voteCountingAddress

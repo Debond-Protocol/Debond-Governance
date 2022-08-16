@@ -116,7 +116,7 @@ contract Bank is BankExecutable {
         return apm;
     }
 
-    function getOracle() public view returns(address) {
+    function getOracleAddress() public view returns(address) {
         return oracle;
     }
 

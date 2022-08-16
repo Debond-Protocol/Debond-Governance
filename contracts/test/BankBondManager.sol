@@ -14,31 +14,36 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-token-contracts/DBIT.sol";
-
 interface IUpdatable {
     function updateGovernance(
         address _governanceAddress
     ) external;
 
     function updateBank(
-        address _bankAddress
+        address _bankBondManagerAddress
     ) external;
 
-    function updateAirdrop(
-        address _airdropAddress
+    function updateOracle(
+        address _oracleAddress
     ) external;
 }
 
-contract DBITExecutable is IUpdatable {
+contract BankBondManagerExecutable is IUpdatable {
     address governance;
     address executable;
     address bank;
-    address airdrop;
+    address oracle;
+    uint8 private _lock;
 
     modifier onlyExec {
         require(msg.sender == executable, "Bank: only exec");
         _;
+    }
+
+    function setBank(address _bankAddress) public {
+        require(_lock == 0, "GovernanceMigrator: goStorage address already set");
+        bank = _bankAddress;
+        _lock == 1;
     }
 
     function updateGovernance(
@@ -46,32 +51,25 @@ contract DBITExecutable is IUpdatable {
     ) external onlyExec {
         governance = _governanceAddress;
     }
-    
+
     function updateBank(
         address _bankAddress
     ) external onlyExec {
         bank = _bankAddress;
     }
 
-    function updateAirdrop(
-        address _airdropAddress
+    function updateOracle(
+        address _oracleAddress
     ) external onlyExec {
-        airdrop = _airdropAddress;
+        oracle = _oracleAddress;
     }
 }
 
-contract DBITToken is DBIT, DBITExecutable {
-    constructor(
-        address _governace,
-        address _bank,
-        address _airdrop,
-        address _exchange,
-        address _executable
-    ) DBIT(_governace, _bank, _airdrop, _exchange) {
-        governance = _governace;
-        bank = _bank;
-        executable = _executable;
-        airdrop = _airdrop;
+contract BankBondManager is BankBondManagerExecutable {
+    constructor(address _governanceAddress, address _executableAddress, address _oracle) {
+        governance = _governanceAddress;
+        executable = _executableAddress;
+        oracle = _oracle;
     }
 
     function getGovernanceAddress() public view returns(address) {
@@ -82,7 +80,7 @@ contract DBITToken is DBIT, DBITExecutable {
         return bank;
     }
 
-    function getAirdropAddress() public view returns(address) {
-        return airdrop;
+    function getOracleAddress() public view returns(address) {
+        return oracle;
     }
 }

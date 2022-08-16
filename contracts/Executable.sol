@@ -128,17 +128,17 @@ contract Executable is IExecutable, IGovSharedStorage {
         IUpdatable(
             IGovStorage(govStorageAddress).getERC3475Address()
         ).updateBank(_bankAddress);
-/*
+
         // in Bank Data
         IUpdatable(
             IGovStorage(govStorageAddress).getBankDataAddress()
         ).updateBank(_bankAddress);
+
         // in Bank Bond Manager
         IUpdatable(
             IGovStorage(govStorageAddress).getBankBondManagerAddress()
         ).updateBank(_bankAddress);
-*/
-
+        
         return true;
     }
 
@@ -190,11 +190,11 @@ contract Executable is IExecutable, IGovSharedStorage {
         IUpdatable(
             IGovStorage(govStorageAddress).getBankAddress()
         ).updateOracle(_oracleAddress);
-/*
+
         IUpdatable(
             IGovStorage(govStorageAddress).getBankBondManagerAddress()
         ).updateOracle(_oracleAddress);
-*/
+
         return true;
     }
 
