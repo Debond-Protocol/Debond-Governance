@@ -19,19 +19,19 @@ import "./IGovSharedStorage.sol";
 interface IProposalLogic is IGovSharedStorage {
     function setProposalData(
         uint128 _class,
+        uint128 _nonce,
         address _proposer,
         address[] memory _targets,
         uint256[] memory _values,
         bytes[] memory _calldatas,
         string memory _title
     ) external returns(
-        uint128 nonce,
         uint256 start,
         uint256 end,
         ProposalApproval approval
     );
 
-    function checkAndSetProposalStatus(
+    function setProposalExecuted(
         uint128 _class,
         uint128 _nonce
     ) external;

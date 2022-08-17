@@ -57,6 +57,7 @@ contract BankData is BankDataExecutable {
         bank = _bank;
         executable = _executable;
     }
+
     function getGovernanceAddress() public view returns(address) {
         return governance;
     }

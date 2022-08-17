@@ -65,13 +65,13 @@ contract ProposalLogic is IProposalLogic {
     */
     function setProposalData(
         uint128 _class,
-        address _proposer,
+        uint128 _nonce,
+        address _proposer, 
         address[] memory _targets,
         uint256[] memory _values,
         bytes[] memory _calldatas,
         string memory _title
     ) external onlyGov returns(
-        uint128 nonce,
         uint256 start,
         uint256 end,
         ProposalApproval approval
@@ -89,8 +89,7 @@ contract ProposalLogic is IProposalLogic {
             _values.length == _calldatas.length,
             "Gov: invalid proposal"
         );
- 
-        nonce = _generateNewNonce(_class);     
+     
         approval = getApprovalMode(_class);
 
         IVoteToken(
@@ -100,7 +99,7 @@ contract ProposalLogic is IProposalLogic {
             _proposer,
             IGovStorage(govStorageAddress).getThreshold(),
             _class,
-            nonce
+            _nonce
         );
 
         start = block.timestamp;
@@ -111,7 +110,7 @@ contract ProposalLogic is IProposalLogic {
 
         IGovStorage(govStorageAddress).setProposal(
             _class,
-            nonce,
+            _nonce,
             start,
             end,
             _proposer,
@@ -124,23 +123,44 @@ contract ProposalLogic is IProposalLogic {
     }
 
     /**
-    * @dev check and set proposal status when executing a proposal
+    * @dev hash a proposal
+    * @param _class proposal class
+    * @param _targets array of target contracts
+    * @param _values array of ether send
+    * @param _calldatas array of calldata to be executed
+    * @param _descriptionHash the hash of the proposal description
+    */
+    function hashProposal(
+        uint128 _class,
+        uint128 _nonce,
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        bytes32 _descriptionHash
+    ) internal pure returns (uint256 proposalHash) {
+        proposalHash = uint256(
+            keccak256(
+                abi.encode(
+                    _class,
+                    _nonce,
+                    _targets,
+                    _values,
+                    _calldatas,
+                    _descriptionHash
+                )
+            )
+        );
+    }
+
+    /**
+    * @dev set proposal status when executing a proposal
     * @param _class proposal class
     * @param _nonce proposal nonce
     */
-    function checkAndSetProposalStatus(
+    function setProposalExecuted(
         uint128 _class,
         uint128 _nonce
-    ) external onlyGov {
-        ProposalStatus status = IGovStorage(
-            govStorageAddress
-        ).getProposalStatus(_class, _nonce);
-
-        require(
-            status == ProposalStatus.Succeeded,
-            "Gov: proposal not successful"
-        );
-        
+    ) external onlyGov {        
         IGovStorage(
             govStorageAddress
         ).setProposalStatus(_class, _nonce, ProposalStatus.Executed);
@@ -325,15 +345,6 @@ contract ProposalLogic is IProposalLogic {
 
     function setStakingContract(address _stakingAddress) public onlyVetoOperator {
         stakingAddress = _stakingAddress;
-    }
-
-    /**
-    * @dev generate a new nonce for a given class
-    * @param _class proposal class
-    */
-    function _generateNewNonce(uint128 _class) internal returns(uint128 nonce) {
-        nonce = IGovStorage(govStorageAddress).getProposalNonce(_class) + 1;
-        IGovStorage(govStorageAddress).setProposalNonce(_class, nonce);
     }
 
     /**

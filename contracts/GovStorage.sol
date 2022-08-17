@@ -686,7 +686,7 @@ contract GovStorage is IGovStorage {
     function setProposalNonce(
         uint128 _class,
         uint128 _nonce
-    ) public onlyProposalLogic {
+    ) public onlyGov {
         proposalNonce[_class] = _nonce;
     }
 
