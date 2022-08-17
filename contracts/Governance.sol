@@ -40,15 +40,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
     address govStorageAddress;
     address voteCountingAddress;
 
-    modifier onlyDebondExecutor(address _executor) {
-        require(
-            _executor == IGovStorage(govStorageAddress).getDebondTeamAddress() ||
-            _executor == IGovStorage(govStorageAddress).getVetoOperator(),
-            "Gov: can't execute this task"
-        );
-        _;
-    }
-
     modifier onlyDBITorDGOV(address _tokenAddress) {
         require(
             _tokenAddress == IGovStorage(govStorageAddress).getDGOVAddress() ||
@@ -76,7 +67,19 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
 
     modifier onlySuccededProposals(uint128 _class, uint128 _nonce) {
         require(
-            IGovStorage(govStorageAddress).getProposalStatus(_class, _nonce) == ProposalStatus.Succeeded,
+            IGovStorage(govStorageAddress).getProposalStatus(_class, _nonce) == 
+            IGovSharedStorage.ProposalStatus.Succeeded,
+            "Gov: only succeded proposals"
+        );
+        _;
+    }
+
+    // we need this for updating governance, since once executed
+    // the old governance contract can no longer be used
+    modifier onlyExecutedProposals(uint128 _class, uint128 _nonce) {
+        require(
+            IGovStorage(govStorageAddress).getProposalStatus(_class, _nonce) == 
+            IGovSharedStorage.ProposalStatus.Executed,
             "Gov: only succeded proposals"
         );
         _;
@@ -164,7 +167,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             msg.sender == proposal.proposer,
             "Gov: permission denied"
         );
-
 
         _execute(proposal.targets, proposal.values, proposal.calldatas);
 
@@ -427,28 +429,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint256 _amount
     ) external override onlyExec {
         IERC20(_token).safeTransfer(_to, _amount);
-    }
-
-    /**
-    * @dev get the quorum for a given proposal class
-    * @param _class proposal id
-    * @param quorum vote quorum
-    */
-    function getProposalQuorum(
-        uint128 _class
-    ) public view returns(uint256 quorum) {
-        quorum = IGovStorage(govStorageAddress).getProposalClassInfo(_class, 1);
-    }
-
-    /**
-    * @dev change the proposal proposal threshold
-    * @param _newThreshold new proposal threshold
-    */
-    function setProposalThreshold(
-        uint256 _newThreshold,
-        address _executor
-    ) public onlyVetoOperator {
-        IGovStorage(govStorageAddress).setThreshold(_newThreshold, _executor);
     }
 
     function updateBenchmarkInterestRate(

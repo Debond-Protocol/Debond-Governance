@@ -16,6 +16,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IGovStorage.sol";
+import "../interfaces/IGovSharedStorage.sol";
 
 interface IUpdatable {
     function migrate(
@@ -33,7 +34,7 @@ contract GovernanceMigrator is IUpdatable {
     modifier onlyExecutable {
         require(
             msg.sender == IGovStorage(govStorage).getExecutableContract(),
-            "GovernanceMigrator: Only Gov"
+            "GovernanceMigrator: Only Exec"
         );
         _;
     }
