@@ -35,11 +35,39 @@ contract Executable is IExecutable, IGovSharedStorage {
         _;
     }
 
+    modifier onlyProposalLogic {
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getProposalLogicContract(),
+            "Executable: Only Gov"
+        );
+        _;
+    }
+
     modifier onlyDBITorDGOV(address _tokenAddress) {
         require(
             _tokenAddress == IGovStorage(govStorageAddress).getDGOVAddress() ||
             _tokenAddress == IGovStorage(govStorageAddress).getDBITAddress(),
             "Gov: wrong token address"
+        );
+        _;
+    }
+
+    modifier onlySuccededProposals(uint128 _class, uint128 _nonce) {
+        require(
+            IGovStorage(govStorageAddress).getProposalStatus(_class, _nonce) == 
+            IGovSharedStorage.ProposalStatus.Succeeded,
+            "Gov: only succeded proposals"
+        );
+        _;
+    }
+
+    // we need this for updating governance, since once executed
+    // the old governance contract can no longer be used
+    modifier onlyExecutedProposals(uint128 _class, uint128 _nonce) {
+        require(
+            IGovStorage(govStorageAddress).getProposalStatus(_class, _nonce) == 
+            IGovSharedStorage.ProposalStatus.Executed,
+            "Gov: only succeded proposals"
         );
         _;
     }
@@ -53,8 +81,11 @@ contract Executable is IExecutable, IGovSharedStorage {
     * @param _newBenchmarkInterestRate new benchmark interest rate
     */
     function updateBenchmarkInterestRate(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
         uint256 _newBenchmarkInterestRate
-    ) external onlyGov returns(bool) {
+    ) external onlyProposalLogic onlySuccededProposals(_proposalClass, _proposalNonce) returns(bool) {
+        require(_proposalClass < 1, "Executable: invalid class");
         IGovStorage(govStorageAddress).setBenchmarkIR(_newBenchmarkInterestRate);
 
         IUpdatable(
@@ -126,16 +157,21 @@ contract Executable is IExecutable, IGovSharedStorage {
     }
 
     function updateExecutableAddress(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
         address _executableAddress
-    ) external onlyGov returns(bool) {
+    ) external onlyGov onlySuccededProposals(_proposalClass, _proposalNonce) returns(bool) {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
         IGovStorage(govStorageAddress).updateExecutableAddress(_executableAddress);
 
         return true;
     }
 
     function updateBankAddress(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
         address _bankAddress
-    ) external onlyGov returns(bool) {
+    ) external onlyGov onlySuccededProposals(_proposalClass, _proposalNonce) returns(bool) {
         IGovStorage(govStorageAddress).updateBankAddress(_bankAddress);
 
         // in DBIT
@@ -170,8 +206,12 @@ contract Executable is IExecutable, IGovSharedStorage {
     }
 
     function updateExchangeAddress(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
         address _exchangeAddress
-    ) external onlyGov returns(bool) {
+    ) external onlyGov onlySuccededProposals(_proposalClass, _proposalNonce) returns(bool) {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+
         IGovStorage(govStorageAddress).updateExchangeAddress(_exchangeAddress);
 
         IUpdatable(
@@ -182,8 +222,12 @@ contract Executable is IExecutable, IGovSharedStorage {
     }
 
     function updateBankBondManagerAddress(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
         address _bankBondManagerAddress
-    ) external onlyGov returns(bool) {
+    ) external onlyGov onlySuccededProposals(_proposalClass, _proposalNonce) returns(bool) {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+
         IGovStorage(
             govStorageAddress
         ).updateBankBondManagerAddress(_bankBondManagerAddress);
@@ -200,17 +244,12 @@ contract Executable is IExecutable, IGovSharedStorage {
         return true;
     }
 
-    function updateAPMRouterAddress(
-        address _apmRouterAddress
-    ) external onlyGov returns(bool) {
-        IGovStorage(govStorageAddress).updateAPMRouterAddress(_apmRouterAddress);
-
-        return true;
-    }
-
     function updateOracleAddress(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
         address _oracleAddress
-    ) external onlyGov returns(bool) {
+    ) external onlyGov onlySuccededProposals(_proposalClass, _proposalNonce) returns(bool) {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
         IGovStorage(govStorageAddress).updateOracleAddress(_oracleAddress);
 
         // in Bank
@@ -226,8 +265,11 @@ contract Executable is IExecutable, IGovSharedStorage {
     }
 
     function updateAirdropAddress(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
         address _airdropAddress
-    ) external onlyGov returns(bool) {
+    ) external onlyGov onlySuccededProposals(_proposalClass, _proposalNonce) returns(bool) {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
         IGovStorage(govStorageAddress).updateAirdropAddress(_airdropAddress);
 
         // in DBIT
@@ -243,8 +285,12 @@ contract Executable is IExecutable, IGovSharedStorage {
     }
 
     function updateGovernanceAddress(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
         address _governanceAddress
-    ) external onlyGov returns(bool) {
+    ) external onlyGov onlyExecutedProposals(_proposalClass, _proposalNonce) returns(bool) {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+
         IGovStorage(govStorageAddress).updateGovernanceAddress(_governanceAddress);
 
         // in Bank

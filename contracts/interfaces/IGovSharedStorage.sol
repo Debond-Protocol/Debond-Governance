@@ -39,7 +39,7 @@ interface IGovSharedStorage {
         uint256 forVotes;
         uint256 againstVotes;
         uint256 abstainVotes;
-        uint256 vetoApproval;
+        bool vetoed;
         mapping(address => User) user;
     }
 

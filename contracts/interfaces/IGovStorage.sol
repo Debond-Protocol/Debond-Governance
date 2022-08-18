@@ -226,4 +226,18 @@ interface IGovStorage is IGovSharedStorage {
         uint256 _amountDBIT,
         uint256 _amountDGOV
     ) external view returns(bool);
+
+    function getGovernanceCallData(
+        uint128 _class,
+        uint128 _nonce,
+        address _newGovernanceAddress
+    ) external pure returns(bytes memory);
+
+    function decodeGovernanceCallData(
+        bytes calldata _data
+    ) external pure returns(
+        uint128,
+        uint128,
+        address
+    );
 }

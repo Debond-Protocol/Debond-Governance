@@ -15,6 +15,7 @@ pragma solidity ^0.8.0;
 */
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "../interfaces/IGovStorage.sol";
 import "../interfaces/IVoteToken.sol";
 import "../interfaces/IStaking.sol";
@@ -63,7 +64,7 @@ contract ProposalLogic is IProposalLogic {
     * @param _calldatas array of encoded functions to call if the proposal passes
     * @param _title proposal title
     */
-    function setProposalData(
+    function _setProposalData(
         uint128 _class,
         uint128 _nonce,
         address _proposer, 
@@ -71,7 +72,7 @@ contract ProposalLogic is IProposalLogic {
         uint256[] memory _values,
         bytes[] memory _calldatas,
         string memory _title
-    ) external onlyGov returns(
+    ) private returns(
         uint256 start,
         uint256 end,
         ProposalApproval approval
@@ -150,20 +151,6 @@ contract ProposalLogic is IProposalLogic {
                 )
             )
         );
-    }
-
-    /**
-    * @dev set proposal status when executing a proposal
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    */
-    function setProposalExecuted(
-        uint128 _class,
-        uint128 _nonce
-    ) external onlyGov {        
-        IGovStorage(
-            govStorageAddress
-        ).setProposalStatus(_class, _nonce, ProposalStatus.Executed);
     }
 
     /**
@@ -378,5 +365,35 @@ contract ProposalLogic is IProposalLogic {
             0: block.timestamp - _proposal.startTime;
         
         day = (duration / IGovStorage(govStorageAddress).getNumberOfSecondInYear()) + 1;
+    }
+
+    function proposalSetUp(
+        uint128 _class,
+        uint128 _nonce,
+        address _proposer,
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        string memory _title,
+        bytes32 _descriptionHash
+    ) public onlyGov returns(uint256 start, uint256 end, ProposalApproval approval) {
+        IGovStorage(govStorageAddress).setProposalNonce(_class, _nonce);      
+        require(
+            _nonce == IGovStorage(govStorageAddress).getProposalNonce(_class),
+            "Gov: invalid nonce"
+        );
+
+        (
+            start,
+            end,
+            approval
+        ) = 
+        _setProposalData(
+            _class, _nonce, _proposer, _targets, _values, _calldatas, _title
+        );
+
+        IGovStorage(
+            govStorageAddress
+        ).setProposalDescriptionHash(_class, _nonce, _descriptionHash);
     }
 }

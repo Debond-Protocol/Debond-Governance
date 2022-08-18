@@ -519,20 +519,17 @@ contract GovStorage is IGovStorage {
             return ProposalStatus.Active;
         }
 
-        if (_class == 2) {
-            if (
-                IVoteCounting(voteCountingContract).quorumReached(_class, _nonce) && 
-                IVoteCounting(voteCountingContract).voteSucceeded(_class, _nonce)
-            ) {
-                return ProposalStatus.Succeeded;
-            } else {
-                return ProposalStatus.Defeated;
-            }
+        if(!IVoteCounting(voteCountingContract).voteSucceeded(_class, _nonce)) {
+            return ProposalStatus.Defeated;
         } else {
-            if (IVoteCounting(voteCountingContract).vetoApproved(_class, _nonce)) {
-                return ProposalStatus.Succeeded;
-            } else {
+            if(!IVoteCounting(voteCountingContract).quorumReached(_class, _nonce)) {
                 return ProposalStatus.Defeated;
+            } else {
+                if(IVoteCounting(voteCountingContract).vetoed(_class, _nonce)) {
+                    return ProposalStatus.Defeated;
+                } else {
+                    return ProposalStatus.Succeeded;
+                }
             }
         }
     }
@@ -651,7 +648,7 @@ contract GovStorage is IGovStorage {
         uint128 _class,
         uint128 _nonce,
         bytes32 _descriptionHash
-    ) external onlyGov {
+    ) external onlyProposalLogic {
         proposal[_class][_nonce].descriptionHash = _descriptionHash;
     }
 
@@ -686,7 +683,7 @@ contract GovStorage is IGovStorage {
     function setProposalNonce(
         uint128 _class,
         uint128 _nonce
-    ) public onlyGov {
+    ) public onlyProposalLogic {
         proposalNonce[_class] = _nonce;
     }
 
@@ -921,5 +918,24 @@ contract GovStorage is IGovStorage {
         );
 
         return true;
+    }
+
+    function getGovernanceCallData(
+        uint128 _class,
+        uint128 _nonce,
+        address _newGovernanceAddress
+    ) public pure returns(bytes memory) {
+        bytes4 SELECTOR = bytes4(keccak256(bytes('updateGovernanceAddress(uint128,uint128,address)')));
+        return abi.encodeWithSelector(SELECTOR, _class, _nonce, _newGovernanceAddress);
+    }
+
+    function decodeGovernanceCallData(
+        bytes calldata _data
+    ) public pure returns(
+        uint128,
+        uint128,
+        address
+    ) {
+        return abi.decode(_data[4:], (uint128, uint128, address));
     }
 }

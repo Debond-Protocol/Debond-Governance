@@ -111,27 +111,15 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         bytes[] memory _calldatas,
         string memory _title,
         bytes32 _descriptionHash
-    ) public {  
-        IGovStorage(govStorageAddress).setProposalNonce(_class, _nonce);      
-        require(
-            _nonce == IGovStorage(govStorageAddress).getProposalNonce(_class),
-            "Gov: invalid nonce"
-        );
-
+    ) public {
         (
-            uint256 start,
-            uint256 end,
-            ProposalApproval approval
-        ) = 
+            uint256 start, uint256 end, ProposalApproval approval
+        ) =
         IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
-        ).setProposalData(
-            _class, _nonce, _msgSender(), _targets, _values, _calldatas, _title
+        ).proposalSetUp(
+            _class, _nonce, _msgSender(), _targets, _values, _calldatas, _title, _descriptionHash
         );
-
-        IGovStorage(
-            govStorageAddress
-        ).setProposalDescriptionHash(_class, _nonce, _descriptionHash);
 
         emit ProposalCreated(
             _class,
@@ -162,32 +150,52 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         Proposal memory proposal = IGovStorage(
             govStorageAddress
         ).getProposalStruct(_class, _nonce);
-        
-        require(
-            msg.sender == proposal.proposer,
-            "Gov: permission denied"
-        );
 
-        _execute(proposal.targets, proposal.values, proposal.calldatas);
-
-        IProposalLogic(
-            IGovStorage(govStorageAddress).getProposalLogicContract()
-        ).setProposalExecuted(_class, _nonce);
+        _setProposalExecuted(_class, _nonce, proposal);
 
         emit ProposalExecuted(_class, _nonce);
     }
 
-    /**
-    * @dev internal execution mechanism
-    * @param _targets array of contract to interact with
-    * @param _values array contraining ethers to send (can be array of zeros)
-    * @param _calldatas array of encoded functions
-    */
+
+
+    function _setProposalExecuted(
+        uint128 _class,
+        uint128 _nonce,
+        Proposal memory proposal
+    ) private {
+        try IGovStorage(govStorageAddress).
+        decodeGovernanceCallData(proposal.calldatas[0]) returns(uint128 class, uint128 nonce, address newGovernance) {
+            bytes memory data = IGovStorage(
+                govStorageAddress
+            ).getGovernanceCallData(class, nonce, newGovernance);
+
+            if(keccak256(data) == keccak256(proposal.calldatas[0])) {
+                IGovStorage(
+                    govStorageAddress
+                ).setProposalStatus(_class, _nonce, ProposalStatus.Executed);
+
+                _execute(proposal.targets, proposal.values, proposal.calldatas);
+            } else {
+                _execute(proposal.targets, proposal.values, proposal.calldatas);
+
+                IGovStorage(
+                    govStorageAddress
+                ).setProposalStatus(_class, _nonce, ProposalStatus.Executed);
+            }
+        } catch Error(string memory) {
+            _execute(proposal.targets, proposal.values, proposal.calldatas);
+
+            IGovStorage(
+                govStorageAddress
+            ).setProposalStatus(_class, _nonce, ProposalStatus.Executed);
+        }
+    }
+
     function _execute(
         address[] memory _targets,
         uint256[] memory _values,
         bytes[] memory _calldatas
-    ) internal virtual {
+    ) private {
         string memory errorMessage = "Executable: execute proposal reverted";
         
         for (uint256 i = 0; i < _targets.length; i++) {
@@ -199,6 +207,11 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             Address.verifyCallResult(success, data, errorMessage);
         }
     }
+
+
+
+
+
 
     /**
     * @dev execute a proposal
@@ -252,12 +265,12 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
     * @dev veto the proposal
     * @param _class proposal class
     * @param _nonce proposal nonce
-    * @param _approval veto type, yes if should pass, false otherwise
+    * @param _veto, true if vetoed, false otherwise
     */
     function veto(
         uint128 _class,
         uint128 _nonce,
-        bool _approval
+        bool _veto
     ) public onlyVetoOperator {
         address vetoAddress = _msgSender();
         require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
@@ -268,11 +281,9 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             "Gov: vote not active"
         );
 
-        if (_approval == true) {
-            IVoteCounting(voteCountingAddress).setVetoApproval(_class, _nonce, 1, vetoAddress);
-        } else {
-            IVoteCounting(voteCountingAddress).setVetoApproval(_class, _nonce, 2, vetoAddress);
-        }
+        IVoteCounting(
+            voteCountingAddress
+        ).setVetoApproval(_class, _nonce, _veto, vetoAddress);
     }
 
     /**
@@ -431,21 +442,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         IERC20(_token).safeTransfer(_to, _amount);
     }
 
-    function updateBenchmarkInterestRate(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        uint256 _newBenchmarkInterestRate
-    ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
-        require(_proposalClass < 1, "Executable: invalid class");
-        require(
-            IExecutable(
-                IGovStorage(govStorageAddress).getExecutableContract()
-            ).updateBenchmarkInterestRate(_newBenchmarkInterestRate),
-            "Gov: Execution failed"            
-        );
-
-    }
-
     function updateDGOVMaxSupply(
         uint128 _proposalClass,
         uint128 _proposalNonce,
@@ -598,118 +594,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             IExecutable(
                 IGovStorage(govStorageAddress).getExecutableContract()
             ).migrateToken(_token, _from, _to, _amount),
-            "Gov: execution failed" 
-        );
-    }
-
-    function updateExecutableAddress(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        address _executableAddress
-    ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
-        require(_proposalClass <= 1, "Executable: invalid proposal class");
-        require(
-            IExecutable(
-                IGovStorage(govStorageAddress).getExecutableContract()
-            ).updateExecutableAddress(_executableAddress),
-            "Gov: execution failed"
-        );
-    }
-
-    function updateBankAddress(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        address _bankAddress
-    ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
-        require(_proposalClass <= 1, "Executable: invalid proposal class");
-        require(
-            IExecutable(
-                IGovStorage(govStorageAddress).getExecutableContract()
-            ).updateBankAddress(_bankAddress),
-            "Gov: execution failed"
-        );
-    }
-
-    function updateExchangeAddress(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        address _exchangeAddress
-    ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
-        require(_proposalClass <= 1, "Executable: invalid proposal class");
-        require(
-            IExecutable(
-                IGovStorage(govStorageAddress).getExecutableContract()
-            ).updateExchangeAddress(_exchangeAddress),
-            "Gov: execution failed" 
-        );
-    }
-
-    function updateBankBondManagerAddress(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        address _bankBondManagerAddress
-    ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
-        require(_proposalClass <= 1, "Executable: invalid proposal class");
-        require(
-            IExecutable(
-                IGovStorage(govStorageAddress).getExecutableContract()
-            ).updateBankBondManagerAddress(_bankBondManagerAddress),
-            "Gov: execution failed" 
-        );
-    }
-
-    function updateAPMRouterAddress(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        address _apmRouterAddress
-    ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
-        require(_proposalClass <= 1, "Executable: invalid proposal class");
-        require(
-            IExecutable(
-                IGovStorage(govStorageAddress).getExecutableContract()
-            ).updateAPMRouterAddress(_apmRouterAddress),
-            "Gov: execution failed" 
-        );
-    }
-
-    function updateOracleAddress(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        address _oracleAddress
-    ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
-        require(_proposalClass <= 1, "Executable: invalid proposal class");
-        require(
-            IExecutable(
-                IGovStorage(govStorageAddress).getExecutableContract()
-            ).updateOracleAddress(_oracleAddress),
-            "Gov: execution failed" 
-        );
-    }
-
-    function updateAirdropAddress(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        address _airdropAddress
-    ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
-        require(_proposalClass <= 1, "Executable: invalid proposal class");
-        require(
-            IExecutable(
-                IGovStorage(govStorageAddress).getExecutableContract()
-            ).updateAirdropAddress(_airdropAddress),
-            "Gov: execution failed" 
-        );
-    }
-
-    function updateGovernanceAddress(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        address _governanceAddress
-    ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
-        require(_proposalClass <= 1, "Executable: invalid proposal class");
-        require(
-            IExecutable(
-                IGovStorage(govStorageAddress).getExecutableContract()
-            ).updateGovernanceAddress(_governanceAddress),
             "Gov: execution failed" 
         );
     }

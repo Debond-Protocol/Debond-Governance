@@ -239,27 +239,25 @@ contract VoteCounting is IVoteCounting {
     * @dev check if the veto approve or not
     * @param _class proposal class
     * @param _nonce proposal nonce
-    * @param approved veto type: true if aggreed, else otherwise
     */
-    function vetoApproved(
+    function vetoed(
         uint128 _class,
         uint128 _nonce
-    ) public view returns(bool approved) {
-        uint256 veto = _proposalVotes[_class][_nonce].vetoApproval;
-
-        approved = veto == 1 ? true : false;
+    ) public view returns(bool) {
+        return _proposalVotes[_class][_nonce].vetoed;
     }
 
     /**
     * @dev set veto approval for a proposal
     * @param _class proposal class
     * @param _nonce proposal nonce
-    * @param _vetoApproval veto approval
+    * @param _vetoed true if vetoed, false otherwise
+    * @param _vetoOperator account address of the veto operator
     */
     function setVetoApproval(
         uint128 _class,
         uint128 _nonce,
-        uint256 _vetoApproval,
+        bool _vetoed,
         address _vetoOperator
     ) public onlyGov {
         require(_vetoOperator != address(0), "VoteCounting: zero address");
@@ -268,7 +266,7 @@ contract VoteCounting is IVoteCounting {
             "VoteCounting: permission denied"
         );
         
-        _proposalVotes[_class][_nonce].vetoApproval = _vetoApproval;
+        _proposalVotes[_class][_nonce].vetoed = _vetoed;
     }
 
     /**

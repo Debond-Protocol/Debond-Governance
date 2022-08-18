@@ -59,15 +59,15 @@ interface IVoteCounting is IGovSharedStorage {
         uint128 _nonce
     ) external view returns(bool succeeded);
 
-    function vetoApproved(
+    function vetoed(
         uint128 _class,
         uint128 _nonce
-    ) external view returns(bool approved);
+    ) external view returns(bool);
 
     function setVetoApproval(
         uint128 _class,
         uint128 _nonce,
-        uint256 _vetoApproval,
+        bool _vetoed,
         address _vetoOperator
     ) external;
 
