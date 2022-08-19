@@ -396,4 +396,44 @@ contract ProposalLogic is IProposalLogic {
             govStorageAddress
         ).setProposalDescriptionHash(_class, _nonce, _descriptionHash);
     }
+
+    function getUpdateDGOVMaxSupplyCallData(
+        uint128 _class,
+        uint128 _nonce,
+        uint256 _maxSupply
+    ) public pure returns(bytes memory) {
+        bytes4 SELECTOR = bytes4(keccak256(bytes('updateDGOVMaxSupply(uint128,uint128,uint256)')));
+        return abi.encodeWithSelector(SELECTOR, _class, _nonce, _maxSupply);
+    }
+
+    function getSetMaxAllocationPercentageCallData(
+        uint128 _class,
+        uint128 _nonce,
+        uint256 _newPercentage,
+        address _tokenAddress
+    ) public pure returns(bytes memory) {
+        bytes4 SELECTOR = bytes4(keccak256(bytes('setMaxAllocationPercentage(uint128,uint128,uint256,address)')));
+        return abi.encodeWithSelector(SELECTOR, _class, _nonce, _newPercentage, _tokenAddress);
+    }
+
+    function getUpdateMaxAirdropSupplyCallData(
+        uint128 _class,
+        uint128 _nonce,
+        uint256 _newSupply,
+        address _tokenAddress
+    ) public pure returns(bytes memory) {
+        bytes4 SELECTOR = bytes4(keccak256(bytes('updateMaxAirdropSupply(uint128,uint128,uint256,address)')));
+        return abi.encodeWithSelector(SELECTOR, _class, _nonce, _newSupply, _tokenAddress);
+    }
+
+    function getMintAllocatedTokenCallData(
+        uint128 _class,
+        uint128 _nonce,
+        address _token,
+        address _to,
+        uint256 _amount
+    ) public pure returns(bytes memory) {
+        bytes4 SELECTOR = bytes4(keccak256(bytes('mintAllocatedToken(uint128,uint128,address,address,uint256)')));
+        return abi.encodeWithSelector(SELECTOR, _class, _nonce, _token, _to, _amount);
+    }
 }

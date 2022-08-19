@@ -156,8 +156,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         emit ProposalExecuted(_class, _nonce);
     }
 
-
-
     function _setProposalExecuted(
         uint128 _class,
         uint128 _nonce,
@@ -207,11 +205,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             Address.verifyCallResult(success, data, errorMessage);
         }
     }
-
-
-
-
-
 
     /**
     * @dev execute a proposal
@@ -410,6 +403,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).calculateReward(_class, _nonce, _tokenOwner);
 
+
         IAPM(
             IGovStorage(govStorageAddress).getAPMAddress()
         ).removeLiquidity(
@@ -448,6 +442,19 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint256 _maxSupply
     ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
         require(_proposalClass < 1, "Executable: invalid class");
+
+        bytes memory callData1 = IProposalLogic(
+            IGovStorage(govStorageAddress).getProposalLogicContract()
+        ).getUpdateDGOVMaxSupplyCallData(_proposalClass, _proposalNonce, _maxSupply);
+        bytes[] memory callData2 = IGovStorage(
+            govStorageAddress
+        ).getProposalCallData(_proposalClass, _proposalNonce);
+
+        require(
+            keccak256(callData1) == keccak256(callData2[0]),
+            "Gov: invalid input parameters"
+        );
+
         require(
             IDGOV(
                 IGovStorage(govStorageAddress).getDGOVAddress()
@@ -463,6 +470,21 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         address _tokenAddress
     ) external onlyDBITorDGOV(_tokenAddress) onlySuccededProposals(_proposalClass, _proposalNonce) {
         require(_proposalClass < 1, "Executable: invalid class");
+
+        bytes memory callData1 = IProposalLogic(
+            IGovStorage(govStorageAddress).getProposalLogicContract()
+        ).getSetMaxAllocationPercentageCallData(
+            _proposalClass, _proposalNonce, _newPercentage, _tokenAddress
+        );
+        bytes[] memory callData2 = IGovStorage(
+            govStorageAddress
+        ).getProposalCallData(_proposalClass, _proposalNonce);
+
+        require(
+            keccak256(callData1) == keccak256(callData2[0]),
+            "Gov: invalid input parameters"
+        );
+
         require(
             IDebondToken(_tokenAddress).setMaxAllocationPercentage(_newPercentage),
             "Gov: Execution failed"
@@ -476,90 +498,24 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         address _tokenAddress
     ) external onlyDBITorDGOV(_tokenAddress) onlySuccededProposals(_proposalClass, _proposalNonce) {
         require(_proposalClass < 1, "Executable: invalid class");
+
+        bytes memory callData1 = IProposalLogic(
+            IGovStorage(govStorageAddress).getProposalLogicContract()
+        ).getUpdateMaxAirdropSupplyCallData(
+            _proposalClass, _proposalNonce, _newSupply, _tokenAddress
+        );
+        bytes[] memory callData2 = IGovStorage(
+            govStorageAddress
+        ).getProposalCallData(_proposalClass, _proposalNonce);
+
+        require(
+            keccak256(callData1) == keccak256(callData2[0]),
+            "Gov: invalid input parameters"
+        );
+
         require(
             IDebondToken(_tokenAddress).setMaxAirdropSupply(_newSupply),
             "Gov: Execution failed"
-        );
-    }
-
-    function createNewBondClass(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        uint256 _classId,
-        string memory _symbol,
-        address _tokenAddress,
-        InterestRateType _interestRateType,
-        uint256 _period
-    ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
-        require(_proposalClass <= 1, "Executable: invalid class");
-        require(
-            IExecutable(
-                IGovStorage(govStorageAddress).getExecutableContract()
-            ).createNewBondClass(
-                _classId,
-                _symbol,
-                _tokenAddress,
-                _interestRateType,
-                _period
-            ),
-            "Gov: execution failed"
-        );
-        
-    }
-
-    function updataVoteClassInfo(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        uint128 _ProposalClassInfoClass,
-        uint256 _timeLock,
-        uint256 _minimumApproval,
-        uint256 _quorum,
-        uint256 _needVeto,
-        uint256 _maximumExecutionTime,
-        uint256 _minimumExexutionInterval
-    ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
-        require(_proposalClass <= 1, "Executable: invalid class");
-        require(
-            IExecutable(
-                IGovStorage(govStorageAddress).getExecutableContract()
-            ).updataVoteClassInfo(
-                _ProposalClassInfoClass,
-                _timeLock,
-                _minimumApproval,
-                _quorum,
-                _needVeto,
-                _maximumExecutionTime,
-                _minimumExexutionInterval
-            ),
-            "Gov: execution failed" 
-        );
-    }
-
-    function changeCommunityFundSize(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        uint256 _newDBITBudgetPPM,
-        uint256 _newDGOVBudgetPPM
-    ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
-        require(_proposalClass < 1, "Executable: invalid class");
-        require(
-            IGovStorage(govStorageAddress).setFundSize(_newDBITBudgetPPM, _newDGOVBudgetPPM)
-        );
-    }
-
-    function changeTeamAllocation(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        address _to,
-        uint256 _newDBITPPM,
-        uint256 _newDGOVPPM
-    ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
-        require(_proposalClass < 1, "Executable: invalid proposal class");
-        require(
-            IGovStorage(
-                govStorageAddress
-            ).setTeamAllocation(_to, _newDBITPPM, _newDGOVPPM),
-            "Gov: executaion failed"
         );
     }
 
@@ -571,6 +527,21 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint256 _amount
     ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
         require(_proposalClass < 1, "Executable: invalid proposal class");
+
+        bytes memory callData1 = IProposalLogic(
+            IGovStorage(govStorageAddress).getProposalLogicContract()
+        ).getMintAllocatedTokenCallData(
+            _proposalClass, _proposalNonce, _token, _to, _amount
+        );
+        bytes[] memory callData2 = IGovStorage(
+            govStorageAddress
+        ).getProposalCallData(_proposalClass, _proposalNonce);
+
+        require(
+            keccak256(callData1) == keccak256(callData2[0]),
+            "Gov: invalid input parameters"
+        );
+
         require(
             IExecutable(
                 IGovStorage(govStorageAddress).getExecutableContract()
@@ -579,22 +550,5 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         );
 
         IDebondToken(_token).mintAllocatedSupply(_to, _amount);
-    }
-
-    function migrateToken(
-        uint128 _proposalClass,
-        uint128 _proposalNonce,
-        address _token,
-        address _from,
-        address _to,
-        uint256 _amount
-    ) external onlySuccededProposals(_proposalClass, _proposalNonce) {
-        require(_proposalClass <= 2, "Executable: invalid proposal class");
-        require(
-            IExecutable(
-                IGovStorage(govStorageAddress).getExecutableContract()
-            ).migrateToken(_token, _from, _to, _amount),
-            "Gov: execution failed" 
-        );
     }
 }

@@ -14,6 +14,8 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
+import "@debond-protocol/debond-exchange-contracts/ExchangeStorage.sol";
+
 interface IUpdatable {
     function updateGovernance(
         address _governanceAddress
@@ -22,16 +24,27 @@ interface IUpdatable {
     function updateExchange(
         address _exchangeAddress
     ) external;
+
+    function updateExecutable(
+        address _executableAddress
+    ) external;
 }
 
 contract ExchangeStorageExecutable is IUpdatable {
     address governance;
     address exchange;
     address executable;
+    uint8 private _lock;
 
     modifier onlyExec {
-        require(msg.sender == executable, "Bank: only exec");
+        require(msg.sender == executable, "Exchange: only exec");
         _;
+    }
+
+    function setExchange(address _exchangeAddress) public {
+        require(_lock == 0, "ExchangeStorage: goStorage address already set");
+        exchange = _exchangeAddress;
+        _lock == 1;
     }
     
     function updateGovernance(
@@ -45,12 +58,17 @@ contract ExchangeStorageExecutable is IUpdatable {
     ) external onlyExec {
         exchange = _exchangeAddress;
     }
+
+    function updateExecutable(
+        address _executableAddress
+    ) external onlyExec {
+        executable = _executableAddress;
+    }
 }
 
-contract ExchangeStorage is ExchangeStorageExecutable {
-    constructor(address _governance, address _exchangeAddress, address _executable) {
+contract ExchangeStorageTest is ExchangeStorage, ExchangeStorageExecutable {
+    constructor(address _governance, address _executable) ExchangeStorage(_governance) {
         governance = _governance;
-        exchange = _exchangeAddress;
         executable = _executable;
     }
 
@@ -60,5 +78,9 @@ contract ExchangeStorage is ExchangeStorageExecutable {
 
     function getExchangeAddress() external view returns(address) {
         return exchange;
+    }
+
+    function getExecutableAddress() public view returns(address) {
+        return executable;
     }
 }

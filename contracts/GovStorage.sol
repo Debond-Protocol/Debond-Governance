@@ -50,7 +50,6 @@ contract GovStorage is IGovStorage {
     address public dgovContract;
     address public dbitContract;
     address public apmContract;
-    address public apmRouterContract;
     address public bankBondManagerContract;
     address public stakingContract;
     address public voteTokenContract;
@@ -192,10 +191,10 @@ contract GovStorage is IGovStorage {
         proposalClassInfo[2][4] = 120;
 
         // voting rewards by class
-        votingReward[0].numberOfVotingDays = 3;
+        votingReward[0].numberOfVotingDays = 1;
         votingReward[0].numberOfDBITDistributedPerDay = 5;
 
-        votingReward[1].numberOfVotingDays = 3;
+        votingReward[1].numberOfVotingDays = 1;
         votingReward[1].numberOfDBITDistributedPerDay = 5;
 
         votingReward[2].numberOfVotingDays = 1;
@@ -207,7 +206,6 @@ contract GovStorage is IGovStorage {
         address _dgovContract,
         address _dbitContract,
         address _apmContract,
-        address _apmRouterContract,
         address _bankBondManagerContract,
         address _oracleContract,
         address _stakingContract,
@@ -218,7 +216,6 @@ contract GovStorage is IGovStorage {
         dgovContract = _dgovContract;
         dbitContract = _dbitContract;
         apmContract = _apmContract;
-        apmRouterContract = _apmRouterContract;
         bankBondManagerContract = _bankBondManagerContract;
         oracleContract = _oracleContract;
         stakingContract = _stakingContract;
@@ -563,8 +560,12 @@ contract GovStorage is IGovStorage {
         uint128 _class,
         uint128 _nonce,
         uint256 _votingDay
-    ) public view returns(uint256) {
-        return totalVoteTokenPerDay[_class][_nonce][_votingDay];
+    ) public view returns(uint256 total) {
+        for (uint256 i = 1; i <= _votingDay; i++) {
+            total += totalVoteTokenPerDay[_class][_nonce][i];
+        }
+
+        return total;
     }
 
     function increaseTotalVoteTokenPerDay(
@@ -598,11 +599,6 @@ contract GovStorage is IGovStorage {
     function updateBankBondManagerAddress(address _bankBondManagerAddress) external onlyExec {
         require(_bankBondManagerAddress != address(0), "GovStorage: zero address");
         bankBondManagerContract = _bankBondManagerAddress;
-    }
-
-    function updateAPMRouterAddress(address _apmRouterAddress) external onlyExec {
-        require(_apmRouterAddress != address(0), "GovStorage: zero address");
-        apmRouterContract = _apmRouterAddress;
     }
 
     function updateOracleAddress(address _oracleAddress) external onlyExec {
@@ -776,7 +772,7 @@ contract GovStorage is IGovStorage {
     function setFundSize(
         uint256 _newDBITBudgetPPM,
         uint256 _newDGOVBudgetPPM
-    ) external onlyGov returns(bool) {
+    ) external onlyExec returns(bool) {
         dbitBudgetPPM = _newDBITBudgetPPM;
         dgovBudgetPPM = _newDGOVBudgetPPM;
 
@@ -787,7 +783,7 @@ contract GovStorage is IGovStorage {
         address _to,
         uint256 _newDBITPPM,
         uint256 _newDGOVPPM
-    ) external onlyGov returns(bool) {
+    ) external onlyExec returns(bool) {
         require(_to != address(0), "Gov: zero address");
         require(
             checkSupply(_to, _newDBITPPM, _newDGOVPPM),
@@ -918,6 +914,13 @@ contract GovStorage is IGovStorage {
         );
 
         return true;
+    }
+
+    function getProposalCallData(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(bytes[] memory) {
+        return proposal[_class][_nonce].calldatas;
     }
 
     function getGovernanceCallData(

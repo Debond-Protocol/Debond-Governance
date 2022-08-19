@@ -14,30 +14,33 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-apm-contracts/APM.sol";
+interface IUpdatable {
+    function updateExecutable(
+        address _executableAddress
+    ) external;
+}
 
-contract APMTest is APM {
-    constructor(
-        address _governance,
-        address _bank,
-        address _executable
-    ) APM(_governance, _bank, _executable) {}
+contract OracleExecutable is IUpdatable {
+    address executable;
+
+    modifier onlyExec {
+        require(msg.sender == executable, "Oracle: only exec");
+        _;
+    }
 
     function updateExecutable(
         address _executableAddress
     ) external onlyExec {
-        executableAddress = _executableAddress;
+        executable = _executableAddress;
     }
+}
 
-    function getBankAddress() public view returns(address) {
-        return bankAddress;
-    }
-
-    function getGovernanceAddress() public view returns(address) {
-        return governanceAddress;
+contract Oracle is OracleExecutable {
+    constructor(address _executableAddress) {
+        executable = _executableAddress;
     }
 
     function getExecutableAddress() public view returns(address) {
-        return executableAddress;
+        return executable;
     }
 }

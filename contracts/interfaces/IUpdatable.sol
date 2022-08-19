@@ -39,6 +39,10 @@ interface IUpdatable {
         address _governanceAddress
     ) external;
 
+    function updateExecutable(
+        address _executableAddress
+    ) external;
+
     function updateBank(
         address _bankAddress
     ) external;

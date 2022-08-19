@@ -41,7 +41,7 @@ contract BankBondManagerExecutable is IUpdatable {
     }
 
     function setBank(address _bankAddress) public {
-        require(_lock == 0, "GovernanceMigrator: goStorage address already set");
+        require(_lock == 0, "BondxManager: bank address already set");
         bank = _bankAddress;
         _lock == 1;
     }

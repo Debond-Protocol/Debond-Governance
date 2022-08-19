@@ -33,6 +33,10 @@ interface IUpdatable {
     function updateOracle(
         address _oracleAddress
     ) external;
+
+    function updateExecutable(
+        address _executableAddress
+    ) external;
 }
 
 contract BankExecutable is IUpdatable {
@@ -70,6 +74,12 @@ contract BankExecutable is IUpdatable {
         address _oracleAddress
     ) external onlyExec {
         oracle = _oracleAddress;
+    }
+
+    function updateExecutable(
+        address _executableAddress
+    ) external onlyExec {
+        executable = _executableAddress;
     }
 }
 
@@ -122,5 +132,9 @@ contract Bank is BankExecutable {
 
     function getBankBondManager() public view returns(address) {
         return bankBondManager;
+    }
+
+    function getExecutableAddress() public view returns(address) {
+        return executable;
     }
 }

@@ -22,6 +22,10 @@ interface IUpdatable {
     function updateBank(
         address _bankAddress
     ) external;
+
+    function updateExecutable(
+        address _executableAddress
+    ) external;
 }
 
 contract BankDataExecutable is IUpdatable {
@@ -45,6 +49,12 @@ contract BankDataExecutable is IUpdatable {
     ) external onlyExec {
         bank = _bankAddress;
     }
+
+    function updateExecutable(
+        address _executableAddress
+    ) external onlyExec {
+        executable = _executableAddress;
+    }
 }
 
 contract BankData is BankDataExecutable {
@@ -64,5 +74,9 @@ contract BankData is BankDataExecutable {
 
     function getBankAddress() public view returns(address) {
         return bank;
+    }
+
+    function getExecutableAddress() public view returns(address) {
+        return executable;
     }
 }

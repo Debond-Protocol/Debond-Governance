@@ -65,5 +65,37 @@ interface IProposalLogic is IGovSharedStorage {
         bytes[] memory _calldatas,
         string memory _title,
         bytes32 _descriptionHash
-    ) external returns(uint256 start, uint256 end, ProposalApproval approval);
+    ) external returns(
+        uint256 start,
+        uint256 end,
+        ProposalApproval approval
+    );
+
+    function getUpdateDGOVMaxSupplyCallData(
+        uint128 _class,
+        uint128 _nonce,
+        uint256 _maxSupply
+    ) external pure returns(bytes memory);
+
+    function getSetMaxAllocationPercentageCallData(
+        uint128 _class,
+        uint128 _nonce,
+        uint256 _newPercentage,
+        address _tokenAddress
+    ) external pure returns(bytes memory);
+
+    function getUpdateMaxAirdropSupplyCallData(
+        uint128 _class,
+        uint128 _nonce,
+        uint256 _newSupply,
+        address _tokenAddress
+    ) external pure returns(bytes memory);
+
+    function getMintAllocatedTokenCallData(
+        uint128 _class,
+        uint128 _nonce,
+        address _token,
+        address _to,
+        uint256 _amount
+    ) external pure returns(bytes memory);
 }

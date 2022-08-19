@@ -25,6 +25,8 @@ interface IExecutable {
     ) external returns(bool);
 
     function createNewBondClass(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
         uint256 _classId,
         string memory _symbol,
         address _tokenAddress,
@@ -33,6 +35,8 @@ interface IExecutable {
     ) external returns(bool);
 
     function updataVoteClassInfo(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
         uint128 _ProposalClassInfoClass,
         uint256 _timeLock,
         uint256 _minimumApproval,
@@ -43,6 +47,8 @@ interface IExecutable {
     ) external returns(bool);
 
     function migrateToken(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
         address _token,
         address _from,
         address _to,
@@ -54,6 +60,21 @@ interface IExecutable {
         address _to,
         uint256 _amount
     ) external returns(bool);
+
+    function changeTeamAllocation(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
+        address _to,
+        uint256 _newDBITPPM,
+        uint256 _newDGOVPPM
+    ) external;
+
+    function changeCommunityFundSize(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
+        uint256 _newDBITBudgetPPM,
+        uint256 _newDGOVBudgetPPM
+    ) external;
 
     function updateExecutableAddress(
         uint128 _proposalClass,

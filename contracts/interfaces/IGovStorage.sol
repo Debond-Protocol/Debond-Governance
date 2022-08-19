@@ -54,7 +54,6 @@ interface IGovStorage is IGovSharedStorage {
     function updateBankAddress(address _bankAddress) external;
     function updateExchangeAddress(address _exchangeAddress) external;
     function updateBankBondManagerAddress(address _bankBondManagerAddress) external;
-    function updateAPMRouterAddress(address _apmRouterAddress) external;
     function updateOracleAddress(address _oracleAddress) external;
     function updateAirdropAddress(address _airdropAddress) external;
     function updateGovernanceAddress(address _governanceAddress) external;
@@ -226,6 +225,11 @@ interface IGovStorage is IGovSharedStorage {
         uint256 _amountDBIT,
         uint256 _amountDGOV
     ) external view returns(bool);
+
+    function getProposalCallData(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(bytes[] memory);
 
     function getGovernanceCallData(
         uint128 _class,

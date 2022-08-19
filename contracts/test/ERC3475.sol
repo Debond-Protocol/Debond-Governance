@@ -28,6 +28,10 @@ interface IUpdatable {
     function updateBankBondManager(
         address _bankBondManagerAddress
     ) external;
+
+    function updateExecutable(
+        address _executableAddress
+    ) external;
 }
 
 contract ERC3475Executable is IUpdatable {
@@ -57,6 +61,12 @@ contract ERC3475Executable is IUpdatable {
         address _governanceAddress
     ) external onlyExec {
         governance = _governanceAddress;
+    }
+
+    function updateExecutable(
+        address _executableAddress
+    ) external onlyExec {
+        executable = _executableAddress;
     }
 }
 

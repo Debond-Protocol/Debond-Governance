@@ -28,6 +28,10 @@ interface IUpdatable {
     function updateAirdrop(
         address _airdropAddress
     ) external;
+
+    function updateExecutable(
+        address _executableAddress
+    ) external;
 }
 
 contract DGOVExecutable is IUpdatable {
@@ -58,6 +62,12 @@ contract DGOVExecutable is IUpdatable {
     ) external onlyExec {
         airdrop = _airdropAddress;
     }
+
+    function updateExecutable(
+        address _executableAddress
+    ) external onlyExec {
+        executable = _executableAddress;
+    }
 }
 
 contract DGOVToken is DGOV, DGOVExecutable {
@@ -84,5 +94,9 @@ contract DGOVToken is DGOV, DGOVExecutable {
 
     function getGovernanceAddress() public view returns(address) {
         return governance;
+    }
+
+    function getExecutableAddress() public view returns(address) {
+        return executable;
     }
 }

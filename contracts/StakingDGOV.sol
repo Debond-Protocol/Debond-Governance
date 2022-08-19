@@ -24,6 +24,10 @@ interface IUpdatable {
     function updateGovernance(
         address _governanceAddress
     ) external;
+
+    function updateExecutable(
+        address _executableAddress
+    ) external;
 }
 
 contract StakingExecutable is IUpdatable {
@@ -41,8 +45,18 @@ contract StakingExecutable is IUpdatable {
         governance = _governanceAddress;
     }
 
+    function updateExecutable(
+        address _executableAddress
+    ) external onlyExec {
+        executable = _executableAddress;
+    }
+
     function getGovernanceAddress() public view returns(address) {
         return governance;
+    }
+
+    function getExecutableAddress() public view returns(address) {
+        return executable;
     }
 }
 

@@ -20,9 +20,11 @@ const Executable = artifacts.require("Executable");
 const GovStorage = artifacts.require("GovStorage");
 const ProposalLogic = artifacts.require("ProposalLogic");
 const GovernanceMigrator = artifacts.require("GovernanceMigrator");
-const ExchangeStorage = artifacts.require("ExchangeStorage");
+const Exchange = artifacts.require("ExchangeTest");
+const ExchangeStorage = artifacts.require("ExchangeStorageTest");
 const BankData = artifacts.require("BankData");
 const BankBondManager = artifacts.require("BankBondManager");
+const Oracle = artifacts.require("Oracle");
 
 contract("Governance", async (accounts) => {
     let gov;
@@ -41,9 +43,11 @@ contract("Governance", async (accounts) => {
     let amountToMint;
     let amountToStake;
     let migrator;
+    let exchange;
     let exStorage;
     let bankData;
     let bondManager;
+    let oracle;
 
     let balanceUser1BeforeStake;
     let balanceStakingContractBeforeStake;
@@ -56,6 +60,7 @@ contract("Governance", async (accounts) => {
     let user4 = accounts[5];
     let user5 = accounts[6];
     let user6 = accounts[7];
+    let user7 = accounts[8];
 
     let ProposalStatus = {
         Active: '0',
@@ -73,15 +78,17 @@ contract("Governance", async (accounts) => {
         storage = await GovStorage.new(debondTeam, operator);
         settings = await GovSettings.new(storage.address);
         exec = await Executable.new(storage.address);
+        oracle = await Oracle.new(exec.address);
         gov = await Governance.new(storage.address, count.address);
-        exStorage = await ExchangeStorage.new(gov.address, operator, exec.address);
-        bondManager = await BankBondManager.new(gov.address, exec.address, operator);
-        bank = await Bank.new(gov.address, exec.address, bondManager.address, operator);
+        exStorage = await ExchangeStorage.new(gov.address, exec.address);
+        exchange = await Exchange.new(exStorage.address, gov.address, exec.address);
+        bondManager = await BankBondManager.new(gov.address, exec.address, oracle.address);
+        bank = await Bank.new(gov.address, exec.address, bondManager.address, oracle.address);
         erc3475 = await ERC3475.new(gov.address, exec.address, bank.address, bondManager.address);
         apm = await APMTest.new(gov.address, bank.address, exec.address);
         bankData = await BankData.new(gov.address, bank.address, exec.address);
-        dbit = await DBIT.new(gov.address, bank.address, operator, operator, exec.address);
-        dgov = await DGOV.new(gov.address, bank.address, operator, operator, exec.address);
+        dbit = await DBIT.new(gov.address, bank.address, operator, exchange.address, exec.address);
+        dgov = await DGOV.new(gov.address, bank.address, operator, exchange.address, exec.address);
         logic = await ProposalLogic.new(operator, storage.address, vote.address, count.address);
         stak = await StakingDGOV.new(dgov.address, vote.address, gov.address, logic.address, storage.address, exec.address);
 
@@ -91,9 +98,8 @@ contract("Governance", async (accounts) => {
             dgov.address,
             dbit.address,
             apm.address,
-            operator,
             bondManager.address,
-            operator,
+            oracle.address,
             stak.address,
             vote.address,
             count.address,
@@ -107,7 +113,7 @@ contract("Governance", async (accounts) => {
             bank.address,
             bankData.address,
             erc3475.address,
-            operator,
+            exchange.address,
             exStorage.address,
             operator,
             operator,
@@ -140,6 +146,9 @@ contract("Governance", async (accounts) => {
 
         // set Bank in Bank Bond Manager
         await bondManager.setBank(bank.address);
+
+        // set echange address in exchange storage contract
+        await exStorage.setExchange(exchange.address);
 
         //let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
         let amount = await web3.utils.toWei(web3.utils.toBN(20000), 'ether');
@@ -183,7 +192,7 @@ contract("Governance", async (accounts) => {
         await dgov.approve(user5, amountToStake, { from: user5 });
         await dgov.approve(operator, amountToStake, { from: operator });
 
-        await dgov.approve(user4, amountToStake, { from: user1 });
+        await dgov.approve(user6, amountToStake, { from: user1 });
 
         balanceUser1BeforeStake = await dgov.balanceOf(user1);
         balanceUser2BeforeStake = await dgov.balanceOf(user1);
@@ -198,7 +207,7 @@ contract("Governance", async (accounts) => {
         await gov.stakeDGOV(amountToStake, 10, { from: operator });
     });
 
-    it.only("Stake DGOV tokens", async () => {
+    it("Stake DGOV tokens", async () => {
         let balanceUser1AfterStake = await dgov.balanceOf(user1);
         let balanceStakingContractAfterStake = await dgov.balanceOf(stak.address);
 
@@ -222,7 +231,7 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it.only("Unstake DGOV tokens", async () => {
+    it("Unstake DGOV tokens", async () => {
         let balBefore = await dgov.balanceOf(user1);
         let balContractBefore = await dgov.balanceOf(stak.address);
 
@@ -256,7 +265,7 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it.only("Withdraw staking DGOV interest before end of staking", async () => {
+    it("Withdraw staking DGOV interest before end of staking", async () => {
         amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
 
         await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToStake, { from: operator });
@@ -287,7 +296,7 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it.only("Several inetrest withdraw before end of staking", async () => {
+    it("Several inetrest withdraw before end of staking", async () => {
         amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
 
         await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToStake, { from: operator });
@@ -318,24 +327,24 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it.only('Cannot unstake DGOV before staking ends', async () => {
+    it('Cannot unstake DGOV before staking ends', async () => {
         amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
 
         await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToStake, { from: operator });
-        await dgov.transfer(user5, amountToStake, { from: debondTeam });
-        await dgov.approve(stak.address, amountToStake, { from: user5 });
-        await dgov.approve(user5, amountToStake, { from: user5 });
+        await dgov.transfer(user7, amountToStake, { from: debondTeam });
+        await dgov.approve(stak.address, amountToStake, { from: user7 });
+        await dgov.approve(user7, amountToStake, { from: user7 });
 
-        await gov.stakeDGOV(amountToStake, 10, { from: user5 });
+        await gov.stakeDGOV(amountToStake, 10, { from: user7 });
 
-        expect(gov.unstakeDGOV(1, { from: user5 }))
+        expect(gov.unstakeDGOV(1, { from: user7 }))
             .to.rejectedWith(
                 Error,
                 "VM Exception while processing transaction: revert Staking: still staking -- Reason given: Staking: still staking"
             );
     });
 
-    it.only("Create a proposal", async () => {
+    it("Create a proposal", async () => {
         let _class = 0;
         let _nonce = await gov.generateNewNonce(_class);
 
@@ -368,7 +377,7 @@ contract("Governance", async (accounts) => {
         
         expect(event.class.toString()).to.equal(_class.toString());
         expect(event.nonce.toString()).to.equal(nonce.toString());
-        expect(event.targets[0]).to.equal(gov.address);
+        expect(event.targets[0]).to.equal(exec.address);
         expect(event.values[0].toString()).to.equal('0');
         expect(event.calldatas[0].toString()).to.equal(callData.toString())
         
@@ -387,7 +396,7 @@ contract("Governance", async (accounts) => {
         expect(event.descriptionHash).to.equal(web3.utils.soliditySha3(title));
     });
 
-    it.only("Cancel a proposal", async () => {
+    it("Cancel a proposal", async () => {
         let _class = 0;
         let _nonce = await gov.generateNewNonce(_class);
 
@@ -417,7 +426,7 @@ contract("Governance", async (accounts) => {
         expect(status.toString()).to.equal(ProposalStatus.Canceled);
     });
 
-    it.only("Migrate tokens from Governance contract to Bank contract", async () => {
+    it("Migrate tokens from Governance contract to Bank contract", async () => {
         let amount = await web3.utils.toWei(web3.utils.toBN(20000), 'ether');
         await bank.mintCollateralisedSupply(dbit.address, gov.address, amount, { from: operator });
 
@@ -426,7 +435,7 @@ contract("Governance", async (accounts) => {
         let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Migrate tokens from Governance to Bank";
-        let callData = await gov.contract.methods.migrateToken(
+        let callData = await exec.contract.methods.migrateToken(
             _class,
             _nonce,
             dbit.address,
@@ -438,7 +447,7 @@ contract("Governance", async (accounts) => {
         let res = await gov.createProposal(
             _class,
             _nonce,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             title,
@@ -451,8 +460,9 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
+        await gov.vote(event.class, event.nonce, user4, 0, amountToStake, 1, { from: user4 });
         
-        await gov.veto(event.class, event.nonce, true, { from: operator });
+        await gov.veto(event.class, event.nonce, false, { from: operator });
 
         await wait(18000);
 
@@ -481,7 +491,7 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it.only("update the bank contract", async () => {
+    it("update the bank contract", async () => {
         // create a proposal
         let _class = 1;
         let _nonce = await gov.generateNewNonce(_class);
@@ -556,7 +566,7 @@ contract("Governance", async (accounts) => {
         .not.to.equal(bankBefore);
     });
 
-    it.only("update the Governance contract", async () => {
+    it("update the Governance contract", async () => {
         // create a proposal
         let _class = 0;
         let _nonce = await gov.generateNewNonce(_class);
@@ -605,6 +615,7 @@ contract("Governance", async (accounts) => {
         let inBankData = await bankData.getGovernanceAddress();
         let inAPM = await apm.getGovernanceAddress();
         let inDebondBond = await erc3475.getGovernanceAddress();
+        let inExchange = await exchange.getGovernanceAddress();
         let inExStorage = await exStorage.getGovernanceAddress();
         let inStaking = await stak.getGovernanceAddress();
 
@@ -615,13 +626,14 @@ contract("Governance", async (accounts) => {
         .to.equal(inBankData)
         .to.equal(inAPM)
         .to.equal(inDebondBond)
+        .to.equal(inExchange)
         .to.equal(inExStorage)
         .to.equal(inStaking)
         .to.equal(user6)
         .not.to.equal(executableBefore);
     });
 
-    it.only("Check updated Governance is out of use", async () => {
+    it("Check updated Governance is out of use", async () => {
         // create a proposal
         let _class = 0;
         let _nonce = await gov.generateNewNonce(_class);
@@ -677,7 +689,7 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it.only("update the executable contract", async () => {
+    it("update the executable contract", async () => {
         // create a proposal
         let _class = 1;
         let _nonce = await gov.generateNewNonce(_class);
@@ -711,6 +723,15 @@ contract("Governance", async (accounts) => {
         await wait(18000);
 
         let executableBefore = await storage.getExecutableContract();
+        let inDBITBefore = await dbit.getExecutableAddress();
+        let inDGOVBefore = await dgov.getExecutableAddress();
+        let inBankBefore = await bank.getExecutableAddress();
+        let inBankDataBefore = await bankData.getExecutableAddress();
+        let inAPMBefore = await apm.getExecutableAddress();
+        let inERC3475Before = await erc3475.getExecutableAddress();
+        let inExStorageBefore = await exStorage.getExecutableAddress();
+        let inStakingBefore = await stak.getExecutableAddress();
+        let inExchangeBefore = await exchange.getExecutableAddress();
 
         await gov.executeProposal(
             event.class,
@@ -719,13 +740,42 @@ contract("Governance", async (accounts) => {
         );
 
         let executableAfter = await storage.getExecutableContract();
+        let inDBITAfter = await dbit.getExecutableAddress();
+        let inDGOVAfter = await dgov.getExecutableAddress();
+        let inBankAfter = await bank.getExecutableAddress();
+        let inBankDataAfter = await bankData.getExecutableAddress();
+        let inAPMAfter = await apm.getExecutableAddress();
+        let inERC3475After = await erc3475.getExecutableAddress();
+        let inExStorageAfter = await exStorage.getExecutableAddress();
+        let inStakingAfter = await stak.getExecutableAddress();
+        let inExchangeAfter = await exchange.getExecutableAddress();
+
+        expect(executableBefore)
+        .to.equal(inBankBefore)
+        .to.equal(inDBITBefore)
+        .to.equal(inDGOVBefore)
+        .to.equal(inBankDataBefore)
+        .to.equal(inAPMBefore)
+        .to.equal(inERC3475Before)
+        .to.equal(inExStorageBefore)
+        .to.equal(inStakingBefore)
+        .to.equal(inExchangeBefore)
 
         expect(executableAfter)
+        .to.equal(inBankAfter)
+        .to.equal(inDBITAfter)
+        .to.equal(inDGOVAfter)
+        .to.equal(inBankDataAfter)
+        .to.equal(inAPMAfter)
+        .to.equal(inERC3475After)
+        .to.equal(inExStorageAfter)
+        .to.equal(inStakingAfter)
+        .to.equal(inExchangeAfter)
         .to.equal(user6)
         .not.to.equal(executableBefore);
     });
 
-    it.only("update the exchange contract", async () => {
+    it("update the exchange contract", async () => {
         // create a proposal
         let _class = 0;
         let _nonce = await gov.generateNewNonce(_class);
@@ -780,7 +830,7 @@ contract("Governance", async (accounts) => {
         .not.to.equal(exchangeBefore);
     });
 
-    it.only("update the bank bond manager contract", async () => {
+    it("update the bank bond manager contract", async () => {
         // create a proposal
         let _class = 0;
         let _nonce = await gov.generateNewNonce(_class);
@@ -838,7 +888,7 @@ contract("Governance", async (accounts) => {
         .not.to.equal(bankBondManagerBefore);
     });
 
-    it.only("update the airdrop contract", async () => {
+    it("update the airdrop contract", async () => {
         // create a proposal
         let _class = 1;
         let _nonce = await gov.generateNewNonce(_class);
@@ -895,7 +945,7 @@ contract("Governance", async (accounts) => {
         .not.to.equal(airdropBefore);
     });
 
-    it.only("update the oracle contract", async () => {
+    it("update the oracle contract", async () => {
         // create a proposal
         let _class = 0;
         let _nonce = await gov.generateNewNonce(_class);
@@ -953,7 +1003,7 @@ contract("Governance", async (accounts) => {
         .not.to.equal(oracleBefore);
     });
 
-    it.only("Change the benchmark interest rate", async () => {
+    it("Change the benchmark interest rate", async () => {
         // create a proposal
         let _class = 0;
         let _nonce = await gov.generateNewNonce(_class);
@@ -1026,7 +1076,7 @@ contract("Governance", async (accounts) => {
         let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the budget part per million";
-        let callData = await gov.contract.methods.changeCommunityFundSize(
+        let callData = await exec.contract.methods.changeCommunityFundSize(
             _class,
             _nonce,
             newDBITBudget,
@@ -1036,7 +1086,7 @@ contract("Governance", async (accounts) => {
         let res = await gov.createProposal(
             _class,
             _nonce,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             title,
@@ -1049,8 +1099,9 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
+        await gov.vote(event.class, event.nonce, user4, 0, amountToStake, 1, { from: user4 });
 
-        await gov.veto(event.class, event.nonce, true, { from: operator });
+        await gov.veto(event.class, event.nonce, false, { from: operator });
 
         await wait(18000);
 
@@ -1104,8 +1155,9 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, {from: user1});
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, {from: user2});
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, {from: user3});
+        await gov.vote(event.class, event.nonce, user4, 0, amountToStake, 1, {from: user4});
 
-        await gov.veto(event.class, event.nonce, true, {from: operator});
+        await gov.veto(event.class, event.nonce, false, {from: operator});
 
         await wait(18000);
 
@@ -1157,8 +1209,9 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, {from: user1});
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, {from: user2});
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, {from: user3});
+        await gov.vote(event.class, event.nonce, user4, 0, amountToStake, 1, {from: user4});
 
-        await gov.veto(event.class, event.nonce, true, {from: operator});
+        await gov.veto(event.class, event.nonce, false, {from: operator});
 
         await wait(18000);
 
@@ -1187,7 +1240,7 @@ contract("Governance", async (accounts) => {
         let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Change the team allocation token amount";
-        callData = await gov.contract.methods.changeTeamAllocation(
+        callData = await exec.contract.methods.changeTeamAllocation(
             _class,
             _nonce,
             debondTeam,
@@ -1198,7 +1251,7 @@ contract("Governance", async (accounts) => {
         let res = await gov.createProposal(
             _class,
             _nonce,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             title,
@@ -1211,8 +1264,9 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user1, 0, toStake, 1, {from: user1});
         await gov.vote(event.class, event.nonce, user2, 1, toStake, 1, {from: user2});
         await gov.vote(event.class, event.nonce, user3, 0, toStake, 1, {from: user3});
+        await gov.vote(event.class, event.nonce, user4, 0, toStake, 1, {from: user4});
 
-        await gov.veto(event.class, event.nonce, true, {from: operator});
+        await gov.veto(event.class, event.nonce, false, {from: operator});
 
         await wait(18000);
 
@@ -1229,7 +1283,7 @@ contract("Governance", async (accounts) => {
         let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
-        let callData = await gov.contract.methods.updateBenchmarkInterestRate(
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             _class,
             _nonce,
             '10'
@@ -1238,7 +1292,7 @@ contract("Governance", async (accounts) => {
         let res = await gov.createProposal(
             _class,
             _nonce,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             title,
@@ -1262,7 +1316,7 @@ contract("Governance", async (accounts) => {
             )
         ).to.rejectedWith(
             Error,
-            "VM Exception while processing transaction: revert Gov: proposal not successful -- Reason given: Gov: proposal not successful"
+            "VM Exception while processing transaction: revert Executable: execute proposal reverted -- Reason given: Gov: only succeded proposals"
         );
 
     });
@@ -1273,7 +1327,7 @@ contract("Governance", async (accounts) => {
         let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
-        let callData = await gov.contract.methods.updateBenchmarkInterestRate(
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             _class,
             _nonce,
             '10'
@@ -1282,7 +1336,7 @@ contract("Governance", async (accounts) => {
         let res = await gov.createProposal(
             _class,
             _nonce,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             title,
@@ -1292,27 +1346,31 @@ contract("Governance", async (accounts) => {
 
         let event = res.logs[0].args;
 
-        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user4 });
+        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user6 });
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
+        await gov.vote(event.class, event.nonce, user4, 0, amountToStake, 1, { from: user4 });
 
         let v1 = await count.hasVoted(event.class, event.nonce, user1);
+        let v6 = await count.hasVoted(event.class, event.nonce, user6);
         let v4 = await count.hasVoted(event.class, event.nonce, user4);
         let v2 = await count.hasVoted(event.class, event.nonce, user2);
         let v3 = await count.hasVoted(event.class, event.nonce, user3);
 
         expect(v1).to.be.false;
+        expect(v6).to.be.true;
         expect(v4).to.be.true;
         expect(v2).to.be.true;
         expect(v3).to.be.true;
     });
 
-    it('check proposal of class 2 passes', async () => {
-        let _class = 2;
+    it('Check DBIT earned by voting', async () => {
+        // create a proposal
+        let _class = 0;
         let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
-        let callData = await gov.contract.methods.updateBenchmarkInterestRate(
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             _class,
             _nonce,
             '10'
@@ -1321,64 +1379,11 @@ contract("Governance", async (accounts) => {
         let res = await gov.createProposal(
             _class,
             _nonce,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             title,
             web3.utils.soliditySha3(title),
-            { from: operator }
-        );
-
-        let event = res.logs[0].args;
-
-        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
-        await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
-        await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
-
-        await wait(18000);
-
-        let benchmarkBefore = await storage.getBenchmarkIR();
-
-        // Execute the proposal
-        await gov.executeProposal(
-            event.class,
-            event.nonce,
-            { from: operator }
-        );
-
-        let status = await storage.getProposalStatus(event.class, event.nonce);
-
-        let benchmarkAfter = await storage.getBenchmarkIR();
-
-        expect(status.toString()).to.equal(ProposalStatus.Executed);
-        expect(
-            benchmarkAfter.toString()
-        )
-            .to.equal(
-                benchmarkBefore.add(web3.utils.toBN(5)).toString()
-            );
-    });
-
-    it('Check DBIT earned by voting', async () => {
-        let _class = 2;
-        let _nonce = await gov.generateNewNonce(_class);
-
-        let title = "Propsal-1: Update the benchMark interest rate";
-        let desc = await web3.utils.soliditySha3(title);
-        let callData = await gov.contract.methods.updateBenchmarkInterestRate(
-            _class,
-            _nonce,
-            '10'
-        ).encodeABI();
-        
-        let res = await gov.createProposal(
-            _class,
-            _nonce,
-            [gov.address],
-            [0],
-            [callData],
-            title,
-            desc,
             { from: operator }
         );
 
@@ -1388,6 +1393,8 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
         await gov.vote(event.class, event.nonce, operator, 0, amountToStake, 1, { from: operator });
+        
+        await gov.veto(event.class, event.nonce, false, { from: operator });
 
         await wait(18000);
 
@@ -1404,7 +1411,9 @@ contract("Governance", async (accounts) => {
 
         let dbitPerDay = await storage.dbitDistributedPerDay();
         dbitPerDay = Number(dbitPerDay.toString()) / 1e18;
-        let reward = amountToStake * dbitPerDay / (4 * amountToStake);
+        let numberOfDays = await storage.getNumberOfVotingDays(_class);
+        numberOfDays = Number(numberOfDays.toString());
+        let reward = amountToStake * dbitPerDay * numberOfDays / (4 * amountToStake);
         reward = reward.toFixed(15);
 
         expect(balanceVoteAfter).to.equal(reward);
@@ -1416,7 +1425,7 @@ contract("Governance", async (accounts) => {
         let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
-        let callData = await gov.contract.methods.updateBenchmarkInterestRate(
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             _class,
             _nonce,
             '10'
@@ -1425,7 +1434,7 @@ contract("Governance", async (accounts) => {
         let res = await gov.createProposal(
             _class,
             _nonce,
-            [gov.address],
+            [exec.address],
             [0],
             [callData],
             title,
@@ -1438,6 +1447,9 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
         await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
+        await gov.vote(event.class, event.nonce, user4, 0, amountToStake, 1, { from: user4 });
+
+        await gov.veto(event.class, event.nonce, false, {from: operator});
 
         await wait(18000);
 
@@ -1459,7 +1471,41 @@ contract("Governance", async (accounts) => {
         let _class = 0;
         let _nonce = await gov.generateNewNonce(_class);
 
-        await gov.updateDGOVMaxSupply(_class, _nonce, newMax);
+        let title = "Propsal-1: Update the benchMark interest rate";
+        let callData = await gov.contract.methods.updateDGOVMaxSupply(
+            _class,
+            _nonce,
+            newMax
+        ).encodeABI();
+        
+        let res = await gov.createProposal(
+            _class,
+            _nonce,
+            [gov.address],
+            [0],
+            [callData],
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
+        );
+
+        let event = res.logs[0].args;
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
+        await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
+        await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
+        await gov.vote(event.class, event.nonce, user4, 0, amountToStake, 1, { from: user4 });
+
+        await gov.veto(event.class, event.nonce, false, {from: operator});
+
+        await wait(18000);
+
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            {from: operator}
+        );
+
         let maxSupplyAfter = await dgov.getMaxSupply();
 
         expect(maxSupplyAfter.toString()).to.equal(maxSupplyBefore.add(toAdd).toString());
@@ -1469,13 +1515,42 @@ contract("Governance", async (accounts) => {
         let _class = 0;
         let _nonce = await gov.generateNewNonce(_class);
 
-        await gov.setMaxAllocationPercentage(
+        let title = "Propsal-1: Update the benchMark interest rate";
+        let callData = await gov.contract.methods.setMaxAllocationPercentage(
             _class,
             _nonce,
             "800",
-            dgov.address,
+            dgov.address
+        ).encodeABI();
+        
+        let res = await gov.createProposal(
+            _class,
+            _nonce,
+            [gov.address],
+            [0],
+            [callData],
+            title,
+            web3.utils.soliditySha3(title),
             { from: operator }
         );
+
+        let event = res.logs[0].args;
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
+        await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
+        await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
+        await gov.vote(event.class, event.nonce, user4, 0, amountToStake, 1, { from: user4 });
+
+        await gov.veto(event.class, event.nonce, false, {from: operator});
+
+        await wait(18000);
+
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            {from: operator}
+        );
+
         let maxAlloc = await dgov.getMaxAllocatedPercentage();
 
         expect(maxAlloc.toString()).to.equal("800");
@@ -1489,13 +1564,42 @@ contract("Governance", async (accounts) => {
         let _class = 0;
         let _nonce = await gov.generateNewNonce(_class);
 
-        await gov.updateMaxAirdropSupply(
+        let title = "Propsal-1: Update the benchMark interest rate";
+        let callData = await gov.contract.methods.updateMaxAirdropSupply(
             _class,
             _nonce,
             newMax,
-            dgov.address,
+            dgov.address
+        ).encodeABI();
+        
+        let res = await gov.createProposal(
+            _class,
+            _nonce,
+            [gov.address],
+            [0],
+            [callData],
+            title,
+            web3.utils.soliditySha3(title),
             { from: operator }
         );
+
+        let event = res.logs[0].args;
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
+        await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
+        await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
+        await gov.vote(event.class, event.nonce, user4, 0, amountToStake, 1, { from: user4 });
+
+        await gov.veto(event.class, event.nonce, false, {from: operator});
+
+        await wait(18000);
+
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            {from: operator}
+        );
+
         let maxAirdropAfter = await dgov.getMaxAirdropSupply();
 
         expect(maxAirdropAfter.toString()).to.equal(maxAirdropBefore.add(toAdd).toString());
@@ -1509,13 +1613,42 @@ contract("Governance", async (accounts) => {
         let _class = 0;
         let _nonce = await gov.generateNewNonce(_class);
 
-        await gov.updateMaxAirdropSupply(
+        let title = "Propsal-1: Update the benchMark interest rate";
+        let callData = await gov.contract.methods.updateMaxAirdropSupply(
             _class,
             _nonce,
             newMax,
-            dbit.address,
+            dbit.address
+        ).encodeABI();
+        
+        let res = await gov.createProposal(
+            _class,
+            _nonce,
+            [gov.address],
+            [0],
+            [callData],
+            title,
+            web3.utils.soliditySha3(title),
             { from: operator }
         );
+
+        let event = res.logs[0].args;
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
+        await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
+        await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
+        await gov.vote(event.class, event.nonce, user4, 0, amountToStake, 1, { from: user4 });
+
+        await gov.veto(event.class, event.nonce, false, {from: operator});
+
+        await wait(18000);
+
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            {from: operator}
+        );
+
         let maxAirdropAfter = await dbit.getMaxAirdropSupply();
 
         expect(maxAirdropAfter.toString()).to.equal(maxAirdropBefore.add(toAdd).toString());

@@ -84,8 +84,9 @@ contract Executable is IExecutable, IGovSharedStorage {
         uint128 _proposalClass,
         uint128 _proposalNonce,
         uint256 _newBenchmarkInterestRate
-    ) external onlyProposalLogic onlySuccededProposals(_proposalClass, _proposalNonce) returns(bool) {
+    ) external onlyGov onlySuccededProposals(_proposalClass, _proposalNonce) returns(bool) {
         require(_proposalClass < 1, "Executable: invalid class");
+
         IGovStorage(govStorageAddress).setBenchmarkIR(_newBenchmarkInterestRate);
 
         IUpdatable(
@@ -96,12 +97,16 @@ contract Executable is IExecutable, IGovSharedStorage {
     }
 
     function createNewBondClass(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
         uint256 _classId,
         string memory _symbol,
         address _tokenAddress,
         InterestRateType _interestRateType,
         uint256 _period
-    ) external onlyGov returns(bool) {
+    ) external onlyGov onlySuccededProposals(_proposalClass, _proposalNonce) returns(bool) {
+        require(_proposalClass <= 1, "Executable: invalid class");
+
         IUpdatable(
             IGovStorage(govStorageAddress).getBankBondManagerAddress()
         ).createBonClass(
@@ -115,6 +120,8 @@ contract Executable is IExecutable, IGovSharedStorage {
     }
 
     function updataVoteClassInfo(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
         uint128 _ProposalClassInfoClass,
         uint256 _timeLock,
         uint256 _minimumApproval,
@@ -122,7 +129,7 @@ contract Executable is IExecutable, IGovSharedStorage {
         uint256 _needVeto,
         uint256 _maximumExecutionTime,
         uint256 _minimumExexutionInterval
-    ) external onlyGov returns(bool) {
+    ) external onlyGov onlySuccededProposals(_proposalClass, _proposalNonce) returns(bool) {
         IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 0, _timeLock);
         IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 1, _minimumApproval);
         IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 2, _quorum);
@@ -131,6 +138,34 @@ contract Executable is IExecutable, IGovSharedStorage {
         IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 5, _minimumExexutionInterval);
 
         return true;
+    }
+
+    function changeTeamAllocation(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
+        address _to,
+        uint256 _newDBITPPM,
+        uint256 _newDGOVPPM
+    ) external onlyGov onlySuccededProposals(_proposalClass, _proposalNonce) {
+        require(_proposalClass < 1, "Executable: invalid proposal class");
+        require(
+            IGovStorage(
+                govStorageAddress
+            ).setTeamAllocation(_to, _newDBITPPM, _newDGOVPPM),
+            "Gov: executaion failed"
+        );
+    }
+
+    function changeCommunityFundSize(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
+        uint256 _newDBITBudgetPPM,
+        uint256 _newDGOVBudgetPPM
+    ) external onlyGov onlySuccededProposals(_proposalClass, _proposalNonce) {
+        require(_proposalClass < 1, "Executable: invalid class");
+        require(
+            IGovStorage(govStorageAddress).setFundSize(_newDBITBudgetPPM, _newDGOVBudgetPPM)
+        );
     }
 
     function mintAllocatedToken(
@@ -146,11 +181,15 @@ contract Executable is IExecutable, IGovSharedStorage {
     }
 
     function migrateToken(
+        uint128 _proposalClass,
+        uint128 _proposalNonce,
         address _token,
         address _from,
         address _to,
         uint256 _amount
-    ) external onlyGov returns(bool) {
+    ) external onlyGov onlySuccededProposals(_proposalClass, _proposalNonce) returns(bool) {
+        require(_proposalClass <= 2, "Executable: invalid proposal class");
+
         IUpdatable(_from).migrate(_token, _to, _amount);
 
         return true;
@@ -163,6 +202,45 @@ contract Executable is IExecutable, IGovSharedStorage {
     ) external onlyGov onlySuccededProposals(_proposalClass, _proposalNonce) returns(bool) {
         require(_proposalClass <= 1, "Executable: invalid proposal class");
         IGovStorage(govStorageAddress).updateExecutableAddress(_executableAddress);
+
+        // in Bank
+        IUpdatable(
+            IGovStorage(govStorageAddress).getBankAddress()
+        ).updateExecutable(_executableAddress);
+        // in DBIT
+        IUpdatable(
+            IGovStorage(govStorageAddress).getDBITAddress()
+        ).updateExecutable(_executableAddress);
+        // in DGOV
+        IUpdatable(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).updateExecutable(_executableAddress);
+        // in Bank data
+        IUpdatable(IGovStorage(
+            govStorageAddress).getBankDataAddress()
+        ).updateExecutable(_executableAddress);
+        // in APM
+        IUpdatable(
+            IGovStorage(govStorageAddress).getAPMAddress()
+        ).updateExecutable(_executableAddress);
+        // in Debond Bond
+        IUpdatable(
+            IGovStorage(govStorageAddress).getERC3475Address()
+        ).updateExecutable(_executableAddress);
+        // in Exchange storage
+        IUpdatable(
+            IGovStorage(govStorageAddress).getExchangeStorageAddress()
+        ).updateExecutable(_executableAddress);
+        // in Staking contract
+        IUpdatable(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).updateExecutable(_executableAddress);
+
+        // in Exchange
+        IUpdatable(
+            IGovStorage(govStorageAddress).getExchangeAddress()
+        ).updateExecutable(_executableAddress);
+
 
         return true;
     }
@@ -325,16 +403,12 @@ contract Executable is IExecutable, IGovSharedStorage {
         IUpdatable(
             IGovStorage(govStorageAddress).getStakingContract()
         ).updateGovernance(_governanceAddress);
-/*
+
         // in Exchange
         IUpdatable(
             IGovStorage(govStorageAddress).getExchangeAddress()
         ).updateGovernance(_governanceAddress);
-        // in Governance ownable
-        IUpdatable(
-            IGovStorage(govStorageAddress).getGovernanceOwnableAddress()
-        ).updateGovernance(_governanceAddress);
-*/
+
         return true;
     }
 }

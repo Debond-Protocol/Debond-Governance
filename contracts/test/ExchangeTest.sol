@@ -14,19 +14,11 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-token-contracts/DBIT.sol";
+import "@debond-protocol/debond-exchange-contracts/Exchange.sol";
 
 interface IUpdatable {
     function updateGovernance(
         address _governanceAddress
-    ) external;
-
-    function updateBank(
-        address _bankAddress
-    ) external;
-
-    function updateAirdrop(
-        address _airdropAddress
     ) external;
 
     function updateExecutable(
@@ -34,14 +26,12 @@ interface IUpdatable {
     ) external;
 }
 
-contract DBITExecutable is IUpdatable {
+contract ExchangeStorage is IUpdatable {
     address governance;
     address executable;
-    address bank;
-    address airdrop;
 
     modifier onlyExec {
-        require(msg.sender == executable, "Bank: only exec");
+        require(msg.sender == executable, "Exchange: only exec");
         _;
     }
 
@@ -49,18 +39,6 @@ contract DBITExecutable is IUpdatable {
         address _governanceAddress
     ) external onlyExec {
         governance = _governanceAddress;
-    }
-    
-    function updateBank(
-        address _bankAddress
-    ) external onlyExec {
-        bank = _bankAddress;
-    }
-
-    function updateAirdrop(
-        address _airdropAddress
-    ) external onlyExec {
-        airdrop = _airdropAddress;
     }
 
     function updateExecutable(
@@ -70,30 +48,18 @@ contract DBITExecutable is IUpdatable {
     }
 }
 
-contract DBITToken is DBIT, DBITExecutable {
+contract ExchangeTest is Exchange, ExchangeStorage {
     constructor(
-        address _governace,
-        address _bank,
-        address _airdrop,
-        address _exchange,
-        address _executable
-    ) DBIT(_governace, _bank, _airdrop, _exchange) {
-        governance = _governace;
-        bank = _bank;
-        executable = _executable;
-        airdrop = _airdrop;
+        address _exchangeStorageAddress,
+        address _governanceAddress,
+        address _executableAddress
+    ) Exchange(_exchangeStorageAddress, _governanceAddress) {
+        governance = _governanceAddress;
+        executable = _executableAddress;
     }
 
     function getGovernanceAddress() public view returns(address) {
         return governance;
-    }
-
-    function getBankAddress() public view returns(address) {
-        return bank;
-    }
-
-    function getAirdropAddress() public view returns(address) {
-        return airdrop;
     }
 
     function getExecutableAddress() public view returns(address) {
