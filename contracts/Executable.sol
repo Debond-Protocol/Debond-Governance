@@ -93,6 +93,8 @@ contract Executable is IExecutable, IGovSharedStorage {
             IGovStorage(govStorageAddress).getBankAddress()
         ).setBenchmarkIR(_newBenchmarkInterestRate);
 
+        emit benchmarkUpdated(_newBenchmarkInterestRate);
+
         return true;
     }
 
@@ -116,6 +118,9 @@ contract Executable is IExecutable, IGovSharedStorage {
             _interestRateType,
             _period
         );
+
+        emit newBondClassCreated(_tokenAddress, _classId, _symbol);
+
         return true;
     }
 
@@ -137,6 +142,7 @@ contract Executable is IExecutable, IGovSharedStorage {
         IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 4, _maximumExecutionTime);
         IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 5, _minimumExexutionInterval);
 
+        emit voteClassUpdated(_ProposalClassInfoClass, _quorum);
         return true;
     }
 
@@ -154,6 +160,8 @@ contract Executable is IExecutable, IGovSharedStorage {
             ).setTeamAllocation(_to, _newDBITPPM, _newDGOVPPM),
             "Gov: executaion failed"
         );
+
+        emit teamAllocChanged(_to, _newDBITPPM, _newDGOVPPM);
     }
 
     function changeCommunityFundSize(
@@ -166,6 +174,8 @@ contract Executable is IExecutable, IGovSharedStorage {
         require(
             IGovStorage(govStorageAddress).setFundSize(_newDBITBudgetPPM, _newDGOVBudgetPPM)
         );
+
+        emit comunityFundchanged(_newDBITBudgetPPM, _newDGOVBudgetPPM);
     }
 
     function mintAllocatedToken(
@@ -191,6 +201,8 @@ contract Executable is IExecutable, IGovSharedStorage {
         require(_proposalClass <= 2, "Executable: invalid proposal class");
 
         IUpdatable(_from).migrate(_token, _to, _amount);
+
+        emit tokenMigrated(_token, _from, _to, _amount);
 
         return true;
     }
@@ -241,6 +253,7 @@ contract Executable is IExecutable, IGovSharedStorage {
             IGovStorage(govStorageAddress).getExchangeAddress()
         ).updateExecutable(_executableAddress);
 
+        emit exeutableContractUpdated(_executableAddress);
 
         return true;
     }
@@ -279,6 +292,8 @@ contract Executable is IExecutable, IGovSharedStorage {
         IUpdatable(
             IGovStorage(govStorageAddress).getBankBondManagerAddress()
         ).updateBank(_bankAddress);
+
+        emit bankContractUpdated(_bankAddress);
         
         return true;
     }
@@ -295,6 +310,8 @@ contract Executable is IExecutable, IGovSharedStorage {
         IUpdatable(
             IGovStorage(govStorageAddress).getExchangeStorageAddress()
         ).updateExchange(_exchangeAddress);
+
+        emit exchangeContractUpdated(_exchangeAddress);
 
         return true;
     }
@@ -319,6 +336,8 @@ contract Executable is IExecutable, IGovSharedStorage {
             IGovStorage(govStorageAddress).getERC3475Address()
         ).updateBankBondManager(_bankBondManagerAddress);
 
+        emit bondManagerContractUpdated(_bankBondManagerAddress);
+
         return true;
     }
 
@@ -339,6 +358,8 @@ contract Executable is IExecutable, IGovSharedStorage {
             IGovStorage(govStorageAddress).getBankBondManagerAddress()
         ).updateOracle(_oracleAddress);
 
+        emit oracleContractUpdated(_oracleAddress);
+
         return true;
     }
 
@@ -358,6 +379,8 @@ contract Executable is IExecutable, IGovSharedStorage {
         IUpdatable(
             IGovStorage(govStorageAddress).getDGOVAddress()
         ).updateAirdrop(_airdropAddress);
+
+        emit airdropContractUpdated(_airdropAddress);
 
         return true;
     }
@@ -408,6 +431,8 @@ contract Executable is IExecutable, IGovSharedStorage {
         IUpdatable(
             IGovStorage(govStorageAddress).getExchangeAddress()
         ).updateGovernance(_governanceAddress);
+
+        emit governanceContractUpdated(_governanceAddress);
 
         return true;
     }

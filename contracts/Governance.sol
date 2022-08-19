@@ -224,6 +224,8 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).cancelProposal(_class, _nonce);
+
+        emit ProposalCanceled(_class, _nonce);
     }
 
     /**
@@ -252,6 +254,8 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).vote(_class, _nonce, voter, _userVote, _amountVoteTokens);
+
+        emit voted(_class, _nonce, voter, _stakingCounter, _amountVoteTokens);
     }
 
     /**
@@ -277,6 +281,8 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         IVoteCounting(
             voteCountingAddress
         ).setVetoApproval(_class, _nonce, _veto, vetoAddress);
+
+        emit vetoUsed(_class, _nonce);
     }
 
     /**
@@ -296,6 +302,8 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         ).stakeDgovToken(staker, _amount, _duration);
 
         staked = true;
+
+        emit dgovStaked(staker, _amount, _duration);
     }
 
     /**
@@ -321,9 +329,9 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             amountStaked * interest / 1 ether
         );
 
-        emit dgovUnstaked(amountStaked, _stakingCounter, duration);
-
         unstaked = true;
+
+        emit dgovUnstaked(staker, duration, interest);
     }
 
     /**
@@ -386,6 +394,8 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         ).unlockVoteTokens(_class, _nonce, tokenOwner);
 
         _transferDBITInterest(_class, _nonce, tokenOwner);
+
+        emit voteTokenUnlocked(_class, _nonce, tokenOwner);
     }
 
     /**
@@ -461,6 +471,8 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             ).setMaxSupply(_maxSupply),
             "Gov: Execution failed"
         );
+
+        emit dgovMaxSupplyUpdated(_maxSupply);
     }
 
     function setMaxAllocationPercentage(
@@ -489,6 +501,8 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             IDebondToken(_tokenAddress).setMaxAllocationPercentage(_newPercentage),
             "Gov: Execution failed"
         );
+
+        emit maxAllocationSet(_tokenAddress, _newPercentage);
     }
 
     function updateMaxAirdropSupply(
@@ -517,6 +531,8 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             IDebondToken(_tokenAddress).setMaxAirdropSupply(_newSupply),
             "Gov: Execution failed"
         );
+
+        emit maxAirdropSupplyUpdated(_tokenAddress, _newSupply);
     }
 
     function mintAllocatedToken(
@@ -550,5 +566,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         );
 
         IDebondToken(_token).mintAllocatedSupply(_to, _amount);
+
+        emit allocationTokenMinted(_token, _to, _amount);
     }
 }

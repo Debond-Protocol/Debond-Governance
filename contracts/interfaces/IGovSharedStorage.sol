@@ -89,9 +89,54 @@ interface IGovSharedStorage {
     /**
     * @dev Emitted when a proposal is executed
     */
-    event ProposalExecuted(uint128, uint128);
+    event ProposalExecuted(uint128 class, uint128 nonce);
 
-    event dgovUnstaked(uint256 amountDGOV, uint256 counter, uint256 duration);
+    event ProposalCanceled(uint128 class, uint128 nonce);
 
     event inetrestWithdrawn(uint256 counter, uint256 duration);
+
+    event voted(uint128 class, uint128 nonce, address voter, uint256 stakeCounter, uint256 amountTokens);
+
+    event vetoUsed(uint128 class, uint128 nonce);
+
+    event dgovStaked(address staker, uint256 amount, uint256 duration);
+
+    event dgovUnstaked(address staker, uint256 duration, uint256 interest);
+
+    event voteTokenUnlocked(uint128 class, uint128 nonce, address tokenOwner);
+
+    event dgovMaxSupplyUpdated(uint256 newMaxSupply);
+
+    event maxAllocationSet(address token, uint256 newAllocation);
+
+    event maxAirdropSupplyUpdated(address token, uint256 newSupply);
+
+    event allocationTokenMinted(address token, address to, uint256 amount);
+
+    event benchmarkUpdated(uint256 newBenchmark);
+
+    event newBondClassCreated(address token, uint256 classId, string symbol);
+
+    event voteClassUpdated(uint128 newClass, uint256 quorum);
+
+    event teamAllocChanged(address to, uint256 newDBITPPM, uint256 newDGOVPPM);
+
+    event tokenMigrated(address token, address from, address to, uint256 amount);
+
+    event comunityFundchanged(uint256 newDBITBudget, uint256 newDGOVBudget);
+
+    event exeutableContractUpdated(address executableAddress);
+    
+    event bankContractUpdated(address bankAddress);
+
+    event exchangeContractUpdated(address exchangeAddress);
+    
+    event bondManagerContractUpdated(address bankBondManagerAddress);
+
+    event oracleContractUpdated(address oracleAddress);
+
+    event airdropContractUpdated(address airdropAddress);
+
+    event governanceContractUpdated(address governanceAddress);
+
 }
