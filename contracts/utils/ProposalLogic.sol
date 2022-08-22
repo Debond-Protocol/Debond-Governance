@@ -313,7 +313,7 @@ contract ProposalLogic is IProposalLogic {
             IGovStorage(
                 govStorageAddress
             ).getProposalStatus(_class, _nonce) == ProposalStatus.Active,
-            "Gov: vote not active"
+            "Gov: proposal not active"
         );
 
         uint256 day = _getVotingDay(_class, _nonce);        
@@ -364,7 +364,7 @@ contract ProposalLogic is IProposalLogic {
         uint256 duration = _proposal.startTime > block.timestamp ?
             0: block.timestamp - _proposal.startTime;
         
-        day = (duration / IGovStorage(govStorageAddress).getNumberOfSecondInYear()) + 1;
+        day = (duration / IGovStorage(govStorageAddress).getNumberOfSecondInYear()) + 1; // TODO NumberOfSecondInYear can be a contract constant
     }
 
     function proposalSetUp(
@@ -377,11 +377,7 @@ contract ProposalLogic is IProposalLogic {
         string memory _title,
         bytes32 _descriptionHash
     ) public onlyGov returns(uint256 start, uint256 end, ProposalApproval approval) {
-        IGovStorage(govStorageAddress).setProposalNonce(_class, _nonce);      
-        require(
-            _nonce == IGovStorage(govStorageAddress).getProposalNonce(_class),
-            "Gov: invalid nonce"
-        );
+        IGovStorage(govStorageAddress).setProposalNonce(_class, _nonce);
 
         (
             start,

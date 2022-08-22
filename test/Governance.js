@@ -346,18 +346,14 @@ contract("Governance", async (accounts) => {
 
     it("Create a proposal", async () => {
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
-            _class,
-            _nonce,
             '10'
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
             [exec.address],
             [0],
             [callData],
@@ -398,18 +394,14 @@ contract("Governance", async (accounts) => {
 
     it("Cancel a proposal", async () => {
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
-            _class,
-            _nonce,
             '10'
         ).encodeABI();
 
         let res = await gov.createProposal(
             _class,
-            _nonce,
             [exec.address],
             [0],
             [callData],
@@ -432,12 +424,10 @@ contract("Governance", async (accounts) => {
 
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Migrate tokens from Governance to Bank";
         let callData = await exec.contract.methods.migrateToken(
-            _class,
-            _nonce,
             dbit.address,
             gov.address,
             bank.address,
@@ -446,7 +436,7 @@ contract("Governance", async (accounts) => {
 
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [exec.address],
             [0],
             [callData],
@@ -491,21 +481,16 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it("update the bank contract", async () => {
+    it.only("update the bank contract", async () => {
         // create a proposal
         let _class = 1;
-        let _nonce = await gov.generateNewNonce(_class);
-
         let title = "Propsal-1: Update the bank contract";
         let callData = await exec.contract.methods.updateBankAddress(
-            _class,
-            _nonce,
             user6
         ).encodeABI();
 
         let res = await gov.createProposal(
             _class,
-            _nonce,
             [exec.address],
             [0],
             [callData],
@@ -523,6 +508,16 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, { from: operator });
 
         await wait(18000);
+
+        await gov.createProposal(
+            _class,
+            [exec.address],
+            [0],
+            [callData],
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
+        );
 
         let bankBefore = await storage.getBankAddress();
         let bankInDBITBefore = await dbit.getBankAddress();
@@ -569,18 +564,16 @@ contract("Governance", async (accounts) => {
     it("update the Governance contract", async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the governance contract";
         let callData = await exec.contract.methods.updateGovernanceAddress(
-            _class,
-            _nonce,
             user6
         ).encodeABI();
 
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [exec.address],
             [0],
             [callData],
@@ -636,18 +629,16 @@ contract("Governance", async (accounts) => {
     it("Check updated Governance is out of use", async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the governance contract";
         let callData = await exec.contract.methods.updateGovernanceAddress(
-            _class,
-            _nonce,
             user6
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [exec.address],
             [0],
             [callData],
@@ -692,18 +683,16 @@ contract("Governance", async (accounts) => {
     it("update the executable contract", async () => {
         // create a proposal
         let _class = 1;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the executable contract";
         let callData = await exec.contract.methods.updateExecutableAddress(
-            _class,
-            _nonce,
             user6
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [exec.address],
             [0],
             [callData],
@@ -778,19 +767,17 @@ contract("Governance", async (accounts) => {
     it("update the exchange contract", async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the exchange contract";
         let callData = await exec.contract.methods.updateExchangeAddress(
-            _class,
-            _nonce,
             user6
         ).encodeABI();
 
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [exec.address],
             [0],
             [callData],
@@ -833,18 +820,16 @@ contract("Governance", async (accounts) => {
     it("update the bank bond manager contract", async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the bank bond manager contract";
         let callData = await exec.contract.methods.updateBankBondManagerAddress(
-            _class,
-            _nonce,
             user6
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [exec.address],
             [0],
             [callData],
@@ -891,18 +876,16 @@ contract("Governance", async (accounts) => {
     it("update the airdrop contract", async () => {
         // create a proposal
         let _class = 1;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the airdrop contract";
         let callData = await exec.contract.methods.updateAirdropAddress(
-            _class,
-            _nonce,
             user6
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [exec.address],
             [0],
             [callData],
@@ -948,18 +931,16 @@ contract("Governance", async (accounts) => {
     it("update the oracle contract", async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the oracle contract";
         let callData = await exec.contract.methods.updateOracleAddress(
-            _class,
-            _nonce,
             user6
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [exec.address],
             [0],
             [callData],
@@ -1006,18 +987,16 @@ contract("Governance", async (accounts) => {
     it("Change the benchmark interest rate", async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
-            _class,
-            _nonce,
             '10'
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [exec.address],
             [0],
             [callData],
@@ -1073,19 +1052,17 @@ contract("Governance", async (accounts) => {
 
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the budget part per million";
         let callData = await exec.contract.methods.changeCommunityFundSize(
-            _class,
-            _nonce,
             newDBITBudget,
             newDGOVBudget
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [exec.address],
             [0],
             [callData],
@@ -1128,12 +1105,10 @@ contract("Governance", async (accounts) => {
 
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Mint the team allocation token";
         let callData = await gov.contract.methods.mintAllocatedToken(
-            _class,
-            _nonce,
             dbit.address,
             debondTeam,
             amountDBIT
@@ -1141,7 +1116,7 @@ contract("Governance", async (accounts) => {
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [gov.address],
             [0],
             [callData],
@@ -1182,12 +1157,10 @@ contract("Governance", async (accounts) => {
 
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Mint the team allocation token";
         let callData = await gov.contract.methods.mintAllocatedToken(
-            _class,
-            _nonce,
             dgov.address,
             debondTeam,
             amountDGOV
@@ -1195,7 +1168,7 @@ contract("Governance", async (accounts) => {
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [gov.address],
             [0],
             [callData],
@@ -1237,12 +1210,12 @@ contract("Governance", async (accounts) => {
         let newDGOVAmount = await web3.utils.toWei(web3.utils.toBN(90000), 'ether');
 
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Change the team allocation token amount";
         callData = await exec.contract.methods.changeTeamAllocation(
             _class,
-            _nonce,
+
             debondTeam,
             newDBITAmount,
             newDGOVAmount
@@ -1250,7 +1223,7 @@ contract("Governance", async (accounts) => {
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [exec.address],
             [0],
             [callData],
@@ -1280,18 +1253,16 @@ contract("Governance", async (accounts) => {
     it("check a proposal didn't pass", async () => {
         // create a proposal
         let _class = 2;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
-            _class,
-            _nonce,
             '10'
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [exec.address],
             [0],
             [callData],
@@ -1324,18 +1295,16 @@ contract("Governance", async (accounts) => {
     it("check the delegate vote", async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
-            _class,
-            _nonce,
             '10'
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [exec.address],
             [0],
             [callData],
@@ -1367,18 +1336,16 @@ contract("Governance", async (accounts) => {
     it('Check DBIT earned by voting', async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
-            _class,
-            _nonce,
             '10'
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [exec.address],
             [0],
             [callData],
@@ -1422,18 +1389,16 @@ contract("Governance", async (accounts) => {
 
     it('Check proposer can unstake their vote tokens', async () => {
         let _class = 2;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
-            _class,
-            _nonce,
             '10'
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [exec.address],
             [0],
             [callData],
@@ -1469,18 +1434,16 @@ contract("Governance", async (accounts) => {
         let newMax = maxSupplyBefore.add(toAdd);
 
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await gov.contract.methods.updateDGOVMaxSupply(
-            _class,
-            _nonce,
             newMax
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [gov.address],
             [0],
             [callData],
@@ -1513,19 +1476,17 @@ contract("Governance", async (accounts) => {
 
     it("set DGOV max allocation percentage", async () => {
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await gov.contract.methods.setMaxAllocationPercentage(
-            _class,
-            _nonce,
             "800",
             dgov.address
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [gov.address],
             [0],
             [callData],
@@ -1562,19 +1523,17 @@ contract("Governance", async (accounts) => {
         let newMax = maxAirdropBefore.add(toAdd);
 
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await gov.contract.methods.updateMaxAirdropSupply(
-            _class,
-            _nonce,
             newMax,
             dgov.address
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
+
             [gov.address],
             [0],
             [callData],
@@ -1611,19 +1570,17 @@ contract("Governance", async (accounts) => {
         let newMax = maxAirdropBefore.add(toAdd);
 
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
+
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await gov.contract.methods.updateMaxAirdropSupply(
-            _class,
-            _nonce,
             newMax,
             dbit.address
         ).encodeABI();
         
         let res = await gov.createProposal(
-            _class,
-            _nonce,
+
+
             [gov.address],
             [0],
             [callData],

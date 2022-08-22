@@ -47,7 +47,7 @@ interface IGovSharedStorage {
         Active,
         Canceled,
         Pending,
-        Defeated,
+        Defeated, // TODO rename that status to FAILED maybe
         Succeeded,
         Executed
     }
@@ -93,7 +93,7 @@ interface IGovSharedStorage {
 
     event ProposalCanceled(uint128 class, uint128 nonce);
 
-    event inetrestWithdrawn(uint256 counter, uint256 duration);
+    event interestWithdrawn(uint256 counter, uint256 duration);
 
     event voted(uint128 class, uint128 nonce, address voter, uint256 stakeCounter, uint256 amountTokens);
 
@@ -123,9 +123,9 @@ interface IGovSharedStorage {
 
     event tokenMigrated(address token, address from, address to, uint256 amount);
 
-    event comunityFundchanged(uint256 newDBITBudget, uint256 newDGOVBudget);
+    event communityFundChanged(uint256 newDBITBudget, uint256 newDGOVBudget);
 
-    event exeutableContractUpdated(address executableAddress);
+    event executableContractUpdated(address executableAddress);
     
     event bankContractUpdated(address bankAddress);
 

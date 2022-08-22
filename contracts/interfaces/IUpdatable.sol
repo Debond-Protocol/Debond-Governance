@@ -21,7 +21,7 @@ interface IUpdatable {
         uint256 _newBenchmarkInterestRate
     ) external;
 
-    function createBonClass(
+    function createBondClass(
         uint256 _classId,
         string memory _symbol,
         address _tokenAddress,
