@@ -62,18 +62,29 @@ contract Executable is IExecutable, IGovSharedStorage {
         emit dgovMaxSupplyUpdated(_maxSupply);
     }
 
-    // TODO name explicitly functions for DBIT and DGOV is better
-    function setMaxAllocationPercentage(
-        uint256 _newPercentage,
-        address _tokenAddress
-    ) external onlyDBITorDGOV(_tokenAddress) onlyGov {
+    function updateDBITMaxAllocationPercentage(
+        uint256 _newPercentage
+    ) external onlyGov {
 
         require(
-            IDebondToken(_tokenAddress).setMaxAllocationPercentage(_newPercentage),
+            IDebondToken(IGovStorage(govStorageAddress).getDBITAddress()).setMaxAllocationPercentage(_newPercentage),
             "Gov: Execution failed"
         );
 
-        emit maxAllocationSet(_tokenAddress, _newPercentage);
+        emit DbitmaxAllocationSet(_tokenAddress, _newPercentage);
+    }
+
+    function updateDGOVMaxAllocationPercentage(
+        uint256 _newPercentage,
+        address _tokenAddress
+    ) external onlyGov {
+
+        require(
+            IDebondToken(IGovStorage(govStorageAddress).getDGOVAddress()).setMaxAllocationPercentage(_newPercentage),
+            "Gov: Execution failed"
+        );
+
+        emit DgovmaxAllocationSet(_tokenAddress, _newPercentage);
     }
 
     // TODO name explicitly functions for DBIT and DGOV is better
@@ -151,7 +162,7 @@ contract Executable is IExecutable, IGovSharedStorage {
         return true;
     }
 
-    function changeTeamAllocation(
+    function changeStampDuty(
         address _to,
         uint256 _newDBITPPM,
         uint256 _newDGOVPPM
