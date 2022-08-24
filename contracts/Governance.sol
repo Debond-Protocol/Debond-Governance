@@ -144,49 +144,18 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
     function executeProposal(
         uint128 _class,
         uint128 _nonce
-    ) public {
-        require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
-
+    ) public onlySuccededProposals(_class, _nonce) {
         Proposal memory proposal = IGovStorage(
             govStorageAddress
         ).getProposalStruct(_class, _nonce);
 
-        _setProposalExecuted(_class, _nonce, proposal);
+        IGovStorage(
+            govStorageAddress
+        ).setProposalStatus(_class, _nonce, ProposalStatus.Executed);
+
+        _execute(proposal.targets, proposal.values, proposal.calldatas);
 
         emit ProposalExecuted(_class, _nonce);
-    }
-
-    function _setProposalExecuted(
-        uint128 _class,
-        uint128 _nonce,
-        Proposal memory proposal
-    ) private {
-        try IGovStorage(govStorageAddress).
-        decodeGovernanceCallData(proposal.calldatas[0]) returns(uint128 class, uint128 nonce, address newGovernance) {
-            bytes memory data = IGovStorage(
-                govStorageAddress
-            ).getGovernanceCallData(class, nonce, newGovernance);
-
-            if(keccak256(data) == keccak256(proposal.calldatas[0])) {
-                IGovStorage(
-                    govStorageAddress
-                ).setProposalStatus(_class, _nonce, ProposalStatus.Executed);
-
-                _execute(proposal.targets, proposal.values, proposal.calldatas);
-            } else {
-                _execute(proposal.targets, proposal.values, proposal.calldatas);
-
-                IGovStorage(
-                    govStorageAddress
-                ).setProposalStatus(_class, _nonce, ProposalStatus.Executed);
-            }
-        } catch Error(string memory) {
-            _execute(proposal.targets, proposal.values, proposal.calldatas);
-
-            IGovStorage(
-                govStorageAddress
-            ).setProposalStatus(_class, _nonce, ProposalStatus.Executed);
-        }
     }
 
     function _execute(

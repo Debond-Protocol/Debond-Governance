@@ -491,7 +491,7 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it("update the bank contract", async () => {
+    it.only("update the bank contract", async () => {
         // create a proposal
         let _class = 1;
         let _nonce = await gov.generateNewNonce(_class);
@@ -566,7 +566,7 @@ contract("Governance", async (accounts) => {
         .not.to.equal(bankBefore);
     });
 
-    it("update the Governance contract", async () => {
+    it.only("update the Governance contract", async () => {
         // create a proposal
         let _class = 0;
         let _nonce = await gov.generateNewNonce(_class);
@@ -689,7 +689,7 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it("update the executable contract", async () => {
+    it.only("update the executable contract", async () => {
         // create a proposal
         let _class = 1;
         let _nonce = await gov.generateNewNonce(_class);
@@ -1003,7 +1003,7 @@ contract("Governance", async (accounts) => {
         .not.to.equal(oracleBefore);
     });
 
-    it("Change the benchmark interest rate", async () => {
+    it.only("Change the benchmark interest rate", async () => {
         // create a proposal
         let _class = 0;
         let _nonce = await gov.generateNewNonce(_class);

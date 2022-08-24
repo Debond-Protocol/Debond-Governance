@@ -20,13 +20,11 @@ interface IExecutable {
     //Update benchmark intrest rate
     function updateBenchmarkInterestRate(
         uint128 _proposalClass,
-        uint128 _proposalNonce,
         uint256 _newBenchmarkInterestRate
     ) external returns(bool);
 
     function createNewBondClass(
         uint128 _proposalClass,
-        uint128 _proposalNonce,
         uint256 _classId,
         string memory _symbol,
         address _tokenAddress,
@@ -36,7 +34,6 @@ interface IExecutable {
 
     function updataVoteClassInfo(
         uint128 _proposalClass,
-        uint128 _proposalNonce,
         uint128 _ProposalClassInfoClass,
         uint256 _timeLock,
         uint256 _minimumApproval,
@@ -48,7 +45,6 @@ interface IExecutable {
 
     function migrateToken(
         uint128 _proposalClass,
-        uint128 _proposalNonce,
         address _token,
         address _from,
         address _to,
@@ -63,7 +59,6 @@ interface IExecutable {
 
     function changeTeamAllocation(
         uint128 _proposalClass,
-        uint128 _proposalNonce,
         address _to,
         uint256 _newDBITPPM,
         uint256 _newDGOVPPM
@@ -71,50 +66,42 @@ interface IExecutable {
 
     function changeCommunityFundSize(
         uint128 _proposalClass,
-        uint128 _proposalNonce,
         uint256 _newDBITBudgetPPM,
         uint256 _newDGOVBudgetPPM
     ) external;
 
     function updateExecutableAddress(
         uint128 _proposalClass,
-        uint128 _proposalNonce,
         address _executableAddress
     ) external returns(bool);
 
     function updateBankAddress(
         uint128 _proposalClass,
-        uint128 _proposalNonce,
         address _bankAddress
     ) external returns(bool);
 
     function updateExchangeAddress(
         uint128 _proposalClass,
-        uint128 _proposalNonce,
         address _exchangeAddress
     ) external returns(bool);
 
     function updateBankBondManagerAddress(
         uint128 _proposalClass,
-        uint128 _proposalNonce,
         address _bankBondManagerAddress
     ) external returns(bool);
 
     function updateOracleAddress(
         uint128 _proposalClass,
-        uint128 _proposalNonce,
         address _oracleAddress
     ) external returns(bool);
 
     function updateAirdropAddress(
         uint128 _proposalClass,
-        uint128 _proposalNonce,
         address _airdropAddress
     ) external returns(bool);
 
     function updateGovernanceAddress(
         uint128 _proposalClass,
-        uint128 _proposalNonce,
         address _governanceAddress
     ) external returns(bool);
 }
