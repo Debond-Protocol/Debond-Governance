@@ -17,7 +17,7 @@ pragma solidity ^0.8.0;
 import "./IGovSharedStorage.sol";
 
 interface IUpdatable {
-    function setBenchmarkIR(
+    function updateBenchmarkIR(
         uint256 _newBenchmarkInterestRate
     ) external;
 

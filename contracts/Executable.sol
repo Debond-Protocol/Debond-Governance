@@ -75,8 +75,7 @@ contract Executable is IExecutable, IGovSharedStorage {
     }
 
     function updateDGOVMaxAllocationPercentage(
-        uint256 _newPercentage,
-        address _tokenAddress
+        uint256 _newPercentage
     ) external onlyGov {
 
         require(
@@ -88,11 +87,22 @@ contract Executable is IExecutable, IGovSharedStorage {
     }
 
     // TODO name explicitly functions for DBIT and DGOV is better
-    function updateMaxAirdropSupply(
-        uint256 _newSupply,
-        address _tokenAddress
-    ) external onlyDBITorDGOV(_tokenAddress) onlyGov {
+    function updateDBITMaxAirdropSupply(
+        uint256 _newSupply
+    ) external onlyGov {
+        address _tokenAddress = IGovStorage(govStorageAddress).getDBITAddress();
+        require(
+            IDebondToken(_tokenAddress).setMaxAirdropSupply(_newSupply),
+            "Gov: Execution failed"
+        );
 
+        emit maxAirdropSupplyUpdated(_tokenAddress, _newSupply);
+    }
+
+    function updateDGOVMaxAirdropSupply(
+        uint256 _newSupply
+    ) external onlyGov {
+        address _tokenAddress = IGovStorage(govStorageAddress).getDGOVAddress();
         require(
             IDebondToken(_tokenAddress).setMaxAirdropSupply(_newSupply),
             "Gov: Execution failed"
@@ -112,7 +122,7 @@ contract Executable is IExecutable, IGovSharedStorage {
 
         IUpdatable(
             IGovStorage(govStorageAddress).getBankAddress()
-        ).setBenchmarkIR(_newBenchmarkInterestRate);
+        ).updateBenchmarkIR(_newBenchmarkInterestRate);
 
         emit benchmarkUpdated(_newBenchmarkInterestRate);
 
@@ -188,11 +198,27 @@ contract Executable is IExecutable, IGovSharedStorage {
         emit communityFundChanged(_newDBITBudgetPPM, _newDGOVBudgetPPM);
     }
 
-    function mintAllocatedToken(
-        address _token,
+    function mintDBITAllocatedToken(
         address _to,
         uint256 _amount
-    ) external onlyGov onlyDBITorDGOV(_token) returns(bool) {
+    ) external onlyGov returns(bool) {
+        address _token = IGovStorage(govStorageAddress).getDBITAddress();
+        IGovStorage(
+            govStorageAddress
+        ).setAllocatedToken(_token, _to, _amount);
+
+        IDebondToken(_token).mintAllocatedSupply(_to, _amount);
+
+        emit allocationTokenMinted(_token, _to, _amount);
+
+        return true;
+    }
+
+    function mintDGOVAllocatedToken(
+        address _to,
+        uint256 _amount
+    ) external onlyGov returns(bool) {
+        address _token = IGovStorage(govStorageAddress).getDGOVAddress();
         IGovStorage(
             govStorageAddress
         ).setAllocatedToken(_token, _to, _amount);
