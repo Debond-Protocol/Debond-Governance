@@ -199,12 +199,12 @@ contract("Governance", async (accounts) => {
         balanceUser3BeforeStake = await dgov.balanceOf(user1);
         balanceStakingContractBeforeStake = await dgov.balanceOf(stak.address);
 
-        await gov.stakeDGOV(amountToStake, 10, { from: user1 });
-        await gov.stakeDGOV(amountToStake, 10, { from: user2 });
-        await gov.stakeDGOV(amountToStake, 10, { from: user3 });
-        await gov.stakeDGOV(amountToStake, 10, { from: user4 });
-        await gov.stakeDGOV(amountToStake, 10, { from: user5 });
-        await gov.stakeDGOV(amountToStake, 10, { from: operator });
+        await gov.stakeDGOV(amountToStake, { from: user1 });
+        await gov.stakeDGOV(amountToStake, { from: user2 });
+        await gov.stakeDGOV(amountToStake, { from: user3 });
+        await gov.stakeDGOV(amountToStake, { from: user4 });
+        await gov.stakeDGOV(amountToStake, { from: user5 });
+        await gov.stakeDGOV(amountToStake, { from: operator });
     });
 
     it("Stake DGOV tokens", async () => {
@@ -273,7 +273,7 @@ contract("Governance", async (accounts) => {
         await dgov.approve(stak.address, amountToStake, { from: user6 });
         await dgov.approve(user6, amountToStake, { from: user6 });
 
-        await gov.stakeDGOV(amountToStake, 10, { from: user6 });
+        await gov.stakeDGOV(amountToStake, { from: user6 });
 
         await wait(4000);
 
@@ -304,7 +304,7 @@ contract("Governance", async (accounts) => {
         await dgov.approve(stak.address, amountToStake, { from: user6 });
         await dgov.approve(user6, amountToStake, { from: user6 });
 
-        await gov.stakeDGOV(amountToStake, 10, { from: user6 });
+        await gov.stakeDGOV(amountToStake, { from: user6 });
 
         await wait(2000);
         await gov.withdrawInterest(1, { from: user6 });
@@ -335,7 +335,7 @@ contract("Governance", async (accounts) => {
         await dgov.approve(stak.address, amountToStake, { from: user7 });
         await dgov.approve(user7, amountToStake, { from: user7 });
 
-        await gov.stakeDGOV(amountToStake, 10, { from: user7 });
+        await gov.stakeDGOV(amountToStake, { from: user7 });
 
         expect(gov.unstakeDGOV(1, { from: user7 }))
             .to.rejectedWith(

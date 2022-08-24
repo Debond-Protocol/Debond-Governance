@@ -93,7 +93,7 @@ interface IGovSharedStorage {
 
     event ProposalCanceled(uint128 class, uint128 nonce);
 
-    event inetrestWithdrawn(uint256 counter, uint256 duration);
+    event interestWithdrawn(uint256 counter, uint256 duration);
 
     event voted(uint128 class, uint128 nonce, address voter, uint256 stakeCounter, uint256 amountTokens);
 

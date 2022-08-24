@@ -73,6 +73,7 @@ contract GovStorage is IGovStorage {
 
     uint256 public benchmarkInterestRate;
     uint256 private _proposalThreshold;
+    uint256 public minimumStakingDuration;
     uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
 
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
@@ -199,6 +200,8 @@ contract GovStorage is IGovStorage {
 
         votingReward[2].numberOfVotingDays = 1;
         votingReward[2].numberOfDBITDistributedPerDay = 5;
+
+        minimumStakingDuration = 10;
     }
 
     function setUpGoup1(
@@ -295,6 +298,10 @@ contract GovStorage is IGovStorage {
 
     function getThreshold() public view returns(uint256) {
         return _proposalThreshold;
+    }
+
+    function getMinimumStakingDuration() public view returns(uint256) {
+        return minimumStakingDuration;
     }
 
     function getVetoOperator() public view returns(address) {
@@ -700,8 +707,6 @@ contract GovStorage is IGovStorage {
 
     /**
     * @dev return the daily interest rate for voting (in percent)
-    * return "totalDGOVLocked * benchmark * CDP * (30 / 100) / (360)
-    * reducing the number of operations from 5 to 3 to save gas
     */
     function votingInterestRate() public view returns(uint256) {
         uint256 cdpPrice = _cdpDGOVToDBIT();

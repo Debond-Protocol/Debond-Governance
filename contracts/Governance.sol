@@ -288,22 +288,19 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
     /**
     * @dev stake DGOV tokens
     * @param _amount amount of DGOV to stake
-    * @param _duration staking duration
     * @param staked true if DGOV tokens have been staked successfully, false otherwise
     */
-    function stakeDGOV(
-        uint256 _amount,
-        uint256 _duration
-    ) public nonReentrant returns(bool staked) {
+    function stakeDGOV(uint256 _amount) public nonReentrant returns(bool staked) {
         address staker = _msgSender();
+        uint256 duration = IGovStorage(govStorageAddress).getMinimumStakingDuration();
 
         IStaking(
             IGovStorage(govStorageAddress).getStakingContract()
-        ).stakeDgovToken(staker, _amount, _duration);
+        ).stakeDgovToken(staker, _amount, duration);
 
         staked = true;
 
-        emit dgovStaked(staker, _amount, _duration);
+        emit dgovStaked(staker, _amount, duration);
     }
 
     /**
@@ -375,7 +372,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             interestEarned
         );
 
-        emit inetrestWithdrawn(_stakingCounter, interestEarned);
+        emit interestWithdrawn(_stakingCounter, interestEarned);
     }
 
     /**

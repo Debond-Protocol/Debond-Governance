@@ -50,6 +50,7 @@ interface IGovStorage is IGovSharedStorage {
     function getTotalAllocationDistributed() external view returns(uint256, uint256);
     function getAllocatedToken(address _account) external view returns(uint256, uint256);
     function getAllocatedTokenMinted(address _account) external view returns(uint256, uint256);
+    function getMinimumStakingDuration() external view returns(uint256);
 
     function updateBankAddress(address _bankAddress) external;
     function updateExchangeAddress(address _exchangeAddress) external;
