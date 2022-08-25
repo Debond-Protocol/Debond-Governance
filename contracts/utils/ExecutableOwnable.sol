@@ -16,20 +16,13 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/IActivable.sol";
 
-abstract contract GovernanceOwnable is IActivable {
-    address governanceAddress;
+abstract contract ExecutableOwnable is IActivable {
     address executableAddress;
     bool private isActive;
 
-    constructor(address _governanceAddress, address _executableAddress) {
-        governanceAddress = _governanceAddress;
+    constructor(address _executableAddress) {
         executableAddress = _executableAddress;
         isActive = true;
-    }
-
-    modifier onlyGovernance() {
-        require(msg.sender == governanceAddress, "GovernanceOwnable Restriction: Not authorised");
-        _;
     }
 
     modifier onlyExecutable() {
@@ -42,7 +35,7 @@ abstract contract GovernanceOwnable is IActivable {
         _;
     }
 
-    function setIsActive(bool _isActive) external onlyGovernance {
+    function setIsActive(bool _isActive) external onlyExecutable {
         isActive = _isActive;
     }
 

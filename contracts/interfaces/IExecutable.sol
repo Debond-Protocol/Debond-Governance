@@ -47,18 +47,6 @@ interface IExecutable {
         uint256 _amount
     ) external returns(bool);
 
-    function mintAllocatedToken(
-        address _token,
-        address _to,
-        uint256 _amount
-    ) external returns(bool);
-
-    function changeTeamAllocation(
-        address _to,
-        uint256 _newDBITPPM,
-        uint256 _newDGOVPPM
-    ) external;
-
     function changeCommunityFundSize(
         uint256 _newDBITBudgetPPM,
         uint256 _newDGOVBudgetPPM

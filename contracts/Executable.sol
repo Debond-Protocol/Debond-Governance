@@ -35,15 +35,6 @@ contract Executable is IExecutable, IGovSharedStorage {
         _;
     }
 
-    modifier onlyDBITorDGOV(address _tokenAddress) {
-        require(
-            _tokenAddress == IGovStorage(govStorageAddress).getDGOVAddress() ||
-            _tokenAddress == IGovStorage(govStorageAddress).getDBITAddress(),
-            "Gov: wrong token address"
-        );
-        _;
-    }
-
     constructor(address _govStorageAddress) {
         govStorageAddress = _govStorageAddress;
     }
@@ -71,7 +62,7 @@ contract Executable is IExecutable, IGovSharedStorage {
             "Gov: Execution failed"
         );
 
-        emit DbitmaxAllocationSet(_tokenAddress, _newPercentage);
+        emit DbitmaxAllocationSet(_newPercentage);
     }
 
     function updateDGOVMaxAllocationPercentage(
@@ -83,7 +74,7 @@ contract Executable is IExecutable, IGovSharedStorage {
             "Gov: Execution failed"
         );
 
-        emit DgovmaxAllocationSet(_tokenAddress, _newPercentage);
+        emit DgovmaxAllocationSet(_newPercentage);
     }
 
     // TODO name explicitly functions for DBIT and DGOV is better
@@ -384,7 +375,7 @@ contract Executable is IExecutable, IGovSharedStorage {
         return true;
     }
 
-    function updateAirdropAddress(
+    function updateDBITAirdropAddress(
         address _airdropAddress
     ) external onlyGov returns(bool) {
         IGovStorage(govStorageAddress).updateAirdropAddress(_airdropAddress);
