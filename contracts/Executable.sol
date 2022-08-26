@@ -132,6 +132,8 @@ contract Executable is IExecutable, IGovSharedStorage {
         uint256 _maximumExecutionTime,
         uint256 _minimumExexutionInterval
     ) external onlyGov returns(bool) {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+
         IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 0, _timeLock);
         IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 1, _minimumApproval);
         IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 2, _quorum);
@@ -256,7 +258,7 @@ contract Executable is IExecutable, IGovSharedStorage {
         address _bankAddress
     ) external onlyGov returns(bool) {
         require(_proposalClass <= 1, "Executable: invalid proposal class");
-        
+
         IGovStorage(govStorageAddress).updateBankAddress(_bankAddress);
 
         // in DBIT

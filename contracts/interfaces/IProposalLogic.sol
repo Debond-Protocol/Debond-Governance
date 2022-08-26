@@ -60,9 +60,9 @@ interface IProposalLogic is IGovSharedStorage {
         uint128 _class,
         uint128 _nonce,
         address _proposer,
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
+        address _targets,
+        uint256 _values,
+        bytes memory _calldatas,
         string memory _title,
         bytes32 _descriptionHash
     ) external returns(

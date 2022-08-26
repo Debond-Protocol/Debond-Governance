@@ -78,9 +78,9 @@ interface IGovStorage is IGovSharedStorage {
         address,
         ProposalStatus,
         ProposalApproval,
-        address[] memory,
-        uint256[] memory,
-        bytes[] memory,
+        address,
+        uint256,
+        bytes memory,
         string memory,
         bytes32
     );
@@ -95,9 +95,9 @@ interface IGovStorage is IGovSharedStorage {
         uint128 _nonce
     ) external view returns(
         address,
-        address[] memory,
-        uint256[] memory,
-        bytes[] memory
+        address,
+        uint256,
+        bytes memory
     );
 
     function getProposalProposer(
@@ -136,9 +136,9 @@ interface IGovStorage is IGovSharedStorage {
         uint256 _endTime,
         address _proposer,
         ProposalApproval _approvalMode,
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
+        address _targets,
+        uint256 _values,
+        bytes memory _calldatas,
         string memory _title
     ) external;
 
@@ -230,7 +230,7 @@ interface IGovStorage is IGovSharedStorage {
     function getProposalCallData(
         uint128 _class,
         uint128 _nonce
-    ) external view returns(bytes[] memory);
+    ) external view returns(bytes memory);
 
     function getGovernanceCallData(
         uint128 _class,

@@ -68,9 +68,9 @@ contract ProposalLogic is IProposalLogic {
         uint128 _class,
         uint128 _nonce,
         address _proposer, 
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
+        address _targets,
+        uint256 _values,
+        bytes memory _calldatas,
         string memory _title
     ) private returns(
         uint256 start,
@@ -85,11 +85,13 @@ contract ProposalLogic is IProposalLogic {
             "Gov: insufficient vote tokens"
         );
 
+        /*
         require(
             _targets.length == _values.length &&
             _values.length == _calldatas.length,
             "Gov: invalid proposal"
         );
+        */
      
         approval = getApprovalMode(_class);
 
@@ -134,9 +136,9 @@ contract ProposalLogic is IProposalLogic {
     function hashProposal(
         uint128 _class,
         uint128 _nonce,
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
+        address _targets,
+        uint256 _values,
+        bytes memory _calldatas,
         bytes32 _descriptionHash
     ) internal pure returns (uint256 proposalHash) {
         proposalHash = uint256(
@@ -371,18 +373,12 @@ contract ProposalLogic is IProposalLogic {
         uint128 _class,
         uint128 _nonce,
         address _proposer,
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
+        address _targets,
+        uint256 _values,
+        bytes memory _calldatas,
         string memory _title,
         bytes32 _descriptionHash
     ) public onlyGov returns(uint256 start, uint256 end, ProposalApproval approval) {
-        IGovStorage(govStorageAddress).setProposalNonce(_class, _nonce);      
-        require(
-            _nonce == IGovStorage(govStorageAddress).getProposalNonce(_class),
-            "Gov: invalid nonce"
-        );
-
         (
             start,
             end,

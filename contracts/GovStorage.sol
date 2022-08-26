@@ -478,9 +478,9 @@ contract GovStorage is IGovStorage {
         address,
         ProposalStatus,
         ProposalApproval,
-        address[] memory,
-        uint256[] memory,
-        bytes[] memory,
+        address,
+        uint256,
+        bytes memory,
         string memory,
         bytes32
     ) {
@@ -543,9 +543,9 @@ contract GovStorage is IGovStorage {
         uint128 _nonce
     ) public view returns(
         address,
-        address[] memory,
-        uint256[] memory,
-        bytes[] memory
+        address,
+        uint256,
+        bytes memory
     ) {
         Proposal memory _proposal = proposal[_class][_nonce];
 
@@ -630,9 +630,9 @@ contract GovStorage is IGovStorage {
         uint256 _endTime,
         address _proposer,
         ProposalApproval _approvalMode,
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
+        address _targets,
+        uint256 _values,
+        bytes memory _calldatas,
         string memory _title
     ) public onlyProposalLogic {
         require(_proposer != address(0), "GovStorage: zero address");
@@ -686,7 +686,7 @@ contract GovStorage is IGovStorage {
     function setProposalNonce(
         uint128 _class,
         uint128 _nonce
-    ) public onlyProposalLogic {
+    ) public onlyGov {
         proposalNonce[_class] = _nonce;
     }
 
@@ -924,7 +924,7 @@ contract GovStorage is IGovStorage {
     function getProposalCallData(
         uint128 _class,
         uint128 _nonce
-    ) public view returns(bytes[] memory) {
+    ) public view returns(bytes memory) {
         return proposal[_class][_nonce].calldatas;
     }
 

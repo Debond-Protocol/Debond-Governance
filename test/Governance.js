@@ -25,6 +25,7 @@ const ExchangeStorage = artifacts.require("ExchangeStorageTest");
 const BankData = artifacts.require("BankData");
 const BankBondManager = artifacts.require("BankBondManager");
 const Oracle = artifacts.require("Oracle");
+const AdvanceBlockTimeStamp = artifacts.require("AdvanceBlockTimeStamp");
 
 contract("Governance", async (accounts) => {
     let gov;
@@ -48,6 +49,7 @@ contract("Governance", async (accounts) => {
     let bankData;
     let bondManager;
     let oracle;
+    let nextTime;
 
     let balanceUser1BeforeStake;
     let balanceStakingContractBeforeStake;
@@ -91,6 +93,8 @@ contract("Governance", async (accounts) => {
         dgov = await DGOV.new(gov.address, bank.address, operator, exchange.address, exec.address);
         logic = await ProposalLogic.new(operator, storage.address, vote.address, count.address);
         stak = await StakingDGOV.new(dgov.address, vote.address, gov.address, logic.address, storage.address, exec.address);
+
+        nextTime = await AdvanceBlockTimeStamp.new();
 
         // initialize all contracts
         await storage.setUpGoup1(
@@ -235,7 +239,8 @@ contract("Governance", async (accounts) => {
         let balBefore = await dgov.balanceOf(user1);
         let balContractBefore = await dgov.balanceOf(stak.address);
 
-        await wait(12000);
+        await wait(18000);
+        await nextTime.increment();
 
         let unstake = await gov.unstakeDGOV(1, { from: user1 });
         let event = unstake.logs[0].args;
@@ -275,11 +280,11 @@ contract("Governance", async (accounts) => {
 
         await gov.stakeDGOV(amountToStake, { from: user6 });
 
-        await wait(4000);
-
+        await wait(2000);
+        await nextTime.increment();
         await gov.withdrawInterest(1, { from: user6 });
-
-        await wait(8000);
+        await wait(15000);
+        await nextTime.increment();
 
         let unstake = await gov.unstakeDGOV(1, { from: user6 });
         let event = unstake.logs[0].args;
@@ -307,11 +312,13 @@ contract("Governance", async (accounts) => {
         await gov.stakeDGOV(amountToStake, { from: user6 });
 
         await wait(2000);
+        await nextTime.increment();
         await gov.withdrawInterest(1, { from: user6 });
         await wait(3000);
         await gov.withdrawInterest(1, { from: user6 });
 
-        await wait(6000);
+        await wait(12000);
+        await nextTime.increment();
 
         let unstake = await gov.unstakeDGOV(1, { from: user6 });
         let event = unstake.logs[0].args;
@@ -346,21 +353,18 @@ contract("Governance", async (accounts) => {
 
     it("Create a proposal", async () => {
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             _class,
-            _nonce,
             '10'
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -377,9 +381,9 @@ contract("Governance", async (accounts) => {
         
         expect(event.class.toString()).to.equal(_class.toString());
         expect(event.nonce.toString()).to.equal(nonce.toString());
-        expect(event.targets[0]).to.equal(exec.address);
-        expect(event.values[0].toString()).to.equal('0');
-        expect(event.calldatas[0].toString()).to.equal(callData.toString())
+        expect(event.targets).to.equal(exec.address);
+        expect(event.values.toString()).to.equal('0');
+        expect(event.calldatas.toString()).to.equal(callData.toString())
         
         expect(event.startVoteTime.toString())
             .to.equal(proposal.startTime.toString());
@@ -398,21 +402,18 @@ contract("Governance", async (accounts) => {
 
     it("Cancel a proposal", async () => {
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             _class,
-            _nonce,
             '10'
         ).encodeABI();
 
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -432,12 +433,10 @@ contract("Governance", async (accounts) => {
 
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Migrate tokens from Governance to Bank";
         let callData = await exec.contract.methods.migrateToken(
             _class,
-            _nonce,
             dbit.address,
             gov.address,
             bank.address,
@@ -446,10 +445,9 @@ contract("Governance", async (accounts) => {
 
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -465,6 +463,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, { from: operator });
 
         await wait(18000);
+        await nextTime.increment();
 
         let balanceGovBefore = await dbit.balanceOf(gov.address);
         let balanceBankBefore = await dbit.balanceOf(bank.address);
@@ -491,24 +490,21 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it.only("update the bank contract", async () => {
+    it("update the bank contract", async () => {
         // create a proposal
         let _class = 1;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the bank contract";
         let callData = await exec.contract.methods.updateBankAddress(
             _class,
-            _nonce,
             user6
         ).encodeABI();
 
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -523,6 +519,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, { from: operator });
 
         await wait(18000);
+        await nextTime.increment();
 
         let bankBefore = await storage.getBankAddress();
         let bankInDBITBefore = await dbit.getBankAddress();
@@ -566,24 +563,21 @@ contract("Governance", async (accounts) => {
         .not.to.equal(bankBefore);
     });
 
-    it.only("update the Governance contract", async () => {
+    it("update the Governance contract", async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the governance contract";
         let callData = await exec.contract.methods.updateGovernanceAddress(
             _class,
-            _nonce,
             user6
         ).encodeABI();
 
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -599,6 +593,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, { from: operator });
 
         await wait(18000);
+        await nextTime.increment();
 
         let executableBefore = await storage.getGovernanceAddress();
 
@@ -636,21 +631,18 @@ contract("Governance", async (accounts) => {
     it("Check updated Governance is out of use", async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the governance contract";
         let callData = await exec.contract.methods.updateGovernanceAddress(
             _class,
-            _nonce,
             user6
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -666,6 +658,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, { from: operator });
 
         await wait(18000);
+        await nextTime.increment();
 
         await gov.executeProposal(
             event.class,
@@ -685,28 +678,25 @@ contract("Governance", async (accounts) => {
             )
         ).to.rejectedWith(
             Error,
-            "param.map is not a function"
+            "param.substring is not a function"
         );
     });
 
-    it.only("update the executable contract", async () => {
+    it("update the executable contract", async () => {
         // create a proposal
         let _class = 1;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the executable contract";
         let callData = await exec.contract.methods.updateExecutableAddress(
             _class,
-            _nonce,
             user6
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -721,6 +711,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, { from: operator });
 
         await wait(18000);
+        await nextTime.increment();
 
         let executableBefore = await storage.getExecutableContract();
         let inDBITBefore = await dbit.getExecutableAddress();
@@ -778,22 +769,19 @@ contract("Governance", async (accounts) => {
     it("update the exchange contract", async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the exchange contract";
         let callData = await exec.contract.methods.updateExchangeAddress(
             _class,
-            _nonce,
             user6
         ).encodeABI();
 
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -809,6 +797,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, { from: operator });
 
         await wait(18000);
+        await nextTime.increment();
 
         let exchangeBefore = await storage.getExchangeAddress();
         let exchangeInStorageBefore = await exStorage.getExchangeAddress();
@@ -833,21 +822,18 @@ contract("Governance", async (accounts) => {
     it("update the bank bond manager contract", async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the bank bond manager contract";
         let callData = await exec.contract.methods.updateBankBondManagerAddress(
             _class,
-            _nonce,
             user6
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -863,6 +849,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, { from: operator });
 
         await wait(18000);
+        await nextTime.increment();
 
         let bankBondManagerBefore = await storage.getBankBondManagerAddress();
         let inBankBefore = await bank.getBankBondManager();
@@ -891,21 +878,18 @@ contract("Governance", async (accounts) => {
     it("update the airdrop contract", async () => {
         // create a proposal
         let _class = 1;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the airdrop contract";
         let callData = await exec.contract.methods.updateAirdropAddress(
             _class,
-            _nonce,
             user6
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -920,6 +904,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, { from: operator });
 
         await wait(18000);
+        await nextTime.increment();
 
         let airdropBefore = await storage.getAirdropContract();
         let inDBITBefore = await dbit.getAirdropAddress();
@@ -948,21 +933,18 @@ contract("Governance", async (accounts) => {
     it("update the oracle contract", async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the oracle contract";
         let callData = await exec.contract.methods.updateOracleAddress(
             _class,
-            _nonce,
             user6
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -978,6 +960,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, { from: operator });
 
         await wait(18000);
+        await nextTime.increment();
 
         let oracleBefore = await storage.getOracleAddress();
         let inBankBefore = await bank.getOracleAddress();
@@ -1003,24 +986,21 @@ contract("Governance", async (accounts) => {
         .not.to.equal(oracleBefore);
     });
 
-    it.only("Change the benchmark interest rate", async () => {
+    it("Change the benchmark interest rate", async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             _class,
-            _nonce,
             '10'
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -1035,9 +1015,11 @@ contract("Governance", async (accounts) => {
         
         await gov.veto(event.class, event.nonce, false, { from: operator });
 
-        await wait(18000);
-
         let status = await storage.getProposalStatus(event.class, event.nonce);
+
+        await wait(18000);
+        await nextTime.increment();
+
         let benchmarkBefore = await storage.getBenchmarkIR();
         let bechmarkBankBefore = await bank.getBenchmarkIR();
 
@@ -1050,6 +1032,8 @@ contract("Governance", async (accounts) => {
 
         let benchmarkAfter = await storage.getBenchmarkIR();
         let bechmarkBankAfter = await bank.getBenchmarkIR();
+
+        await nextTime.increment();
 
         let status1 = await storage.getProposalStatus(event.class, event.nonce);
 
@@ -1073,22 +1057,19 @@ contract("Governance", async (accounts) => {
 
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the budget part per million";
         let callData = await exec.contract.methods.changeCommunityFundSize(
             _class,
-            _nonce,
             newDBITBudget,
             newDGOVBudget
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -1104,6 +1085,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, { from: operator });
 
         await wait(18000);
+        await nextTime.increment();
 
         let oldBudget = await web3.utils.toWei(web3.utils.toBN(100000), 'ether');
         let budget = await storage.getBudget();
@@ -1128,12 +1110,10 @@ contract("Governance", async (accounts) => {
 
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Mint the team allocation token";
         let callData = await gov.contract.methods.mintAllocatedToken(
             _class,
-            _nonce,
             dbit.address,
             debondTeam,
             amountDBIT
@@ -1141,10 +1121,9 @@ contract("Governance", async (accounts) => {
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [gov.address],
-            [0],
-            [callData],
+            gov.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             {from: operator}
@@ -1160,6 +1139,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, {from: operator});
 
         await wait(18000);
+        await nextTime.increment();
 
         let allocMintedBefore = await storage.getAllocatedTokenMinted(debondTeam);
         let totaAllocDistBefore = await storage.getTotalAllocationDistributed();
@@ -1182,12 +1162,10 @@ contract("Governance", async (accounts) => {
 
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Mint the team allocation token";
         let callData = await gov.contract.methods.mintAllocatedToken(
             _class,
-            _nonce,
             dgov.address,
             debondTeam,
             amountDGOV
@@ -1195,10 +1173,9 @@ contract("Governance", async (accounts) => {
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [gov.address],
-            [0],
-            [callData],
+            gov.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             {from: operator}
@@ -1214,6 +1191,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, {from: operator});
 
         await wait(18000);
+        await nextTime.increment();
 
         let allocMintedBefore = await storage.getAllocatedTokenMinted(debondTeam);
         let totaAllocDistBefore = await storage.getTotalAllocationDistributed();
@@ -1237,12 +1215,10 @@ contract("Governance", async (accounts) => {
         let newDGOVAmount = await web3.utils.toWei(web3.utils.toBN(90000), 'ether');
 
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Change the team allocation token amount";
         callData = await exec.contract.methods.changeTeamAllocation(
             _class,
-            _nonce,
             debondTeam,
             newDBITAmount,
             newDGOVAmount
@@ -1250,10 +1226,9 @@ contract("Governance", async (accounts) => {
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             {from: operator}
@@ -1269,6 +1244,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, {from: operator});
 
         await wait(18000);
+        await nextTime.increment();
 
         await gov.executeProposal(
             event.class,
@@ -1280,21 +1256,18 @@ contract("Governance", async (accounts) => {
     it("check a proposal didn't pass", async () => {
         // create a proposal
         let _class = 2;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             _class,
-            _nonce,
             '10'
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -1307,6 +1280,7 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user3, 1, amountToStake, 1, { from: user3 });
 
         await wait(18000);
+        await nextTime.increment();
 
         expect(
             gov.executeProposal(
@@ -1316,7 +1290,7 @@ contract("Governance", async (accounts) => {
             )
         ).to.rejectedWith(
             Error,
-            "VM Exception while processing transaction: revert Executable: execute proposal reverted -- Reason given: Gov: only succeded proposals"
+            "VM Exception while processing transaction: revert Gov: only succeded proposals -- Reason given: Gov: only succeded proposals"
         );
 
     });
@@ -1324,21 +1298,18 @@ contract("Governance", async (accounts) => {
     it("check the delegate vote", async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             _class,
-            _nonce,
             '10'
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -1367,21 +1338,18 @@ contract("Governance", async (accounts) => {
     it('Check DBIT earned by voting', async () => {
         // create a proposal
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             _class,
-            _nonce,
             '10'
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -1397,6 +1365,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, { from: operator });
 
         await wait(18000);
+        await nextTime.increment();
 
         await gov.unlockVoteTokens(event.class, event.nonce, { from: user1 });
         await gov.unlockVoteTokens(event.class, event.nonce, { from: operator });
@@ -1422,21 +1391,18 @@ contract("Governance", async (accounts) => {
 
     it('Check proposer can unstake their vote tokens', async () => {
         let _class = 2;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             _class,
-            _nonce,
             '10'
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [exec.address],
-            [0],
-            [callData],
+            exec.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -1452,6 +1418,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, {from: operator});
 
         await wait(18000);
+        await nextTime.increment();
 
         let thresold = await web3.utils.toWei(web3.utils.toBN(10), 'ether');
         let balanceBefore = await vote.availableBalance(operator);
@@ -1469,21 +1436,18 @@ contract("Governance", async (accounts) => {
         let newMax = maxSupplyBefore.add(toAdd);
 
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await gov.contract.methods.updateDGOVMaxSupply(
             _class,
-            _nonce,
             newMax
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [gov.address],
-            [0],
-            [callData],
+            gov.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -1499,6 +1463,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, {from: operator});
 
         await wait(18000);
+        await nextTime.increment();
 
         await gov.executeProposal(
             event.class,
@@ -1513,22 +1478,19 @@ contract("Governance", async (accounts) => {
 
     it("set DGOV max allocation percentage", async () => {
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await gov.contract.methods.setMaxAllocationPercentage(
             _class,
-            _nonce,
             "800",
             dgov.address
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [gov.address],
-            [0],
-            [callData],
+            gov.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -1544,6 +1506,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, {from: operator});
 
         await wait(18000);
+        await nextTime.increment();
 
         await gov.executeProposal(
             event.class,
@@ -1562,22 +1525,19 @@ contract("Governance", async (accounts) => {
         let newMax = maxAirdropBefore.add(toAdd);
 
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await gov.contract.methods.updateMaxAirdropSupply(
             _class,
-            _nonce,
             newMax,
             dgov.address
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [gov.address],
-            [0],
-            [callData],
+            gov.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -1593,6 +1553,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, {from: operator});
 
         await wait(18000);
+        await nextTime.increment();
 
         await gov.executeProposal(
             event.class,
@@ -1611,22 +1572,19 @@ contract("Governance", async (accounts) => {
         let newMax = maxAirdropBefore.add(toAdd);
 
         let _class = 0;
-        let _nonce = await gov.generateNewNonce(_class);
 
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await gov.contract.methods.updateMaxAirdropSupply(
             _class,
-            _nonce,
             newMax,
             dbit.address
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            _nonce,
-            [gov.address],
-            [0],
-            [callData],
+            gov.address,
+            0,
+            callData,
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -1642,6 +1600,7 @@ contract("Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, false, {from: operator});
 
         await wait(18000);
+        await nextTime.increment();
 
         await gov.executeProposal(
             event.class,
