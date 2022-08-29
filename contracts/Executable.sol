@@ -143,7 +143,7 @@ contract Executable is IExecutable, IGovSharedStorage {
         return true;
     }
 
-    function updataVoteClassInfo(
+    function updateVoteClassInfo(
         uint128 _ProposalClassInfoClass,
         uint256 _timeLock,
         uint256 _minimumApproval,

@@ -30,7 +30,7 @@ interface IExecutable {
         uint256 _period
     ) external returns(bool);
 
-    function updataVoteClassInfo(
+    function updateVoteClassInfo(
         uint128 _ProposalClassInfoClass,
         uint256 _timeLock,
         uint256 _minimumApproval,
