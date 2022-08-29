@@ -74,9 +74,8 @@ contract GovStorage is IGovStorage {
     uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
 
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
-    mapping(address => AllocatedToken) allocatedToken;
     mapping(uint128 =>  uint256) private _proposalQuorum;
-
+    mapping(address => AllocatedToken) allocatedToken;
 
     // links proposal class to proposal nonce
     mapping(uint128 => uint128) public proposalNonce;
@@ -315,13 +314,6 @@ contract GovStorage is IGovStorage {
 
     function getNumberOfSecondInYear() public pure returns(uint256) {
         return NUMBER_OF_SECONDS_IN_YEAR;
-    }
-
-    function setThreshold(
-        uint256 _newProposalThreshold,
-        address _executor
-    ) public onlyGov onlyDebondExecutor(_executor) {
-        _proposalThreshold = _newProposalThreshold;
     }
 
     function getGovernanceAddress() public view returns(address) {
@@ -732,6 +724,10 @@ contract GovStorage is IGovStorage {
 
     function setBenchmarkIR(uint256 _newBenchmarkInterestRate) external onlyExec {
         benchmarkInterestRate = _newBenchmarkInterestRate;
+    }
+
+    function setProposalThreshold(uint256 _newProposalThreshold) external onlyExec {
+        _proposalThreshold = _newProposalThreshold;
     }
 
     function setFundSize(

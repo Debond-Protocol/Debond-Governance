@@ -97,6 +97,17 @@ contract Executable is IExecutable, IGovSharedStorage {
         return true;
     }
 
+    function updateProposalThreshold(
+        uint128 _proposalClass,
+        uint256 _newProposalThreshold
+    ) external onlyGov returns(bool) {
+        require(_proposalClass < 1, "Executable: invalid class");
+
+        IGovStorage(govStorageAddress).setProposalThreshold(_newProposalThreshold);
+
+        return true;
+    }
+
     function createNewBondClass(
         uint128 _proposalClass,
         uint256 _classId,

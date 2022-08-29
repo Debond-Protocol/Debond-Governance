@@ -123,11 +123,6 @@ interface IGovStorage is IGovSharedStorage {
 
     function dbitDistributedPerDay() external view returns(uint256);
 
-    function setThreshold(
-        uint256 _newProposalThreshold,
-        address _executor
-    ) external;
-
     function setProposal(
         uint128 _class,
         uint128 _nonce,
@@ -189,6 +184,10 @@ interface IGovStorage is IGovSharedStorage {
 
     function setBenchmarkIR(
         uint256 _newBenchmarkInterestRate
+    ) external;
+
+    function setProposalThreshold(
+        uint256 _newProposalThreshold
     ) external;
 
     function setFundSize(

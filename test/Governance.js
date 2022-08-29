@@ -1051,6 +1051,64 @@ contract("Governance", async (accounts) => {
         );
     });
 
+    it.only("update the proposal threshold", async () => {
+        let oldTherehold = await web3.utils.toWei(web3.utils.toBN(10), 'ether');
+        let newTherehold = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
+
+        // create a proposal
+        let _class = 0;
+
+        let title = "Propsal-1: Update the proposal threshold";
+        let callData = await exec.contract.methods.updateProposalThreshold(
+            _class,
+            newTherehold
+        ).encodeABI();
+        
+        let res = await gov.createProposal(
+            _class,
+            exec.address,
+            0,
+            callData,
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
+        );
+
+        let event = res.logs[0].args;
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, { from: user1 });
+        await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, { from: user2 });
+        await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, { from: user3 });
+        await gov.vote(event.class, event.nonce, user4, 0, amountToStake, 1, { from: user4 });
+        
+        await gov.veto(event.class, event.nonce, false, { from: operator });
+
+        let status = await storage.getProposalStatus(event.class, event.nonce);
+
+        await wait(18000);
+        await nextTime.increment();
+
+        let thresholdBefore = await storage.getThreshold();
+
+        // Execute the proposal
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            { from: operator }
+        );
+
+        let thresholdAfter = await storage.getThreshold();
+
+        await nextTime.increment();
+
+        let status1 = await storage.getProposalStatus(event.class, event.nonce);
+
+        expect(status.toString()).to.equal(ProposalStatus.Active);
+        expect(status1.toString()).to.equal(ProposalStatus.Executed);
+        expect(thresholdBefore.toString()).to.equal(oldTherehold.toString());
+        expect(thresholdAfter.toString()).to.equal(newTherehold.toString());
+    });
+
     it("change the budget in Part Per Million", async () => {
         let newDBITBudget = await web3.utils.toWei(web3.utils.toBN(5000000), 'ether');
         let newDGOVBudget = await web3.utils.toWei(web3.utils.toBN(7000000), 'ether');
@@ -1387,7 +1445,7 @@ contract("Governance", async (accounts) => {
         expect(v3).to.be.true;
     });
 
-    it.only('Check DBIT earned by voting', async () => {
+    it('Check DBIT earned by voting', async () => {
         // create a proposal
         let _class = 0;
 
