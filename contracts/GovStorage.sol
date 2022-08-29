@@ -33,10 +33,7 @@ contract GovStorage is IGovStorage {
         uint128 nonce;
     }
 
-    struct VotingReward {
-        uint256 numberOfVotingDays;
-        uint256 numberOfDBITDistributedPerDay;
-    }
+    mapping(uint128 => uint256) numberOfVotingDays;
 
     bool public initialized;
 
@@ -78,12 +75,11 @@ contract GovStorage is IGovStorage {
 
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
     mapping(address => AllocatedToken) allocatedToken;
-    // link proposal class to class info
-    mapping(uint128 => uint256[6]) public proposalClassInfo;
+    mapping(uint128 =>  uint256) private _proposalQuorum;
+
+
     // links proposal class to proposal nonce
     mapping(uint128 => uint128) public proposalNonce;
-    // vote rewards info
-    mapping(uint128 => VotingReward) public votingReward;
     // total vote tokens collected per day for a given proposal
     // key1: proposal class, key2: proposal nonce, key3: voting day (1, 2, 3, etc.)
     mapping(uint128 => mapping(uint128 => mapping(uint256 => uint256))) public totalVoteTokenPerDay;
@@ -175,31 +171,16 @@ contract GovStorage is IGovStorage {
         allocatedToken[debondTeam].dbitAllocationPPM = 4e4 * 1 ether;
         allocatedToken[debondTeam].dgovAllocationPPM = 8e4 * 1 ether;
 
-        // proposal class info
-        proposalClassInfo[0][0] = 3;
-        proposalClassInfo[0][1] = 70;
-        proposalClassInfo[0][3] = 1;
-        proposalClassInfo[0][4] = 1;
-
-        proposalClassInfo[1][0] = 3;
-        proposalClassInfo[1][1] = 60;
-        proposalClassInfo[1][3] = 1;
-        proposalClassInfo[1][4] = 1;
-
-        proposalClassInfo[2][0] = 3;
-        proposalClassInfo[2][1] = 50;
-        proposalClassInfo[2][3] = 0;
-        proposalClassInfo[2][4] = 120;
+        _proposalQuorum[0] = 70;
+        _proposalQuorum[1] = 60;
+        _proposalQuorum[2] = 50;
 
         // voting rewards by class
-        votingReward[0].numberOfVotingDays = 1;
-        votingReward[0].numberOfDBITDistributedPerDay = 5;
+        numberOfVotingDays[0] = 1;
 
-        votingReward[1].numberOfVotingDays = 1;
-        votingReward[1].numberOfDBITDistributedPerDay = 5;
+        numberOfVotingDays[1] = 1;
 
-        votingReward[2].numberOfVotingDays = 1;
-        votingReward[2].numberOfDBITDistributedPerDay = 5;
+        numberOfVotingDays[2] = 1;
 
         minimumStakingDuration = 10;
     }
@@ -452,16 +433,9 @@ contract GovStorage is IGovStorage {
         return proposal[_class][_nonce].proposer;
     }
 
-    /**
-    * @dev return the proposal class info for a given class and index
-    * @param _class proposal class
-    * @param _index index in the proposal class info array
-    */
-    function getProposalClassInfo(
-        uint128 _class,
-        uint256 _index
-    ) public view returns(uint256) {
-        return proposalClassInfo[_class][_index];
+
+    function getClassQuorum(uint128 _class) public view returns(uint256) {
+        return _proposalQuorum[_class];
     }
 
     /**
@@ -560,7 +534,7 @@ contract GovStorage is IGovStorage {
     function getNumberOfVotingDays(
         uint128 _class
     ) public view returns(uint256) {
-        return votingReward[_class].numberOfVotingDays;
+        return numberOfVotingDays[_class];
     }
 
     function getTotalVoteTokenPerDay(
@@ -661,20 +635,6 @@ contract GovStorage is IGovStorage {
         ProposalStatus _status
     ) public onlyDebondContracts {
         proposal[_class][_nonce].status = _status;
-    }
-
-    /**
-    * @dev set a proposal class info for a given class and index
-    * @param _class proposal class
-    * @param _index index in the proposal class info array
-    * @param _value the new ven value of the proposal class info
-    */
-    function setProposalClassInfo(
-        uint128 _class,
-        uint256 _index,
-        uint256 _value
-    ) public onlyGov {
-        proposalClassInfo[_class][_index] = _value;
     }
 
     function getProposalNonce(

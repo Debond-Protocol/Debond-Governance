@@ -64,9 +64,8 @@ interface IGovStorage is IGovSharedStorage {
         uint128 _nonce
     ) external view returns(Proposal memory);
 
-    function getProposalClassInfo(
-        uint128 _class,
-        uint256 _index
+    function getClassQuorum(
+        uint128 _class
     ) external view returns(uint256);
 
     function getProposal(
@@ -152,12 +151,6 @@ interface IGovStorage is IGovSharedStorage {
         uint128 _class,
         uint128 _nonce,
         ProposalStatus _status
-    ) external;
-
-    function setProposalClassInfo(
-        uint128 _class,
-        uint256 _index,
-        uint256 _value
     ) external;
 
     function getProposalNonce(

@@ -32,17 +32,6 @@ interface IExecutable {
         uint256 _period
     ) external returns(bool);
 
-    function updataVoteClassInfo(
-        uint128 _proposalClass,
-        uint128 _ProposalClassInfoClass,
-        uint256 _timeLock,
-        uint256 _minimumApproval,
-        uint256 _quorum,
-        uint256 _needVeto,
-        uint256 _maximumExecutionTime,
-        uint256 _minimumExexutionInterval
-    ) external returns(bool);
-
     function migrateToken(
         uint128 _proposalClass,
         address _token,

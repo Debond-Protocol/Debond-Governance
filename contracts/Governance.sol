@@ -57,6 +57,14 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         _;
     }
 
+    modifier onlyGov {
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getGovernanceAddress(),
+            "Executable: Only Gov"
+        );
+        _;
+    }
+
     modifier onlyExec {
         require(
             msg.sender == IGovStorage(govStorageAddress).getExecutableContract(),
@@ -415,7 +423,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
     function updateDGOVMaxSupply(
         uint128 _proposalClass,
         uint256 _maxSupply
-    ) external {
+    ) external onlyGov {
         require(_proposalClass < 1, "Executable: invalid class");
 
         require(
@@ -432,7 +440,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint128 _proposalClass,
         uint256 _newPercentage,
         address _tokenAddress
-    ) external onlyDBITorDGOV(_tokenAddress) {
+    ) external onlyGov onlyDBITorDGOV(_tokenAddress) {
         require(_proposalClass < 1, "Executable: invalid class");
 
         require(
@@ -447,7 +455,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint128 _proposalClass,
         uint256 _newSupply,
         address _tokenAddress
-    ) external onlyDBITorDGOV(_tokenAddress) {
+    ) external onlyGov onlyDBITorDGOV(_tokenAddress) {
         require(_proposalClass < 1, "Executable: invalid class");
 
         require(
@@ -463,7 +471,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         address _token,
         address _to,
         uint256 _amount
-    ) external {
+    ) external onlyGov {
         require(_proposalClass < 1, "Executable: invalid proposal class");
 
         require(

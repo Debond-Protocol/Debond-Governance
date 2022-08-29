@@ -1209,6 +1209,58 @@ contract("Governance", async (accounts) => {
         expect(totaAllocDistAfter[1].toString()).to.equal(totaAllocDistBefore[1].add(amountDGOV).toString());
     });
 
+    it("cannot mint DGOV allocated token without calldata execution", async () => {
+        let amountDGOV = await web3.utils.toWei(web3.utils.toBN(1), 'ether');
+
+        // create a proposal
+        let _class = 0;
+
+        let title = "Propsal-1: Mint the team allocation token";
+        let callData = await gov.contract.methods.mintAllocatedToken(
+            _class,
+            dgov.address,
+            debondTeam,
+            amountDGOV
+        ).encodeABI();
+        
+        let res = await gov.createProposal(
+            _class,
+            gov.address,
+            0,
+            callData,
+            title,
+            web3.utils.soliditySha3(title),
+            {from: operator}
+        );
+
+        let event = res.logs[0].args;
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountToStake, 1, {from: user1});
+        await gov.vote(event.class, event.nonce, user2, 1, amountToStake, 1, {from: user2});
+        await gov.vote(event.class, event.nonce, user3, 0, amountToStake, 1, {from: user3});
+        await gov.vote(event.class, event.nonce, user4, 0, amountToStake, 1, {from: user4});
+
+        await gov.veto(event.class, event.nonce, false, {from: operator});
+
+        await wait(18000);
+        await nextTime.increment();
+
+        let allocMintedBefore = await storage.getAllocatedTokenMinted(debondTeam);
+        let totaAllocDistBefore = await storage.getTotalAllocationDistributed();
+
+        expect(
+            gov.mintAllocatedToken(
+                event.class,
+                dgov.address,
+                debondTeam,
+                amountDGOV
+            )
+        ).to.rejectedWith(
+            Error,
+            "VM Exception while processing transaction: revert Executable: Only Gov -- Reason given: Executable: Only Gov"
+        );
+    });
+
     it("change team allocation", async () =>  {
         let toStake = await web3.utils.toWei(web3.utils.toBN(25), 'ether');
         let newDBITAmount = await web3.utils.toWei(web3.utils.toBN(60000), 'ether');
@@ -1335,7 +1387,7 @@ contract("Governance", async (accounts) => {
         expect(v3).to.be.true;
     });
 
-    it('Check DBIT earned by voting', async () => {
+    it.only('Check DBIT earned by voting', async () => {
         // create a proposal
         let _class = 0;
 

@@ -317,7 +317,7 @@ contract VoteCounting is IVoteCounting {
     ) internal view returns(uint256 proposalQuorum) {
         ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
 
-        uint256 minApproval = IGovStorage(govStorageAddress).getProposalClassInfo(_class, 1);
+        uint256 minApproval = IGovStorage(govStorageAddress).getClassQuorum(_class);
 
         proposalQuorum =  minApproval * (
             proposalVote.forVotes +

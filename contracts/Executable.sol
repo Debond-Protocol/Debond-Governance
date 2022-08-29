@@ -122,29 +122,6 @@ contract Executable is IExecutable, IGovSharedStorage {
         return true;
     }
 
-    function updataVoteClassInfo(
-        uint128 _proposalClass,
-        uint128 _ProposalClassInfoClass,
-        uint256 _timeLock,
-        uint256 _minimumApproval,
-        uint256 _quorum,
-        uint256 _needVeto,
-        uint256 _maximumExecutionTime,
-        uint256 _minimumExexutionInterval
-    ) external onlyGov returns(bool) {
-        require(_proposalClass <= 1, "Executable: invalid proposal class");
-
-        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 0, _timeLock);
-        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 1, _minimumApproval);
-        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 2, _quorum);
-        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 3, _needVeto);
-        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 4, _maximumExecutionTime);
-        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 5, _minimumExexutionInterval);
-
-        emit voteClassUpdated(_ProposalClassInfoClass, _quorum);
-        return true;
-    }
-
     function changeTeamAllocation(
         uint128 _proposalClass,
         address _to,
