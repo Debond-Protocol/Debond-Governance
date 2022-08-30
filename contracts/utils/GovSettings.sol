@@ -41,9 +41,10 @@ contract GovSettings is IGovSettings {
     ) {
         govStorageAddress = _govStorageAddress;
 
-        _votingPeriod[0] = 17;
-        _votingPeriod[1] = 17;
-        _votingPeriod[2] = 17;
+        // to define during deployment
+        _votingPeriod[0] = 2;
+        _votingPeriod[1] = 2;
+        _votingPeriod[2] = 2;
     }
 
     //===

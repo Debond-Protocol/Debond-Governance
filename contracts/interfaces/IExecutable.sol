@@ -23,6 +23,11 @@ interface IExecutable {
         uint256 _newBenchmarkInterestRate
     ) external returns(bool);
 
+    function updateProposalThreshold(
+        uint128 _proposalClass,
+        uint256 _newProposalThreshold
+    ) external returns(bool);
+
     function createNewBondClass(
         uint128 _proposalClass,
         uint256 _classId,

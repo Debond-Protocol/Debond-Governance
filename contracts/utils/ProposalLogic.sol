@@ -36,7 +36,7 @@ contract ProposalLogic is IProposalLogic {
         _;
     }
 
-    modifier onlyGov() {
+    modifier onlyGov {
         require(
             msg.sender == IGovStorage(govStorageAddress).getGovernanceAddress(),
             "ProposalLogic: Only Gov"
@@ -84,14 +84,6 @@ contract ProposalLogic is IProposalLogic {
             IGovStorage(govStorageAddress).getThreshold(),
             "Gov: insufficient vote tokens"
         );
-
-        /*
-        require(
-            _targets.length == _values.length &&
-            _values.length == _calldatas.length,
-            "Gov: invalid proposal"
-        );
-        */
      
         approval = getApprovalMode(_class);
 
@@ -187,18 +179,19 @@ contract ProposalLogic is IProposalLogic {
         uint256 _stakingCounter
     ) external onlyGov {
         require(_voter != address(0), "Governance: zero address");
-        require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
+        require(_class >= 0 && _nonce > 0, "ProposalLogic: invalid proposal");
 
-        uint256 _dgovStaked = IStaking(
+        uint256 _voteTokens = IStaking(
             IGovStorage(govStorageAddress).getStakingContract()
-        ).getStakedDGOVAmount(_tokenOwner, _stakingCounter);
+        ).getAvailableVoteTokens(_tokenOwner, _stakingCounter);
+
         
         uint256 approvedToSpend = IERC20(
             IGovStorage(govStorageAddress).getDGOVAddress()
         ).allowance(_tokenOwner, _voter);
         
         require(
-            _amountVoteTokens <= _dgovStaked &&
+            _amountVoteTokens <= _voteTokens &&
             _amountVoteTokens <= approvedToSpend,
             "ProposalLogic: not approved or not enough dGoV staked"
         );
@@ -212,7 +205,7 @@ contract ProposalLogic is IProposalLogic {
                 IVoteToken(
                     IGovStorage(govStorageAddress).getVoteTokenContract()
                 ).lockedBalanceOf(_tokenOwner, _class, _nonce),
-                "Gov: not enough vote tokens"
+                "ProposalLogic: not enough vote tokens"
             );
 
             IVoteToken(
@@ -224,8 +217,8 @@ contract ProposalLogic is IProposalLogic {
     function unstakeDGOVandCalculateInterest(
         address _staker,
         uint256 _stakingCounter
-    ) external onlyGov returns(uint256 amountStaked, uint256 interest, uint256 duration) {
-        amountStaked = IStaking(
+    ) external onlyGov returns(uint256 amountDGOV, uint256 amountVote, uint256 interest, uint256 duration) {
+        (amountDGOV, amountVote) = IStaking(
             IGovStorage(govStorageAddress).getStakingContract()
         ).unstakeDgovToken(_staker, _stakingCounter);
 
@@ -391,45 +384,5 @@ contract ProposalLogic is IProposalLogic {
         IGovStorage(
             govStorageAddress
         ).setProposalDescriptionHash(_class, _nonce, _descriptionHash);
-    }
-
-    function getUpdateDGOVMaxSupplyCallData(
-        uint128 _class,
-        uint128 _nonce,
-        uint256 _maxSupply
-    ) public pure returns(bytes memory) {
-        bytes4 SELECTOR = bytes4(keccak256(bytes('updateDGOVMaxSupply(uint128,uint128,uint256)')));
-        return abi.encodeWithSelector(SELECTOR, _class, _nonce, _maxSupply);
-    }
-
-    function getSetMaxAllocationPercentageCallData(
-        uint128 _class,
-        uint128 _nonce,
-        uint256 _newPercentage,
-        address _tokenAddress
-    ) public pure returns(bytes memory) {
-        bytes4 SELECTOR = bytes4(keccak256(bytes('setMaxAllocationPercentage(uint128,uint128,uint256,address)')));
-        return abi.encodeWithSelector(SELECTOR, _class, _nonce, _newPercentage, _tokenAddress);
-    }
-
-    function getUpdateMaxAirdropSupplyCallData(
-        uint128 _class,
-        uint128 _nonce,
-        uint256 _newSupply,
-        address _tokenAddress
-    ) public pure returns(bytes memory) {
-        bytes4 SELECTOR = bytes4(keccak256(bytes('updateMaxAirdropSupply(uint128,uint128,uint256,address)')));
-        return abi.encodeWithSelector(SELECTOR, _class, _nonce, _newSupply, _tokenAddress);
-    }
-
-    function getMintAllocatedTokenCallData(
-        uint128 _class,
-        uint128 _nonce,
-        address _token,
-        address _to,
-        uint256 _amount
-    ) public pure returns(bytes memory) {
-        bytes4 SELECTOR = bytes4(keccak256(bytes('mintAllocatedToken(uint128,uint128,address,address,uint256)')));
-        return abi.encodeWithSelector(SELECTOR, _class, _nonce, _token, _to, _amount);
     }
 }

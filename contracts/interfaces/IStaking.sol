@@ -19,17 +19,22 @@ interface IStaking {
         address _staker,
         uint256 _amount,
         uint256 _duration
-    ) external;
+    ) external returns(uint256 duration);
 
     function unstakeDgovToken(
         address _staker,
         uint256 _stakingCounter
-    ) external returns(uint256 unstakedAmount);
+    ) external returns(uint256 amountDGOV, uint256 amountVote);
 
     function getStakedDGOVAmount(
         address _staker,
         uint256 _stakingCounter
     ) external view returns(uint256 _stakedAmount);
+
+    function getAvailableVoteTokens(
+        address _staker,
+        uint256 _stakingCounter
+    ) external view returns(uint256 _voteTokens);
 
     function setLastTimeInterestWithdraw(
         address _staker,

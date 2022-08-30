@@ -82,17 +82,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         _;
     }
 
-    // we need this for updating governance, since once executed
-    // the old governance contract can no longer be used
-    modifier onlyExecutedProposals(uint128 _class, uint128 _nonce) {
-        require(
-            IGovStorage(govStorageAddress).getProposalStatus(_class, _nonce) == 
-            IGovSharedStorage.ProposalStatus.Executed,
-            "Gov: only succeded proposals"
-        );
-        _;
-    }
-
     constructor(
         address _govStorageAddress,
         address _voteCountingAddress
@@ -264,15 +253,15 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
     /**
     * @dev stake DGOV tokens
     * @param _amount amount of DGOV to stake
+    * @param _durationIndex index of the staking duration -defined in the staking contract-
     * @param staked true if DGOV tokens have been staked successfully, false otherwise
     */
-    function stakeDGOV(uint256 _amount) public nonReentrant returns(bool staked) {
+    function stakeDGOV(uint256 _amount, uint256 _durationIndex) public nonReentrant returns(bool staked) {
         address staker = _msgSender();
-        uint256 duration = IGovStorage(govStorageAddress).getMinimumStakingDuration();
 
-        IStaking(
+        uint256 duration = IStaking(
             IGovStorage(govStorageAddress).getStakingContract()
-        ).stakeDgovToken(staker, _amount, duration);
+        ).stakeDgovToken(staker, _amount, _durationIndex);
 
         staked = true;
 
@@ -290,7 +279,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         address staker = _msgSender();
         require(staker != address(0), "Gov: zero address");
 
-        (uint256 amountStaked, uint256 interest, uint256 duration) = IProposalLogic(
+        (uint256 amountDGOV, , uint256 interest, uint256 duration) = IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).unstakeDGOVandCalculateInterest(staker, _stakingCounter);
 
@@ -299,7 +288,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         ).removeLiquidity(
             staker,
             IGovStorage(govStorageAddress).getDBITAddress(),
-            amountStaked * interest / 1 ether
+            amountDGOV * interest / 1 ether
         );
 
         unstaked = true;

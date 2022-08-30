@@ -34,7 +34,12 @@ interface IProposalLogic is IGovSharedStorage {
     function unstakeDGOVandCalculateInterest(
         address _staker,
         uint256 _stakingCounter
-    ) external returns(uint256 amountStaked, uint256 interest, uint256 duration);
+    ) external returns(
+        uint256 amountDGOV,
+        uint256 amountVote,
+        uint256 interest,
+        uint256 duration
+    );
 
     function calculateReward(
         uint128 _class,
@@ -70,32 +75,4 @@ interface IProposalLogic is IGovSharedStorage {
         uint256 end,
         ProposalApproval approval
     );
-
-    function getUpdateDGOVMaxSupplyCallData(
-        uint128 _class,
-        uint128 _nonce,
-        uint256 _maxSupply
-    ) external pure returns(bytes memory);
-
-    function getSetMaxAllocationPercentageCallData(
-        uint128 _class,
-        uint128 _nonce,
-        uint256 _newPercentage,
-        address _tokenAddress
-    ) external pure returns(bytes memory);
-
-    function getUpdateMaxAirdropSupplyCallData(
-        uint128 _class,
-        uint128 _nonce,
-        uint256 _newSupply,
-        address _tokenAddress
-    ) external pure returns(bytes memory);
-
-    function getMintAllocatedTokenCallData(
-        uint128 _class,
-        uint128 _nonce,
-        address _token,
-        address _to,
-        uint256 _amount
-    ) external pure returns(bytes memory);
 }

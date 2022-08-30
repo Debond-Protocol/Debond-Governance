@@ -35,39 +35,11 @@ contract Executable is IExecutable, IGovSharedStorage {
         _;
     }
 
-    modifier onlyProposalLogic {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getProposalLogicContract(),
-            "Executable: Only Gov"
-        );
-        _;
-    }
-
     modifier onlyDBITorDGOV(address _tokenAddress) {
         require(
             _tokenAddress == IGovStorage(govStorageAddress).getDGOVAddress() ||
             _tokenAddress == IGovStorage(govStorageAddress).getDBITAddress(),
             "Gov: wrong token address"
-        );
-        _;
-    }
-
-    modifier onlySuccededProposals(uint128 _class, uint128 _nonce) {
-        require(
-            IGovStorage(govStorageAddress).getProposalStatus(_class, _nonce) == 
-            IGovSharedStorage.ProposalStatus.Succeeded,
-            "Gov: only succeded proposals"
-        );
-        _;
-    }
-
-    // we need this for updating governance, since once executed
-    // the old governance contract can no longer be used
-    modifier onlyExecutedProposals(uint128 _class, uint128 _nonce) {
-        require(
-            IGovStorage(govStorageAddress).getProposalStatus(_class, _nonce) == 
-            IGovSharedStorage.ProposalStatus.Executed,
-            "Gov: only succeded proposals"
         );
         _;
     }

@@ -14,6 +14,8 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
+//@notice: This contract simulates changing the blocktimestamp only for tests purposes
+
 contract AdvanceBlockTimeStamp {
     uint256 count;
 

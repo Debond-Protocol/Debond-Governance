@@ -66,17 +66,21 @@ contract StakingDGOV is IStaking, StakingExecutable, ReentrancyGuard {
     */
     struct StackedDGOV {
         uint256 amountDGOV;
+        uint256 amountVote;
         uint256 startTime;
         uint256 lastInterestWithdrawTime;
         uint256 duration;
     }
 
+    struct VoteTokenAllocation {
+        uint256 duration;
+        uint256 allocation;
+    }
+
     // key1: staker address, key2: staking rank of the staker
     mapping(address => mapping(uint256 => StackedDGOV)) internal stackedDGOV;
     mapping(address => uint256) public stakingCounter;
-
-    event dgovStacked(address staker, uint256 amount, uint256 counter);
-    event dgovUnstacked(address staker, uint256 amount, uint256 counter);
+    mapping(uint256 => VoteTokenAllocation) private voteTokenAllocation;
 
     uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
 
@@ -114,19 +118,41 @@ contract StakingDGOV is IStaking, StakingExecutable, ReentrancyGuard {
         govStorageAddress = _govStorageAddress;
         IdGov = IERC20(_dgovToken);
         Ivote = IVoteToken(_voteToken);
+
+        // for tests only
+        voteTokenAllocation[0].duration = 4;
+        voteTokenAllocation[0].allocation = 3000000000000000;
+
+        //voteTokenAllocation[0].duration = 4 weeks;
+        //voteTokenAllocation[0].allocation = 3000000000000000;
+
+        voteTokenAllocation[1].duration = 12 weeks;
+        voteTokenAllocation[1].allocation = 3653793637913968;
+
+        voteTokenAllocation[2].duration = 24 weeks;
+        voteTokenAllocation[2].allocation = 4578397467645146;
+
+        voteTokenAllocation[3].duration = 48 weeks;
+        voteTokenAllocation[3].allocation = 5885984743473081;
+
+        voteTokenAllocation[4].duration = 96 weeks;
+        voteTokenAllocation[4].allocation = 7735192402935436;
+
+        voteTokenAllocation[5].duration = 144 weeks;
+        voteTokenAllocation[5].allocation = 10000000000000000;
     }
     
     /**
     * @dev stack dGoV tokens
     * @param _staker the address of the staker
     * @param _amount the amount of dGoV tokens to stak
-    * @param _duration the staking period
+    * @param _durationIndex index of the staking duration in the `voteTokenAllocation` mapping
     */
     function stakeDgovToken(
         address _staker,
         uint256 _amount,
-        uint256 _duration
-    ) external override onlyGov {
+        uint256 _durationIndex
+    ) external override onlyGov returns(uint256 duration) {
         require(_staker != address(0), "StakingDGOV: zero address");
 
         uint256 stakerBalance = IdGov.balanceOf(_staker);
@@ -136,14 +162,15 @@ contract StakingDGOV is IStaking, StakingExecutable, ReentrancyGuard {
 
         stackedDGOV[_staker][counter + 1].startTime = block.timestamp;
         stackedDGOV[_staker][counter + 1].lastInterestWithdrawTime = block.timestamp;
-        stackedDGOV[_staker][counter + 1].duration = _duration;
+        stackedDGOV[_staker][counter + 1].duration = voteTokenAllocation[_durationIndex].duration;
         stackedDGOV[_staker][counter + 1].amountDGOV += _amount;
+        stackedDGOV[_staker][counter + 1].amountVote += _amount * voteTokenAllocation[_durationIndex].allocation / 10**16;
         stakingCounter[_staker] = counter + 1;
 
         IdGov.transferFrom(_staker, address(this), _amount);
-        Ivote.mintVoteToken(_staker, _amount);
+        Ivote.mintVoteToken(_staker, _amount * voteTokenAllocation[_durationIndex].allocation / 10**16);
 
-        emit dgovStacked(_staker, _amount, counter + 1);
+        duration = voteTokenAllocation[_durationIndex].duration;
     }
 
     /**
@@ -154,7 +181,7 @@ contract StakingDGOV is IStaking, StakingExecutable, ReentrancyGuard {
     function unstakeDgovToken(
         address _staker,
         uint256 _stakingCounter
-    ) external override onlyProposalLogic nonReentrant returns(uint256 unstakedAmount) {
+    ) external override onlyProposalLogic nonReentrant returns(uint256 amountDGOV, uint256 amountVote) {
         StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
         require(_staked.amountDGOV > 0, "Staking: no dGoV staked");
 
@@ -163,14 +190,13 @@ contract StakingDGOV is IStaking, StakingExecutable, ReentrancyGuard {
             "Staking: still staking"
         );
 
-        unstakedAmount = _staked.amountDGOV;
+        amountDGOV = _staked.amountDGOV;
+        amountVote = _staked.amountVote;
         _staked.amountDGOV = 0;
 
         // burn vote tokens and transfer back dGoV to the staker
-        Ivote.burnVoteToken(_staker, unstakedAmount);
-        IdGov.transfer(_staker, unstakedAmount);
-
-        emit dgovUnstacked(_staker, unstakedAmount, _stakingCounter);
+        Ivote.burnVoteToken(_staker, amountVote);
+        IdGov.transfer(_staker, amountDGOV);
     }
 
     /**
@@ -224,6 +250,13 @@ contract StakingDGOV is IStaking, StakingExecutable, ReentrancyGuard {
         uint256 _stakingCounter
     ) external view returns(uint256 _stakedAmount) {
         _stakedAmount = stackedDGOV[_staker][_stakingCounter].amountDGOV;
+    }
+
+    function getAvailableVoteTokens(
+        address _staker,
+        uint256 _stakingCounter
+    ) external view returns(uint256 _voteTokens) {
+        _voteTokens = stackedDGOV[_staker][_stakingCounter].amountVote;
     }
 
     function getStartTimeDurationAndLastWithdrawTime(
