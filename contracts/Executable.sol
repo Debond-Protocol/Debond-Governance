@@ -198,11 +198,6 @@ contract Executable is IExecutable, IGovSharedStorage {
         IUpdatable(
             IGovStorage(govStorageAddress).getExchangeStorageAddress()
         ).updateExecutable(_executableAddress);
-        // in Staking contract
-        IUpdatable(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).updateExecutable(_executableAddress);
-
         // in Exchange
         IUpdatable(
             IGovStorage(govStorageAddress).getExchangeAddress()
@@ -374,11 +369,6 @@ contract Executable is IExecutable, IGovSharedStorage {
         IUpdatable(
             IGovStorage(govStorageAddress).getExchangeStorageAddress()
         ).updateGovernance(_governanceAddress);
-        // in Staking contract
-        IUpdatable(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).updateGovernance(_governanceAddress);
-
         // in Exchange
         IUpdatable(
             IGovStorage(govStorageAddress).getExchangeAddress()

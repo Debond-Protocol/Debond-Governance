@@ -86,7 +86,7 @@ contract("Governance", async (accounts) => {
         dbit = await DBIT.new(gov.address, bank.address, operator, exchange.address, exec.address);
         dgov = await DGOV.new(gov.address, bank.address, operator, exchange.address, exec.address);
         logic = await ProposalLogic.new(operator, storage.address);
-        stak = await StakingDGOV.new(dgov.address, vote.address, gov.address, logic.address, storage.address, exec.address);
+        stak = await StakingDGOV.new(storage.address);
 
         nextTime = await AdvanceBlockTimeStamp.new();
 
@@ -610,7 +610,6 @@ contract("Governance", async (accounts) => {
         let inDebondBond = await erc3475.getGovernanceAddress();
         let inExchange = await exchange.getGovernanceAddress();
         let inExStorage = await exStorage.getGovernanceAddress();
-        let inStaking = await stak.getGovernanceAddress();
 
         expect(executableAfter)
         .to.equal(inBank)
@@ -621,7 +620,6 @@ contract("Governance", async (accounts) => {
         .to.equal(inDebondBond)
         .to.equal(inExchange)
         .to.equal(inExStorage)
-        .to.equal(inStaking)
         .to.equal(user6)
         .not.to.equal(executableBefore);
     });
@@ -729,7 +727,6 @@ contract("Governance", async (accounts) => {
         let inAPMBefore = await apm.getExecutableAddress();
         let inERC3475Before = await erc3475.getExecutableAddress();
         let inExStorageBefore = await exStorage.getExecutableAddress();
-        let inStakingBefore = await stak.getExecutableAddress();
         let inExchangeBefore = await exchange.getExecutableAddress();
 
         await gov.executeProposal(
@@ -746,7 +743,6 @@ contract("Governance", async (accounts) => {
         let inAPMAfter = await apm.getExecutableAddress();
         let inERC3475After = await erc3475.getExecutableAddress();
         let inExStorageAfter = await exStorage.getExecutableAddress();
-        let inStakingAfter = await stak.getExecutableAddress();
         let inExchangeAfter = await exchange.getExecutableAddress();
 
         expect(executableBefore)
@@ -757,7 +753,6 @@ contract("Governance", async (accounts) => {
         .to.equal(inAPMBefore)
         .to.equal(inERC3475Before)
         .to.equal(inExStorageBefore)
-        .to.equal(inStakingBefore)
         .to.equal(inExchangeBefore)
 
         expect(executableAfter)
@@ -768,7 +763,6 @@ contract("Governance", async (accounts) => {
         .to.equal(inAPMAfter)
         .to.equal(inERC3475After)
         .to.equal(inExStorageAfter)
-        .to.equal(inStakingAfter)
         .to.equal(inExchangeAfter)
         .to.equal(user6)
         .not.to.equal(executableBefore);

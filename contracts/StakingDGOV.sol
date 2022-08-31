@@ -20,47 +20,7 @@ import "./interfaces/IVoteToken.sol";
 import "./interfaces/IGovStorage.sol";
 import "./interfaces/IStaking.sol";
 
-interface IUpdatable {
-    function updateGovernance(
-        address _governanceAddress
-    ) external;
-
-    function updateExecutable(
-        address _executableAddress
-    ) external;
-}
-
-contract StakingExecutable is IUpdatable {
-    address governance;
-    address executable;
-
-    modifier onlyExec {
-        require(msg.sender == executable, "Bank: only exec");
-        _;
-    }
-    
-    function updateGovernance(
-        address _governanceAddress
-    ) external onlyExec {
-        governance = _governanceAddress;
-    }
-
-    function updateExecutable(
-        address _executableAddress
-    ) external onlyExec {
-        executable = _executableAddress;
-    }
-
-    function getGovernanceAddress() public view returns(address) {
-        return governance;
-    }
-
-    function getExecutableAddress() public view returns(address) {
-        return executable;
-    }
-}
-
-contract StakingDGOV is IStaking, StakingExecutable, ReentrancyGuard {
+contract StakingDGOV is IStaking, ReentrancyGuard {
     /**
     * @dev structure that stores information on stacked dGoV
     */
@@ -84,40 +44,28 @@ contract StakingDGOV is IStaking, StakingExecutable, ReentrancyGuard {
 
     uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
 
-    address public dGov;
-    address public voteToken;
-    address public proposalLogic;
     address public govStorageAddress;
 
     modifier onlyGov() {
-        require(msg.sender == governance, "StakingDGOV: only governance");
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getGovernanceAddress(),
+            "StakingDGOV: only governance"
+        );
         _;
     }
 
     modifier onlyProposalLogic {
-        require(msg.sender == proposalLogic, "StakingDGOV: permission denied");
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getProposalLogicContract(),
+            "StakingDGOV: permission denied"
+        );
         _;
     }
-    
-    IERC20 IdGov;
-    IVoteToken Ivote;
 
     constructor (
-        address _dgovToken,
-        address _voteToken,
-        address _governance,
-        address _proposalLogic,
-        address _govStorageAddress,
-        address _executable
+        address _govStorageAddress
     ) {
-        dGov = _dgovToken;
-        voteToken = _voteToken;
-        governance = _governance;
-        executable = _executable;
-        proposalLogic = _proposalLogic;
         govStorageAddress = _govStorageAddress;
-        IdGov = IERC20(_dgovToken);
-        Ivote = IVoteToken(_voteToken);
 
         // for tests only
         voteTokenAllocation[0].duration = 4;
@@ -155,7 +103,9 @@ contract StakingDGOV is IStaking, StakingExecutable, ReentrancyGuard {
     ) external override onlyGov returns(uint256 duration) {
         require(_staker != address(0), "StakingDGOV: zero address");
 
-        uint256 stakerBalance = IdGov.balanceOf(_staker);
+        uint256 stakerBalance = IERC20(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).balanceOf(_staker);
         require(_amount <= stakerBalance, "Debond: not enough dGov");
 
         uint256 counter = stakingCounter[_staker];
@@ -167,8 +117,12 @@ contract StakingDGOV is IStaking, StakingExecutable, ReentrancyGuard {
         stackedDGOV[_staker][counter + 1].amountVote += _amount * voteTokenAllocation[_durationIndex].allocation / 10**16;
         stakingCounter[_staker] = counter + 1;
 
-        IdGov.transferFrom(_staker, address(this), _amount);
-        Ivote.mintVoteToken(_staker, _amount * voteTokenAllocation[_durationIndex].allocation / 10**16);
+        IERC20(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).transferFrom(_staker, address(this), _amount);
+        IVoteToken(
+            IGovStorage(govStorageAddress).getVoteTokenContract()
+        ).mintVoteToken(_staker, _amount * voteTokenAllocation[_durationIndex].allocation / 10**16);
 
         duration = voteTokenAllocation[_durationIndex].duration;
     }
@@ -195,8 +149,12 @@ contract StakingDGOV is IStaking, StakingExecutable, ReentrancyGuard {
         _staked.amountDGOV = 0;
 
         // burn vote tokens and transfer back dGoV to the staker
-        Ivote.burnVoteToken(_staker, amountVote);
-        IdGov.transfer(_staker, amountDGOV);
+        IVoteToken(
+            IGovStorage(govStorageAddress).getVoteTokenContract()
+        ).burnVoteToken(_staker, amountVote);
+        IERC20(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).transfer(_staker, amountDGOV);
     }
 
     /**
