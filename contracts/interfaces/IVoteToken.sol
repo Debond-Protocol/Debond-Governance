@@ -14,7 +14,9 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-interface IVoteToken {
+import "../interfaces/IGovSharedStorage.sol";
+
+interface IVoteToken is IGovSharedStorage {
     /**
     * @dev mints  vote Token tokens to the address of a user
     */
@@ -54,22 +56,18 @@ interface IVoteToken {
         uint128 _nonce
     ) external view returns(uint256);
 
+    function unlockVoteTokens(
+        uint128 _class,
+        uint128 _nonce,
+        address _tokenOwner
+    ) external;
+
     /**
     * @dev lock vote tokens
     */
     function lockTokens(
         address _owner,
         address _spender,
-        uint256 _amount,
-        uint128 _class,
-        uint128 _nonce
-    ) external;
-
-    /**
-    * @dev unlock vote tokens
-    */
-    function unlockTokens(
-        address _owner,
         uint256 _amount,
         uint128 _class,
         uint128 _nonce

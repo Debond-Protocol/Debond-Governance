@@ -66,6 +66,12 @@ interface IGovStorage is IGovSharedStorage {
         uint128 _class
     ) external view returns(uint256);
 
+    function hasVoted(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external view returns(bool voted);
+
     function getProposal(
         uint128 _class,
         uint128 _nonce

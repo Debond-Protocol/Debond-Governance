@@ -102,7 +102,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         string memory _title,
         bytes32 _descriptionHash
     ) public {
-
         uint128 nonce = _generateNewNonce(_class);
       
         (
@@ -274,9 +273,17 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         address staker = _msgSender();
         require(staker != address(0), "Gov: zero address");
 
-        (uint256 amountDGOV, , uint256 interest, uint256 duration) = IProposalLogic(
-            IGovStorage(govStorageAddress).getProposalLogicContract()
-        ).unstakeDGOVandCalculateInterest(staker, _stakingCounter);
+        (uint256 amountDGOV, ) = IStaking(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).unstakeDgovToken(staker, _stakingCounter);
+
+        (uint256 interest, uint256 duration) = IStaking(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).calculateInterestEarned(
+            staker,
+            _stakingCounter,
+            IGovStorage(govStorageAddress).stakingInterestRate()
+        );
 
         IAPM(
             IGovStorage(govStorageAddress).getAPMAddress()
@@ -346,8 +353,8 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
     ) external {
         address tokenOwner = _msgSender();
 
-        IProposalLogic(
-            IGovStorage(govStorageAddress).getProposalLogicContract()
+        IVoteToken(
+            IGovStorage(govStorageAddress).getVoteTokenContract()
         ).unlockVoteTokens(_class, _nonce, tokenOwner);
 
         _transferDBITInterest(_class, _nonce, tokenOwner);

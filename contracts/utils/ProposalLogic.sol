@@ -215,68 +215,6 @@ contract ProposalLogic is IProposalLogic {
         }
     }
 
-    function unstakeDGOVandCalculateInterest(
-        address _staker,
-        uint256 _stakingCounter
-    ) external onlyGov returns(uint256 amountDGOV, uint256 amountVote, uint256 interest, uint256 duration) {
-        (amountDGOV, amountVote) = IStaking(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).unstakeDgovToken(_staker, _stakingCounter);
-
-        // the interest calculated from this function is in ether unit
-        (interest, duration) = IStaking(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).calculateInterestEarned(
-            _staker,
-            _stakingCounter,
-            IGovStorage(govStorageAddress).stakingInterestRate()
-        );
-    }
-
-
-    /**
-    * @dev internal unlockVoteTokens function
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    * @param _tokenOwner owner of vote tokens
-    */
-    function unlockVoteTokens(
-        uint128 _class,
-        uint128 _nonce,
-        address _tokenOwner
-    ) external onlyGov {
-        ProposalStatus status = IGovStorage(
-            govStorageAddress
-        ).getProposalStatus(_class, _nonce);
-
-        address proposer = IGovStorage(
-            govStorageAddress
-        ).getProposalProposer(_class, _nonce);
-
-        require(
-            status == ProposalStatus.Canceled ||
-            status == ProposalStatus.Succeeded ||
-            status == ProposalStatus.Defeated ||
-            status == ProposalStatus.Executed,
-            "ProposalLogic: still voting"
-        );
-
-        if(_tokenOwner != proposer) {
-            require(
-                hasVoted(_class, _nonce, _tokenOwner),
-                "Gov: you haven't voted"
-            );          
-        }
-        
-        uint256 _amount = IVoteToken(
-            IGovStorage(govStorageAddress).getVoteTokenContract()
-        ).lockedBalanceOf(_tokenOwner, _class, _nonce);
-
-        IVoteToken(
-            IGovStorage(govStorageAddress).getVoteTokenContract()
-        ).unlockTokens(_tokenOwner, _amount, _class, _nonce);
-    }
-
     function calculateReward(
         uint128 _class,
         uint128 _nonce,
@@ -392,9 +330,6 @@ contract ProposalLogic is IProposalLogic {
         emit periodSet(_class, _period);
         _votingPeriod[_class] = _period;
     }
-
-
-
 
     function hasVoted(
         uint128 _class,

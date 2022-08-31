@@ -118,6 +118,41 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         _availableBalance[_owner] = balanceOf(_owner) - _lockedBalance[_owner][_class][_nonce];
     }
 
+    function unlockVoteTokens(
+        uint128 _class,
+        uint128 _nonce,
+        address _tokenOwner
+    ) external onlyGov {
+        ProposalStatus status = IGovStorage(
+            govStorageAddress
+        ).getProposalStatus(_class, _nonce);
+
+        address proposer = IGovStorage(
+            govStorageAddress
+        ).getProposalProposer(_class, _nonce);
+
+        require(
+            status == ProposalStatus.Canceled ||
+            status == ProposalStatus.Succeeded ||
+            status == ProposalStatus.Defeated ||
+            status == ProposalStatus.Executed,
+            "ProposalLogic: still voting"
+        );
+
+        if(_tokenOwner != proposer) {
+            require(
+                IGovStorage(govStorageAddress).hasVoted(_class, _nonce, _tokenOwner),
+                "Gov: you haven't voted"
+            );       
+        }
+        
+        uint256 _amount = IVoteToken(
+            IGovStorage(govStorageAddress).getVoteTokenContract()
+        ).lockedBalanceOf(_tokenOwner, _class, _nonce);
+
+        _unlockTokens(_tokenOwner, _amount, _class, _nonce);
+    }
+
     /**
     * @dev unlock vote tokens
     * @param _owner owner address of vote tokens
@@ -125,12 +160,12 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     * @param _class proposal class
     * @param _nonce proposal nonce
     */
-    function unlockTokens(
+    function _unlockTokens(
         address _owner,
         uint256 _amount,
         uint128 _class,
         uint128 _nonce
-    ) public onlyProposalLogic {
+    ) private {
         require(_owner != address(0), "VoteToken: zero address");
         require(
             _amount <= _lockedBalance[_owner][_class][_nonce],

@@ -406,6 +406,14 @@ contract GovStorage is IGovStorage {
         return _proposalQuorum[_class];
     }
 
+    function hasVoted(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(bool voted) {
+        return IProposalLogic(proposalLogicContract).hasVoted(_class, _nonce, _account);
+    }
+
     /**
     * @dev return a proposal
     * @param _class proposal class

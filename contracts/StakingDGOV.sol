@@ -135,7 +135,7 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
     function unstakeDgovToken(
         address _staker,
         uint256 _stakingCounter
-    ) external override onlyProposalLogic nonReentrant returns(uint256 amountDGOV, uint256 amountVote) {
+    ) external override onlyGov nonReentrant returns(uint256 amountDGOV, uint256 amountVote) {
         StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
         require(_staked.amountDGOV > 0, "Staking: no dGoV staked");
 
