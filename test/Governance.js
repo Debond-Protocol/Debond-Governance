@@ -85,7 +85,7 @@ contract("Governance", async (accounts) => {
         bankData = await BankData.new(gov.address, bank.address, exec.address);
         dbit = await DBIT.new(gov.address, bank.address, operator, exchange.address, exec.address);
         dgov = await DGOV.new(gov.address, bank.address, operator, exchange.address, exec.address);
-        logic = await ProposalLogic.new(operator, storage.address);
+        logic = await ProposalLogic.new(storage.address);
         stak = await StakingDGOV.new(storage.address);
 
         nextTime = await AdvanceBlockTimeStamp.new();

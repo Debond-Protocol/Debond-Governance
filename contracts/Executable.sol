@@ -16,7 +16,6 @@ pragma solidity ^0.8.0;
 
 import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
 import "@debond-protocol/debond-token-contracts/interfaces/IDGOV.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IGovStorage.sol";
 import "./interfaces/IGovSharedStorage.sol";
@@ -24,7 +23,6 @@ import "./interfaces/IExecutable.sol";
 import "./interfaces/IUpdatable.sol";
 
 contract Executable is IExecutable, IGovSharedStorage {
-    using SafeERC20 for IERC20;
     address public govStorageAddress;
 
     modifier onlyGov {

@@ -30,11 +30,13 @@ contract ProposalLogic is IProposalLogic {
     event votingPeriodSet(uint256 oldPeriod, uint256 newPeriod);
     event periodSet(uint128 _class, uint256 _period);
 
-    address vetoOperator;
     address govStorageAddress;
 
     modifier onlyVetoOperator {
-        require(msg.sender == vetoOperator, "ProposalLogic: permission denied");
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getVetoOperator(),
+            "ProposalLogic: permission denied"
+        );
         _;
     }
 
@@ -47,10 +49,8 @@ contract ProposalLogic is IProposalLogic {
     }
 
     constructor(
-        address _vetoOperator,
         address _govStorageAddress
     ) {
-        vetoOperator = _vetoOperator;
         govStorageAddress = _govStorageAddress;
 
         // to define during deployment
