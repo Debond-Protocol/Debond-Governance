@@ -20,16 +20,18 @@ import "../interfaces/IGovStorage.sol";
 import "../interfaces/IVoteToken.sol";
 import "../interfaces/IStaking.sol";
 import "../interfaces/IVoteCounting.sol";
-import "../interfaces/IGovSettings.sol";
 import "../interfaces/IProposalLogic.sol";
 import "../interfaces/IGovSharedStorage.sol";
 
 contract ProposalLogic is IProposalLogic {
+    mapping(uint128 => uint256) private _votingPeriod;
+
+    event votingDelaySet(uint256 oldDelay, uint256 newDelay);
+    event votingPeriodSet(uint256 oldPeriod, uint256 newPeriod);
+    event periodSet(uint128 _class, uint256 _period);
+
     address vetoOperator;
     address govStorageAddress;
-    address voteTokenAddress;
-    address stakingAddress;
-    address voteCountingAddress;
 
     modifier onlyVetoOperator {
         require(msg.sender == vetoOperator, "ProposalLogic: permission denied");
@@ -46,14 +48,15 @@ contract ProposalLogic is IProposalLogic {
 
     constructor(
         address _vetoOperator,
-        address _govStorageAddress,
-        address _voteTokenAddress,
-        address _voteCountingAddress
+        address _govStorageAddress
     ) {
         vetoOperator = _vetoOperator;
         govStorageAddress = _govStorageAddress;
-        voteTokenAddress = _voteTokenAddress;
-        voteCountingAddress = _voteCountingAddress;
+
+        // to define during deployment
+        _votingPeriod[0] = 2;
+        _votingPeriod[1] = 2;
+        _votingPeriod[2] = 2;
     }
 
     /**
@@ -99,9 +102,7 @@ contract ProposalLogic is IProposalLogic {
 
         start = block.timestamp;
         
-        end = start + IGovSettings(
-            IGovStorage(govStorageAddress).getGovSettingContract()
-        ).getVotingPeriod(_class);
+        end = start + _getVotingPeriod(_class);
 
         IGovStorage(govStorageAddress).setProposal(
             _class,
@@ -262,7 +263,9 @@ contract ProposalLogic is IProposalLogic {
 
         if(_tokenOwner != proposer) {
             require(
-                IVoteCounting(voteCountingAddress).hasVoted(_class, _nonce, _tokenOwner),
+                IVoteCounting(
+                    IGovStorage(govStorageAddress).getVoteCountingAddress()
+                ).hasVoted(_class, _nonce, _tokenOwner),
                 "Gov: you haven't voted"
             );          
         }
@@ -282,10 +285,14 @@ contract ProposalLogic is IProposalLogic {
         address _tokenOwner
     ) external onlyGov returns(uint256 reward) {
         require(
-            !IVoteCounting(voteCountingAddress).hasBeenRewarded(_class, _nonce, _tokenOwner),
+            !IVoteCounting(
+                IGovStorage(govStorageAddress).getVoteCountingAddress()
+            ).hasBeenRewarded(_class, _nonce, _tokenOwner),
             "Gov: already rewarded"
         );
-        IVoteCounting(voteCountingAddress).setUserHasBeenRewarded(_class, _nonce, _tokenOwner);
+        IVoteCounting(
+            IGovStorage(govStorageAddress).getVoteCountingAddress()
+        ).setUserHasBeenRewarded(_class, _nonce, _tokenOwner);
 
         uint256 _reward;
         
@@ -293,7 +300,9 @@ contract ProposalLogic is IProposalLogic {
             _reward += (1 ether * 1 ether) / IGovStorage(govStorageAddress).getTotalVoteTokenPerDay(_class, _nonce, i);
         }
 
-        reward = _reward * IVoteCounting(voteCountingAddress).getVoteWeight(_class, _nonce, _tokenOwner) * 
+        reward = _reward * IVoteCounting(
+            IGovStorage(govStorageAddress).getVoteCountingAddress()
+        ).getVoteWeight(_class, _nonce, _tokenOwner) * 
                   IGovStorage(govStorageAddress).dbitDistributedPerDay() / (1 ether * 1 ether);
     }
 
@@ -316,17 +325,17 @@ contract ProposalLogic is IProposalLogic {
             _class, _nonce, day, _amountVoteTokens
         );
         
-        IVoteCounting(voteCountingAddress).setVotingDay(
+        IVoteCounting(
+            IGovStorage(govStorageAddress).getVoteCountingAddress()
+        ).setVotingDay(
             _class, _nonce, _voter, day
         );
 
-        IVoteCounting(voteCountingAddress).countVote(
+        IVoteCounting(
+            IGovStorage(govStorageAddress).getVoteCountingAddress()
+        ).countVote(
             _class, _nonce, _voter, _userVote, _amountVoteTokens
         );
-    }
-
-    function setStakingContract(address _stakingAddress) public onlyVetoOperator {
-        stakingAddress = _stakingAddress;
     }
 
     /**
@@ -384,5 +393,19 @@ contract ProposalLogic is IProposalLogic {
         IGovStorage(
             govStorageAddress
         ).setProposalDescriptionHash(_class, _nonce, _descriptionHash);
+    }
+
+    function _getVotingPeriod(uint128 _class) internal view returns(uint256) {
+        return _votingPeriod[_class];
+    }
+
+    function setVotingPeriod(uint128 _class, uint256 _period) public onlyVetoOperator {
+        _setPeriod(_class, _period);
+        emit periodSet(_class, _period);
+    }
+
+    function _setPeriod(uint128 _class, uint256 _period) private {
+        emit periodSet(_class, _period);
+        _votingPeriod[_class] = _period;
     }
 }

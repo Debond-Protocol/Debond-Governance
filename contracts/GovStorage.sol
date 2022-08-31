@@ -50,7 +50,6 @@ contract GovStorage is IGovStorage {
     address public bankBondManagerContract;
     address public stakingContract;
     address public voteTokenContract;
-    address public govSettingsContract;
     address public proposalLogicContract;
     address public executable;
     address public voteCountingContract;
@@ -176,11 +175,8 @@ contract GovStorage is IGovStorage {
 
         // voting rewards by class
         numberOfVotingDays[0] = 1;
-
         numberOfVotingDays[1] = 1;
-
         numberOfVotingDays[2] = 1;
-
         minimumStakingDuration = 10;
     }
 
@@ -207,7 +203,6 @@ contract GovStorage is IGovStorage {
     }
 
     function setUpGoup2(
-        address _settingsContrats,
         address _proposalLogicContract,
         address _executable,
         address _bankContract,
@@ -218,7 +213,6 @@ contract GovStorage is IGovStorage {
         address _airdropContract,
         address _governanceOwnableContract
     ) external onlyVetoOperator {
-        govSettingsContract = _settingsContrats;
         proposalLogicContract = _proposalLogicContract;
         executable = _executable;
         bankContract = _bankContract;
@@ -298,10 +292,6 @@ contract GovStorage is IGovStorage {
 
     function getVoteTokenContract() public view returns(address) {
         return voteTokenContract;
-    }
-
-    function getGovSettingContract() public view returns(address) {
-        return govSettingsContract;
     }
 
     function getProposalLogicContract() public view returns(address) {

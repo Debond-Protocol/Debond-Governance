@@ -13,7 +13,6 @@ const Bank = artifacts.require("Bank");
 const APMTest = artifacts.require("APMTest");
 const VoteToken = artifacts.require("VoteToken");
 const StakingDGOV = artifacts.require("StakingDGOV");
-const GovSettings = artifacts.require("GovSettings");
 const Governance = artifacts.require("Governance");
 const VoteCounting = artifacts.require("VoteCounting");
 const Executable = artifacts.require("Executable");
@@ -40,7 +39,6 @@ contract("Governance", async (accounts) => {
     let logic;
     let erc3475;
     let storage;
-    let settings;
     let amountToMint;
     let migrator;
     let exchange;
@@ -96,7 +94,6 @@ contract("Governance", async (accounts) => {
         migrator = await GovernanceMigrator.new();
         vote = await VoteToken.new("Debond Vote Token", "DVT", operator);
         storage = await GovStorage.new(debondTeam, operator);
-        settings = await GovSettings.new(storage.address);
         exec = await Executable.new(storage.address);
         oracle = await Oracle.new(exec.address);
         gov = await Governance.new(storage.address, count.address);
@@ -129,7 +126,6 @@ contract("Governance", async (accounts) => {
         );
 
         await storage.setUpGoup2(
-            settings.address,
             logic.address,
             exec.address,
             bank.address,

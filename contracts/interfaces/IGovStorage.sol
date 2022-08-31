@@ -24,7 +24,6 @@ interface IGovStorage is IGovSharedStorage {
     function getStakingContract() external view returns(address);
     function getProposalLogicContract() external view returns(address);
     function getVoteTokenContract() external view returns(address);
-    function getGovSettingContract() external view returns(address);
     function getAirdropContract() external view returns(address);
     function getNumberOfSecondInYear() external pure returns(uint256);
 

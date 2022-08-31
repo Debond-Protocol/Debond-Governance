@@ -24,7 +24,6 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IVoteToken.sol";
 import "./interfaces/IExecutable.sol";
-import "./interfaces/IGovSettings.sol";
 import "./interfaces/IVoteCounting.sol";
 import "./interfaces/IProposalLogic.sol";
 import "./interfaces/IGovSharedStorage.sol";

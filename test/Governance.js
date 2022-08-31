@@ -13,7 +13,6 @@ const Bank = artifacts.require("Bank");
 const APMTest = artifacts.require("APMTest");
 const VoteToken = artifacts.require("VoteToken");
 const StakingDGOV = artifacts.require("StakingDGOV");
-const GovSettings = artifacts.require("GovSettings");
 const Governance = artifacts.require("Governance");
 const VoteCounting = artifacts.require("VoteCounting");
 const Executable = artifacts.require("Executable");
@@ -40,7 +39,6 @@ contract("Governance", async (accounts) => {
     let logic;
     let erc3475;
     let storage;
-    let settings;
     let amountToMint;
     let amountToStake;
     let migrator;
@@ -78,7 +76,6 @@ contract("Governance", async (accounts) => {
         migrator = await GovernanceMigrator.new();
         vote = await VoteToken.new("Debond Vote Token", "DVT", operator);
         storage = await GovStorage.new(debondTeam, operator);
-        settings = await GovSettings.new(storage.address);
         exec = await Executable.new(storage.address);
         oracle = await Oracle.new(exec.address);
         gov = await Governance.new(storage.address, count.address);
@@ -91,7 +88,7 @@ contract("Governance", async (accounts) => {
         bankData = await BankData.new(gov.address, bank.address, exec.address);
         dbit = await DBIT.new(gov.address, bank.address, operator, exchange.address, exec.address);
         dgov = await DGOV.new(gov.address, bank.address, operator, exchange.address, exec.address);
-        logic = await ProposalLogic.new(operator, storage.address, vote.address, count.address);
+        logic = await ProposalLogic.new(operator, storage.address);
         stak = await StakingDGOV.new(dgov.address, vote.address, gov.address, logic.address, storage.address, exec.address);
 
         nextTime = await AdvanceBlockTimeStamp.new();
@@ -111,7 +108,6 @@ contract("Governance", async (accounts) => {
         );
 
         await storage.setUpGoup2(
-            settings.address,
             logic.address,
             exec.address,
             bank.address,
@@ -138,9 +134,6 @@ contract("Governance", async (accounts) => {
 
         // set the proposal logic address into voteCounting
         await count.setProposalLogicContract(logic.address);
-
-        // set the staking contract address into proposalLogic
-        await logic.setStakingContract(stak.address);
 
         // set the apm address in Bank
         await bank.setAPMAddress(apm.address);
