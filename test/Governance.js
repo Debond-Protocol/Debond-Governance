@@ -237,14 +237,14 @@ contract("Governance", async (accounts) => {
         let balContractAfter = await dgov.balanceOf(stak.address);
 
         expect(balContractAfter.toString())
-            .to.equal(
-                balContractBefore.sub(amountToStake).toString()
-            );
+        .to.equal(
+            balContractBefore.sub(amountToStake).toString()
+        );
 
         expect(balAfter.toString())
-            .to.equal(
-                balBefore.add(amountToStake).toString()
-            );
+        .to.equal(
+            balBefore.add(amountToStake).toString()
+        );
 
         expect(
             (Number(balanceAfter.toString()) / 100).toFixed(0)

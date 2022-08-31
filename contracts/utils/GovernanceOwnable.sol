@@ -15,25 +15,30 @@ pragma solidity ^0.8.0;
 */
 
 import "../interfaces/IActivable.sol";
+import "../interfaces/IGovStorage.sol";
 
 abstract contract GovernanceOwnable is IActivable {
-    address governanceAddress;
-    address executableAddress;
+    address govStorageAddress;
     bool private isActive;
 
-    constructor(address _governanceAddress, address _executableAddress) {
-        governanceAddress = _governanceAddress;
-        executableAddress = _executableAddress;
+    constructor(address _govStorageAddress) {
+        govStorageAddress = _govStorageAddress;
         isActive = true;
     }
 
     modifier onlyGovernance() {
-        require(msg.sender == governanceAddress, "GovernanceOwnable Restriction: Not authorised");
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getGovernanceAddress(),
+            "GovernanceOwnable Restriction: Not authorised"
+        );
         _;
     }
 
     modifier onlyExecutable() {
-        require(msg.sender == executableAddress, "GovernanceOwnable Restriction: Not authorised");
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getExecutableContract(),
+            "GovernanceOwnable Restriction: Not authorised"
+        );
         _;
     }
 
