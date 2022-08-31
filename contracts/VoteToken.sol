@@ -17,43 +17,53 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IVoteToken.sol";
+import "./interfaces/IGovStorage.sol";
 
 contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     // key1: user address, key2: proposalId
     mapping(address => mapping(uint128 => mapping(uint128 => uint256))) private _lockedBalance;
     mapping(address => uint256) private _availableBalance;
 
-    address vetoOperator;
-    address govAddress;
-    address stakingDGOV;
-    address proposalLogic;
+    address govStorageAddress;
 
     modifier onlyGov {
-        require(msg.sender == govAddress, "VoteToken: only Gov");
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getGovernanceAddress(),
+            "VoteToken: only Gov"
+        );
         _;
     }
 
     modifier onlyVetoOperator {
-        require(msg.sender == vetoOperator, "VoteToken: permission denied");
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getVetoOperator(),
+            "VoteToken: permission denied"
+        );
         _;
     }
 
     modifier onlyStakingContract {
-        require(msg.sender == stakingDGOV, "VoteToken: permission denied");
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getStakingContract(),
+            "VoteToken: permission denied"
+        );
         _;
     }
 
     modifier onlyProposalLogic {
-        require(msg.sender == proposalLogic, "VoteToken: permission denied");
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getProposalLogicContract(),
+            "VoteToken: permission denied"
+        );
         _;
     }
 
     constructor(
         string memory _name,
         string memory _symbol,
-        address _vetoOperator
+        address _govStorageAddress
     ) ERC20(_name, _symbol) {
-        vetoOperator = _vetoOperator;
+        govStorageAddress = _govStorageAddress;
     }
 
     /**
@@ -141,7 +151,8 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         uint256 _amount
     ) public override(ERC20, IVoteToken) returns (bool) {
         require(
-            _to == govAddress || _to == stakingDGOV,
+            _to == IGovStorage(govStorageAddress).getGovernanceAddress() ||
+            _to == IGovStorage(govStorageAddress).getStakingContract(),
             "VoteToken: can't transfer vote tokens"
         );
 
@@ -164,7 +175,8 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         uint256 _amount
     ) public virtual override(ERC20, IVoteToken) returns (bool) {
         require(
-            _to == govAddress || _to == stakingDGOV,
+            _to == IGovStorage(govStorageAddress).getGovernanceAddress() ||
+            _to == IGovStorage(govStorageAddress).getStakingContract(),
             "VoteToken: can't transfer vote tokens"
         );
 
@@ -200,55 +212,5 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     ) external override onlyStakingContract nonReentrant {
         _burn(_user, _amount);
         _availableBalance[_user] = balanceOf(_user);
-    }
-
-    /**
-    * @dev set the governance contract address
-    * @param _governance governance contract address
-    */
-    function setGovernanceContract(
-        address _governance
-    ) external override onlyVetoOperator {
-        require(_governance != address(0), "VoteToken: zero address");
-
-        govAddress = _governance;
-    }
-
-    /**
-    * @dev get the governance contract address
-    * @param gov governance contract address
-    */
-    function getGovernanceContract() external view returns(address gov) {
-        gov = govAddress;
-    }
-
-    /**
-    * @dev set the stakingDGOV contract address
-    * @param _stakingDGOV stakingDGOV contract address
-    */
-    function setStakingDGOVContract(
-        address _stakingDGOV
-    ) external override onlyVetoOperator {
-        require(_stakingDGOV != address(0), "VoteToken: zero address");
-
-        stakingDGOV = _stakingDGOV;
-    }
-
-    /**
-    * @dev get the stakingDGOV contract address
-    * @param _stakingDGOV stakingDGOV contract address
-    */
-    function getStakingDGOVContract() external view returns(address _stakingDGOV) {
-        _stakingDGOV = stakingDGOV;
-    }
-
-    /**
-    * @dev set the proposalLogic contract address
-    * @param _proposalLogic proposalLogic contract address
-    */
-    function setproposalLogicContract(
-        address _proposalLogic
-    ) external onlyVetoOperator {
-        proposalLogic = _proposalLogic;
     }
 }

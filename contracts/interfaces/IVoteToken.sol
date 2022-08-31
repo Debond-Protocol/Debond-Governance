@@ -32,27 +32,6 @@ interface IVoteToken {
     ) external;
 
     /**
-    * @dev set the governance contract address
-    */
-    function setGovernanceContract(
-        address _governance
-    ) external;
-
-    /**
-    * @dev set the stakingDGOV contract address
-    */
-    function setStakingDGOVContract(
-        address _stakingSGOV
-    ) external;
-
-    /**
-    * @dev set the proposalLogic contract address
-    */
-    function setproposalLogicContract(
-        address _proposalLogic
-    ) external;
-
-    /**
     * @dev transfer _amount vote tokens to `_to`
     */
     function transfer(

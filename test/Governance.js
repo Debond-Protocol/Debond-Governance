@@ -71,11 +71,11 @@ contract("Governance", async (accounts) => {
 
     beforeEach(async () => {
         migrator = await GovernanceMigrator.new();
-        vote = await VoteToken.new("Debond Vote Token", "DVT", operator);
         storage = await GovStorage.new(debondTeam, operator);
         exec = await Executable.new(storage.address);
         oracle = await Oracle.new(exec.address);
         gov = await Governance.new(storage.address);
+        vote = await VoteToken.new("Debond Vote Token", "DVT", storage.address);
         exStorage = await ExchangeStorage.new(gov.address, exec.address);
         exchange = await Exchange.new(exStorage.address, gov.address, exec.address);
         bondManager = await BankBondManager.new(gov.address, exec.address, oracle.address);
@@ -115,15 +115,6 @@ contract("Governance", async (accounts) => {
             operator,
             {from: operator}
         );
-
-        // set the stakingDGOV contract address into Vote Token
-        await vote.setStakingDGOVContract(stak.address);
-
-        // set the governance contract address in voteToken
-        await vote.setGovernanceContract(gov.address);
-
-        // set the proposal logic contract address in voteToken
-        await vote.setproposalLogicContract(logic.address);
 
         // set the apm address in Bank
         await bank.setAPMAddress(apm.address);
