@@ -14,7 +14,6 @@ const APMTest = artifacts.require("APMTest");
 const VoteToken = artifacts.require("VoteToken");
 const StakingDGOV = artifacts.require("StakingDGOV");
 const Governance = artifacts.require("Governance");
-const VoteCounting = artifacts.require("VoteCounting");
 const Executable = artifacts.require("Executable");
 const GovStorage = artifacts.require("GovStorage");
 const ProposalLogic = artifacts.require("ProposalLogic");
@@ -35,7 +34,6 @@ contract("Governance", async (accounts) => {
     let stak;
     let vote;
     let exec;
-    let count;
     let logic;
     let erc3475;
     let storage;
@@ -72,13 +70,12 @@ contract("Governance", async (accounts) => {
     }
 
     beforeEach(async () => {
-        count = await VoteCounting.new();
         migrator = await GovernanceMigrator.new();
         vote = await VoteToken.new("Debond Vote Token", "DVT", operator);
         storage = await GovStorage.new(debondTeam, operator);
         exec = await Executable.new(storage.address);
         oracle = await Oracle.new(exec.address);
-        gov = await Governance.new(storage.address, count.address);
+        gov = await Governance.new(storage.address);
         exStorage = await ExchangeStorage.new(gov.address, exec.address);
         exchange = await Exchange.new(exStorage.address, gov.address, exec.address);
         bondManager = await BankBondManager.new(gov.address, exec.address, oracle.address);
@@ -103,7 +100,6 @@ contract("Governance", async (accounts) => {
             oracle.address,
             stak.address,
             vote.address,
-            count.address,
             {from: operator}
         );
 
@@ -128,12 +124,6 @@ contract("Governance", async (accounts) => {
 
         // set the proposal logic contract address in voteToken
         await vote.setproposalLogicContract(logic.address);
-
-        // set GovStorage contract address in voteCounting
-        await count.setGovStorageContract(storage.address);
-
-        // set the proposal logic address into voteCounting
-        await count.setProposalLogicContract(logic.address);
 
         // set the apm address in Bank
         await bank.setAPMAddress(apm.address);
@@ -232,7 +222,7 @@ contract("Governance", async (accounts) => {
         let balBefore = await dgov.balanceOf(user1);
         let balContractBefore = await dgov.balanceOf(stak.address);
 
-        await wait(3000);
+        await wait(5000);
         await nextTime.increment();
 
         let unstake = await gov.unstakeDGOV(1, { from: user1 });
@@ -1514,11 +1504,11 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user3, 0, amountVoteToken, 1, { from: user3 });
         await gov.vote(event.class, event.nonce, user4, 0, amountVoteToken, 1, { from: user4 });
 
-        let v1 = await count.hasVoted(event.class, event.nonce, user1);
-        let v6 = await count.hasVoted(event.class, event.nonce, user6);
-        let v4 = await count.hasVoted(event.class, event.nonce, user4);
-        let v2 = await count.hasVoted(event.class, event.nonce, user2);
-        let v3 = await count.hasVoted(event.class, event.nonce, user3);
+        let v1 = await logic.hasVoted(event.class, event.nonce, user1);
+        let v6 = await logic.hasVoted(event.class, event.nonce, user6);
+        let v4 = await logic.hasVoted(event.class, event.nonce, user4);
+        let v2 = await logic.hasVoted(event.class, event.nonce, user2);
+        let v3 = await logic.hasVoted(event.class, event.nonce, user3);
 
         expect(v1).to.be.false;
         expect(v6).to.be.true;

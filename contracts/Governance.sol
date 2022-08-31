@@ -24,7 +24,6 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IVoteToken.sol";
 import "./interfaces/IExecutable.sol";
-import "./interfaces/IVoteCounting.sol";
 import "./interfaces/IProposalLogic.sol";
 import "./interfaces/IGovSharedStorage.sol";
 import "./utils/GovernanceMigrator.sol";
@@ -37,7 +36,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
     using SafeERC20 for IERC20;
 
     address govStorageAddress;
-    address voteCountingAddress;
 
     modifier onlyDBITorDGOV(address _tokenAddress) {
         require(
@@ -82,11 +80,9 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
     }
 
     constructor(
-        address _govStorageAddress,
-        address _voteCountingAddress
+        address _govStorageAddress
     ) {
         govStorageAddress = _govStorageAddress;
-        voteCountingAddress = _voteCountingAddress;
     }
 
     /**
@@ -242,8 +238,8 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             "Gov: vote not active"
         );
 
-        IVoteCounting(
-            voteCountingAddress
+        IProposalLogic(
+            IGovStorage(govStorageAddress).getProposalLogicContract()
         ).setVetoApproval(_class, _nonce, _veto, vetoAddress);
 
         emit vetoUsed(_class, _nonce);

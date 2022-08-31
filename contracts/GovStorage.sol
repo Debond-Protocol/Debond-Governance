@@ -19,7 +19,7 @@ import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
 import "@debond-protocol/debond-exchange-contracts/interfaces/IExchangeStorage.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IGovStorage.sol";
-import "./interfaces/IVoteCounting.sol";
+import "./interfaces/IProposalLogic.sol";
 
 contract GovStorage is IGovStorage {
     struct AllocatedToken {
@@ -52,7 +52,6 @@ contract GovStorage is IGovStorage {
     address public voteTokenContract;
     address public proposalLogicContract;
     address public executable;
-    address public voteCountingContract;
     address public airdropContract;
     address public governanceOwnableContract;
     address public oracleContract;
@@ -126,13 +125,6 @@ contract GovStorage is IGovStorage {
         _;
     }
 
-    modifier onlyVoteCounting {
-        require(
-            msg.sender == getVoteCountingAddress()
-        );
-        _;
-    }
-
     modifier onlyDebondContracts() {
         require(
             msg.sender == getGovernanceAddress() ||
@@ -188,8 +180,7 @@ contract GovStorage is IGovStorage {
         address _bankBondManagerContract,
         address _oracleContract,
         address _stakingContract,
-        address _voteContract,
-        address _voteCounting
+        address _voteContract
     ) external onlyVetoOperator {
         governance = _governance;
         dgovContract = _dgovContract;
@@ -199,7 +190,6 @@ contract GovStorage is IGovStorage {
         oracleContract = _oracleContract;
         stakingContract = _stakingContract;
         voteTokenContract = _voteContract;
-        voteCountingContract = _voteCounting;
     }
 
     function setUpGoup2(
@@ -350,10 +340,6 @@ contract GovStorage is IGovStorage {
         return oracleContract;
     }
 
-    function getVoteCountingAddress() public view returns(address) {
-        return voteCountingContract;
-    }
-
     function getGovernanceOwnableAddress() public view returns(address) {
         return governanceOwnableContract;
     }
@@ -479,13 +465,13 @@ contract GovStorage is IGovStorage {
             return ProposalStatus.Active;
         }
 
-        if(!IVoteCounting(voteCountingContract).voteSucceeded(_class, _nonce)) {
+        if(!IProposalLogic(proposalLogicContract).voteSucceeded(_class, _nonce)) {
             return ProposalStatus.Defeated;
         } else {
-            if(!IVoteCounting(voteCountingContract).quorumReached(_class, _nonce)) {
+            if(!IProposalLogic(proposalLogicContract).quorumReached(_class, _nonce)) {
                 return ProposalStatus.Defeated;
             } else {
-                if(IVoteCounting(voteCountingContract).vetoed(_class, _nonce)) {
+                if(IProposalLogic(proposalLogicContract).vetoed(_class, _nonce)) {
                     return ProposalStatus.Defeated;
                 } else {
                     return ProposalStatus.Succeeded;

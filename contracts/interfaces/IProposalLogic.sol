@@ -75,4 +75,79 @@ interface IProposalLogic is IGovSharedStorage {
         uint256 end,
         ProposalApproval approval
     );
+
+    
+
+
+    function hasVoted(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external view returns(bool voted);
+
+    function numberOfVoteTokens(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external view returns(uint256 amountTokens);
+
+    function getProposalVotes(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(
+        uint256 forVotes,
+        uint256 againstVotes,
+        uint256 abstainVotes
+    );
+
+    function getUserInfo(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external view returns(
+        bool,
+        bool,
+        uint256,
+        uint256
+    );
+
+    function hasBeenRewarded(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external view returns(bool);
+
+    function getVoteWeight(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external view returns(uint256);
+
+    function quorumReached(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(bool reached);
+
+    function voteSucceeded(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(bool succeeded);
+
+    function getVotingDay(
+        uint128 _class,
+        uint128 _nonce,
+        address _voter
+    ) external view returns(uint256);
+
+    function vetoed(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(bool);
+
+    function setVetoApproval(
+        uint128 _class,
+        uint128 _nonce,
+        bool _vetoed,
+        address _vetoOperator
+    ) external;
 }

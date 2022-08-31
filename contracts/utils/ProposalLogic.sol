@@ -19,12 +19,12 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "../interfaces/IGovStorage.sol";
 import "../interfaces/IVoteToken.sol";
 import "../interfaces/IStaking.sol";
-import "../interfaces/IVoteCounting.sol";
 import "../interfaces/IProposalLogic.sol";
 import "../interfaces/IGovSharedStorage.sol";
 
 contract ProposalLogic is IProposalLogic {
     mapping(uint128 => uint256) private _votingPeriod;
+    mapping(uint128 => mapping(uint128 => ProposalVote)) internal _proposalVotes;
 
     event votingDelaySet(uint256 oldDelay, uint256 newDelay);
     event votingPeriodSet(uint256 oldPeriod, uint256 newPeriod);
@@ -263,9 +263,7 @@ contract ProposalLogic is IProposalLogic {
 
         if(_tokenOwner != proposer) {
             require(
-                IVoteCounting(
-                    IGovStorage(govStorageAddress).getVoteCountingAddress()
-                ).hasVoted(_class, _nonce, _tokenOwner),
+                hasVoted(_class, _nonce, _tokenOwner),
                 "Gov: you haven't voted"
             );          
         }
@@ -285,14 +283,11 @@ contract ProposalLogic is IProposalLogic {
         address _tokenOwner
     ) external onlyGov returns(uint256 reward) {
         require(
-            !IVoteCounting(
-                IGovStorage(govStorageAddress).getVoteCountingAddress()
-            ).hasBeenRewarded(_class, _nonce, _tokenOwner),
+            !hasBeenRewarded(_class, _nonce, _tokenOwner),
             "Gov: already rewarded"
         );
-        IVoteCounting(
-            IGovStorage(govStorageAddress).getVoteCountingAddress()
-        ).setUserHasBeenRewarded(_class, _nonce, _tokenOwner);
+        
+        _setUserHasBeenRewarded(_class, _nonce, _tokenOwner);
 
         uint256 _reward;
         
@@ -300,9 +295,7 @@ contract ProposalLogic is IProposalLogic {
             _reward += (1 ether * 1 ether) / IGovStorage(govStorageAddress).getTotalVoteTokenPerDay(_class, _nonce, i);
         }
 
-        reward = _reward * IVoteCounting(
-            IGovStorage(govStorageAddress).getVoteCountingAddress()
-        ).getVoteWeight(_class, _nonce, _tokenOwner) * 
+        reward = _reward * getVoteWeight(_class, _nonce, _tokenOwner) * 
                   IGovStorage(govStorageAddress).dbitDistributedPerDay() / (1 ether * 1 ether);
     }
 
@@ -325,17 +318,8 @@ contract ProposalLogic is IProposalLogic {
             _class, _nonce, day, _amountVoteTokens
         );
         
-        IVoteCounting(
-            IGovStorage(govStorageAddress).getVoteCountingAddress()
-        ).setVotingDay(
-            _class, _nonce, _voter, day
-        );
-
-        IVoteCounting(
-            IGovStorage(govStorageAddress).getVoteCountingAddress()
-        ).countVote(
-            _class, _nonce, _voter, _userVote, _amountVoteTokens
-        );
+        _setVotingDay(_class, _nonce, _voter, day);
+        _countVote(_class, _nonce, _voter, _userVote, _amountVoteTokens);
     }
 
     /**
@@ -407,5 +391,200 @@ contract ProposalLogic is IProposalLogic {
     function _setPeriod(uint128 _class, uint256 _period) private {
         emit periodSet(_class, _period);
         _votingPeriod[_class] = _period;
+    }
+
+
+
+
+    function hasVoted(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(bool voted) {
+        voted = _proposalVotes[_class][_nonce].user[_account].hasVoted;
+    }
+
+    function numberOfVoteTokens(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(uint256 amountTokens) {
+        amountTokens = _proposalVotes[_class][_nonce].user[_account].weight;
+    }
+
+    function getProposalVotes(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(uint256 forVotes, uint256 againstVotes, uint256 abstainVotes) {
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+
+        (forVotes, againstVotes, abstainVotes) = 
+        (
+            proposalVote.forVotes,
+            proposalVote.againstVotes,
+            proposalVote.abstainVotes
+        );
+    }
+
+    function getUserInfo(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(
+        bool,
+        bool,
+        uint256,
+        uint256
+    ) {
+        return (
+            _proposalVotes[_class][_nonce].user[_account].hasVoted,
+            _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded,
+            _proposalVotes[_class][_nonce].user[_account].weight,
+            _proposalVotes[_class][_nonce].user[_account].votingDay
+        );
+    }
+
+    function _setUserHasBeenRewarded(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) private {
+        require(_account != address(0), "VoteCounting: zero address");
+        require(
+            _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded == false,
+            "VoteCounting: already rewarded"
+        );
+
+        address proposer = IGovStorage(
+            govStorageAddress
+        ).getProposalProposer(_class, _nonce);
+
+        if(_account != proposer) {
+            require(
+                _proposalVotes[_class][_nonce].user[_account].hasVoted == true,
+                "VoteCounting: you didn't vote"
+            );        
+        }
+
+        _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded = true;
+    }
+
+    function hasBeenRewarded(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(bool) {
+        return _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded;
+    }
+
+    function getVoteWeight(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(uint256) {
+        return _proposalVotes[_class][_nonce].user[_account].weight;
+    }
+
+    function quorumReached(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(bool reached) {
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+
+        reached =  proposalVote.forVotes + proposalVote.abstainVotes >= _quorum(_class, _nonce);
+    }
+
+    function voteSucceeded(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(bool succeeded) {
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+
+        succeeded = proposalVote.forVotes > proposalVote.againstVotes;
+    }
+
+    function _setVotingDay(
+        uint128 _class,
+        uint128 _nonce,
+        address _voter,
+        uint256 _day
+    ) private {
+        require(_voter != address(0), "VoteCounting: zero address");
+
+        _proposalVotes[_class][_nonce].user[_voter].votingDay = _day;
+    }
+
+    function getVotingDay(
+        uint128 _class,
+        uint128 _nonce,
+        address _voter
+    ) public view returns(uint256) {
+        return _proposalVotes[_class][_nonce].user[_voter].votingDay;
+    }
+
+    function vetoed(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(bool) {
+        return _proposalVotes[_class][_nonce].vetoed;
+    }
+
+    function setVetoApproval(
+        uint128 _class,
+        uint128 _nonce,
+        bool _vetoed,
+        address _vetoOperator
+    ) public onlyGov {
+        require(_vetoOperator != address(0), "VoteCounting: zero address");
+        require(
+            _vetoOperator == IGovStorage(govStorageAddress).getVetoOperator(),
+            "VoteCounting: permission denied"
+        );
+        
+        _proposalVotes[_class][_nonce].vetoed = _vetoed;
+    }
+
+    function _countVote(
+        uint128 _class,
+        uint128 _nonce,
+        address _account,
+        uint8 _vote,
+        uint256 _weight
+    ) private {
+        require(_account != address(0), "VoteCounting: zero address");
+
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+        require(
+            !proposalVote.user[_account].hasVoted,
+            "VoteCounting: already voted"
+        );
+
+        proposalVote.user[_account].hasVoted = true;
+        proposalVote.user[_account].weight = _weight;
+
+        if (_vote == uint8(VoteType.For)) {
+            proposalVote.forVotes += _weight;
+        } else if (_vote == uint8(VoteType.Against)) {
+            proposalVote.againstVotes += _weight;
+        } else if (_vote == uint8(VoteType.Abstain)) {
+            proposalVote.abstainVotes += _weight;
+        } else {
+            revert("VoteCounting: invalid vote");
+        }
+    }
+
+    function _quorum(
+        uint128 _class,
+        uint128 _nonce
+    ) internal view returns(uint256 proposalQuorum) {
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+
+        uint256 minApproval = IGovStorage(govStorageAddress).getClassQuorum(_class);
+
+        proposalQuorum =  minApproval * (
+            proposalVote.forVotes +
+            proposalVote.againstVotes +
+            proposalVote.abstainVotes
+        ) / 100;
     }
 }
