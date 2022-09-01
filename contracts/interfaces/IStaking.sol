@@ -17,9 +17,8 @@ pragma solidity ^0.8.0;
 interface IStaking {
     function stakeDgovToken(
         address _staker,
-        uint256 _amount,
-        uint256 _duration
-    ) external returns(uint256 duration);
+        uint256 _amount
+    ) external;
 
     function unstakeDgovToken(
         address _staker,

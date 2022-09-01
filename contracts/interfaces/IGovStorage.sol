@@ -66,6 +66,10 @@ interface IGovStorage is IGovSharedStorage {
         uint128 _class
     ) external view returns(uint256);
 
+    function getStakedDGOV() external view returns(StackedDGOV[] memory);
+    function getVoteTokenAllocations() external view returns(VoteTokenAllocation[] memory);
+    function getVoteTokenAllocAtIndex(uint256 _index) external view returns(VoteTokenAllocation memory);
+
     function hasVoted(
         uint128 _class,
         uint128 _nonce,
@@ -209,6 +213,12 @@ interface IGovStorage is IGovSharedStorage {
         address _token,
         address _to,
         uint256 _amount
+    ) external;
+
+    function setStackedDGOV(
+        address _staker,
+        uint256 _durationIndex,
+        uint256 _amountDGOV
     ) external;
 
     function claimFundForProposal(

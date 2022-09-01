@@ -103,39 +103,14 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
     * @dev stack dGoV tokens
     * @param _staker the address of the staker
     * @param _amount the amount of dGoV tokens to stak
-    * @param _durationIndex index of the staking duration in the `voteTokenAllocation` mapping
     */
     function stakeDgovToken(
         address _staker,
-        uint256 _amount,
-        uint256 _durationIndex
-    ) external override onlyGov returns(uint256 duration) {
-        require(_staker != address(0), "StakingDGOV: zero address");
-
-        uint256 stakerBalance = IERC20(
-            IGovStorage(govStorageAddress).getDGOVAddress()
-        ).balanceOf(_staker);
-        require(_amount <= stakerBalance, "Debond: not enough dGov");
-
-        uint256 counter = stakingCounter[_staker];
-
-        stackedDGOV[_staker][counter + 1].startTime = block.timestamp;
-        stackedDGOV[_staker][counter + 1].lastInterestWithdrawTime = block.timestamp;
-        stackedDGOV[_staker][counter + 1].duration = voteTokenAllocation[_durationIndex].duration;
-        stackedDGOV[_staker][counter + 1].amountDGOV += _amount;
-        stackedDGOV[_staker][counter + 1].amountVote += _amount * voteTokenAllocation[_durationIndex].allocation / 10**16;
-        stakingCounter[_staker] = counter + 1;
-
-        _totalStackedDGOV.push(stackedDGOV[_staker][counter + 1]);
-
+        uint256 _amount
+    ) external override onlyGov {
         IERC20(
             IGovStorage(govStorageAddress).getDGOVAddress()
         ).transferFrom(_staker, address(this), _amount);
-        IVoteToken(
-            IGovStorage(govStorageAddress).getVoteTokenContract()
-        ).mintVoteToken(_staker, _amount * voteTokenAllocation[_durationIndex].allocation / 10**16);
-
-        duration = voteTokenAllocation[_durationIndex].duration;
     }
 
     /**
@@ -166,14 +141,6 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
         IERC20(
             IGovStorage(govStorageAddress).getDGOVAddress()
         ).transfer(_staker, amountDGOV);
-    }
-
-    function getStakedDGOV() public view returns(StackedDGOV[] memory) {
-        return _totalStackedDGOV;
-    }
-
-    function getVoteTokenAllocations() public view returns(VoteTokenAllocation[] memory) {
-        return _voteTokenAllocation;
     }
 
     /**

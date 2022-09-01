@@ -185,15 +185,9 @@ contract("Governance", async (accounts) => {
         await gov.stakeDGOV(amountToStake, 0, { from: operator });
     });
 
-    it("Stake DGOV tokens", async () => {
+    it.only("Stake DGOV tokens", async () => {
         let balanceUser1AfterStake = await dgov.balanceOf(user1);
         let balanceStakingContractAfterStake = await dgov.balanceOf(stak.address);
-
-        let staked = await stak.getStakedDGOV();
-        let alloc = await stak.getVoteTokenAllocations();
-
-        console.log(staked);
-        console.log(alloc);
 
         expect(
             balanceUser1AfterStake.toString()

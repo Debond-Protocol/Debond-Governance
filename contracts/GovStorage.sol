@@ -81,6 +81,13 @@ contract GovStorage is IGovStorage {
     // key1: proposal class, key2: proposal nonce, key3: voting day (1, 2, 3, etc.)
     mapping(uint128 => mapping(uint128 => mapping(uint256 => uint256))) public totalVoteTokenPerDay;
 
+    mapping(address => mapping(uint256 => StackedDGOV)) stackedDGOV;
+    mapping(address => uint256) public stakingCounter;
+    mapping(uint256 => VoteTokenAllocation) private voteTokenAllocation;
+
+    StackedDGOV[] private _totalStackedDGOV;
+    VoteTokenAllocation[] private _voteTokenAllocation;
+
     modifier onlyVetoOperator {
         require(msg.sender == vetoOperator, "Gov: Need rights");
         _;
@@ -121,6 +128,13 @@ contract GovStorage is IGovStorage {
     modifier onlyProposalLogic {
         require(
             msg.sender == getProposalLogicContract()
+        );
+        _;
+    }
+
+    modifier onlyStakingContract {
+        require(
+            msg.sender == getStakingContract()
         );
         _;
     }
@@ -170,6 +184,34 @@ contract GovStorage is IGovStorage {
         numberOfVotingDays[1] = 1;
         numberOfVotingDays[2] = 1;
         minimumStakingDuration = 10;
+
+        // for tests only
+        voteTokenAllocation[0].duration = 4;
+        voteTokenAllocation[0].allocation = 3000000000000000;
+
+        //voteTokenAllocation[0].duration = 4 weeks;
+        //voteTokenAllocation[0].allocation = 3000000000000000;
+        _voteTokenAllocation.push(voteTokenAllocation[0]);
+
+        voteTokenAllocation[1].duration = 12 weeks;
+        voteTokenAllocation[1].allocation = 3653793637913968;
+        _voteTokenAllocation.push(voteTokenAllocation[1]);
+
+        voteTokenAllocation[2].duration = 24 weeks;
+        voteTokenAllocation[2].allocation = 4578397467645146;
+        _voteTokenAllocation.push(voteTokenAllocation[2]);
+
+        voteTokenAllocation[3].duration = 48 weeks;
+        voteTokenAllocation[3].allocation = 5885984743473081;
+        _voteTokenAllocation.push(voteTokenAllocation[3]);
+
+        voteTokenAllocation[4].duration = 96 weeks;
+        voteTokenAllocation[4].allocation = 7735192402935436;
+        _voteTokenAllocation.push(voteTokenAllocation[4]);
+
+        voteTokenAllocation[5].duration = 144 weeks;
+        voteTokenAllocation[5].allocation = 10000000000000000;
+        _voteTokenAllocation.push(voteTokenAllocation[5]);
     }
 
     function setUpGoup1(
@@ -401,9 +443,20 @@ contract GovStorage is IGovStorage {
         return proposal[_class][_nonce].proposer;
     }
 
-
     function getClassQuorum(uint128 _class) public view returns(uint256) {
         return _proposalQuorum[_class];
+    }
+
+    function getStakedDGOV() public view returns(StackedDGOV[] memory) {
+        return _totalStackedDGOV;
+    }
+
+    function getVoteTokenAllocations() public view returns(VoteTokenAllocation[] memory) {
+        return _voteTokenAllocation;
+    }
+
+    function getVoteTokenAllocAtIndex(uint256 _index) public view returns(VoteTokenAllocation memory) {
+        return voteTokenAllocation[_index];
     }
 
     function hasVoted(
@@ -412,6 +465,22 @@ contract GovStorage is IGovStorage {
         address _account
     ) public view returns(bool voted) {
         return IProposalLogic(proposalLogicContract).hasVoted(_class, _nonce, _account);
+    }
+
+    function setStackedDGOV(
+        address _staker,
+        uint256 _durationIndex,
+        uint256 _amountDGOV
+    ) external onlyGov {
+        uint256 counter = stakingCounter[_staker];
+        stackedDGOV[_staker][counter + 1].startTime = block.timestamp;
+        stackedDGOV[_staker][counter + 1].lastInterestWithdrawTime = block.timestamp;
+        stackedDGOV[_staker][counter + 1].duration = voteTokenAllocation[_durationIndex].duration;
+        stackedDGOV[_staker][counter + 1].amountDGOV += _amountDGOV;
+        stackedDGOV[_staker][counter + 1].amountVote += _amountDGOV * voteTokenAllocation[_durationIndex].allocation / 10**16;
+        stakingCounter[_staker] = counter + 1;
+
+        _totalStackedDGOV.push(stackedDGOV[_staker][counter + 1]);
     }
 
     /**
