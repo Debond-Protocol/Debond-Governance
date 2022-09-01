@@ -35,40 +35,40 @@ contract GovStorage is IGovStorage {
 
     mapping(uint128 => uint256) numberOfVotingDays;
 
-    bool public initialized;
+    bool private initialized;
 
-    address public debondTeam;
-    address public governance;
-    address public exchangeContract;
-    address public exchangeStorageContract;
-    address public erc3475Contract;
-    address public bankContract;
-    address public bankDataContract;
-    address public dgovContract;
-    address public dbitContract;
-    address public apmContract;
-    address public bankBondManagerContract;
-    address public stakingContract;
-    address public voteTokenContract;
-    address public proposalLogicContract;
-    address public executable;
-    address public airdropContract;
-    address public governanceOwnableContract;
-    address public oracleContract;
-    address public governanceMigrator;
+    address private debondTeam;
+    address private governance;
+    address private exchangeContract;
+    address private exchangeStorageContract;
+    address private erc3475Contract;
+    address private bankContract;
+    address private bankDataContract;
+    address private dgovContract;
+    address private dbitContract;
+    address private apmContract;
+    address private bankBondManagerContract;
+    address private stakingContract;
+    address private voteTokenContract;
+    address private proposalLogicContract;
+    address private executable;
+    address private airdropContract;
+    address private governanceOwnableContract;
+    address private oracleContract;
+    address private governanceMigrator;
 
-    address public vetoOperator;
+    address private vetoOperator;
 
-    uint256 public dbitBudgetPPM;
-    uint256 public dgovBudgetPPM;
-    uint256 public dbitAllocationDistibutedPPM;
-    uint256 public dgovAllocationDistibutedPPM;
-    uint256 public dbitTotalAllocationDistributed;
-    uint256 public dgovTotalAllocationDistributed;
+    uint256 private dbitBudgetPPM;
+    uint256 private dgovBudgetPPM;
+    uint256 private dbitAllocationDistibutedPPM;
+    uint256 private dgovAllocationDistibutedPPM;
+    uint256 private dbitTotalAllocationDistributed;
+    uint256 private dgovTotalAllocationDistributed;
 
-    uint256 public benchmarkInterestRate;
+    uint256 private benchmarkInterestRate;
     uint256 private _proposalThreshold;
-    uint256 public minimumStakingDuration;
+    uint256 private minimumStakingDuration;
     uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
 
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;

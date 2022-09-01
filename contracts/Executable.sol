@@ -67,7 +67,7 @@ contract Executable is IExecutable, IGovSharedStorage {
         return true;
     }
 
-    function updateProposalThreshold(
+    function updateProposalThresholdForProposer(
         uint128 _proposalClass,
         uint256 _newProposalThreshold
     ) external onlyGov returns(bool) {

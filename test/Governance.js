@@ -189,6 +189,12 @@ contract("Governance", async (accounts) => {
         let balanceUser1AfterStake = await dgov.balanceOf(user1);
         let balanceStakingContractAfterStake = await dgov.balanceOf(stak.address);
 
+        let staked = await stak.getStakedDGOV();
+        let alloc = await stak.getVoteTokenAllocations();
+
+        console.log(staked);
+        console.log(alloc);
+
         expect(
             balanceUser1AfterStake.toString()
         ).to.equal(
@@ -1077,7 +1083,7 @@ contract("Governance", async (accounts) => {
         let _class = 0;
 
         let title = "Propsal-1: Update the proposal threshold";
-        let callData = await exec.contract.methods.updateProposalThreshold(
+        let callData = await exec.contract.methods.updateProposalThresholdForProposer(
             _class,
             newTherehold
         ).encodeABI();
