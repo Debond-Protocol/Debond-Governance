@@ -244,7 +244,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     function burnVoteToken(
         address _user,
         uint256 _amount
-    ) external override onlyStakingContract nonReentrant {
+    ) external override onlyGov nonReentrant {
         _burn(_user, _amount);
         _availableBalance[_user] = balanceOf(_user);
     }

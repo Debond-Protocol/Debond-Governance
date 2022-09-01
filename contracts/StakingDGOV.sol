@@ -98,49 +98,16 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
         voteTokenAllocation[5].allocation = 10000000000000000;
         _voteTokenAllocation.push(voteTokenAllocation[5]);
     }
-    
-    /**
-    * @dev stack dGoV tokens
-    * @param _staker the address of the staker
-    * @param _amount the amount of dGoV tokens to stak
-    */
-    function stakeDgovToken(
+
+    function transferDGOV(
         address _staker,
-        uint256 _amount
+        uint256 _amountDGOV
     ) external override onlyGov {
-        IERC20(
-            IGovStorage(govStorageAddress).getDGOVAddress()
-        ).transferFrom(_staker, address(this), _amount);
-    }
-
-    /**
-    * @dev unstack dGoV tokens
-    * @param _staker the address of the staker
-    * @param _stakingCounter the staking rank
-    */
-    function unstakeDgovToken(
-        address _staker,
-        uint256 _stakingCounter
-    ) external override onlyGov nonReentrant returns(uint256 amountDGOV, uint256 amountVote) {
-        StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
-        require(_staked.amountDGOV > 0, "Staking: no dGoV staked");
-
         require(
-            block.timestamp >= _staked.startTime + _staked.duration,
-            "Staking: still staking"
+            IERC20(
+                IGovStorage(govStorageAddress).getDGOVAddress()
+            ).transfer(_staker, _amountDGOV)
         );
-
-        amountDGOV = _staked.amountDGOV;
-        amountVote = _staked.amountVote;
-        _staked.amountDGOV = 0;
-
-        // burn vote tokens and transfer back dGoV to the staker
-        IVoteToken(
-            IGovStorage(govStorageAddress).getVoteTokenContract()
-        ).burnVoteToken(_staker, amountVote);
-        IERC20(
-            IGovStorage(govStorageAddress).getDGOVAddress()
-        ).transfer(_staker, amountDGOV);
     }
 
     /**
@@ -166,21 +133,41 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
 
     /**
     * @dev calculate the interest earned by DGOV staker
-    * @param _staker DGOV staker
-    * @param _stakingCounter the staking rank
-    * @param _interestRate interest rate (in ether unit: 1E+18)
+    * @param _amount amount of staked DGOV
+    * @param _lastInterestWithdrawTime last withdraw time
     */
     function calculateInterestEarned(
-        address _staker,
-        uint256 _stakingCounter,
-        uint256 _interestRate
-    ) external view returns(uint256 interest, uint256 totalDuration) {
-        StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
+        uint256 _amount,
+        uint256 _lastInterestWithdrawTime
+    ) external view returns(uint256 interest) {
+        uint256 interestRate = stakingInterestRate();
 
-        uint256 duration = block.timestamp - _staked.lastInterestWithdrawTime;
-        totalDuration = block.timestamp - _staked.startTime;
+        uint256 duration = block.timestamp - _lastInterestWithdrawTime;
 
-        interest = (_interestRate * duration) / (100 * NUMBER_OF_SECONDS_IN_YEAR);
+        // DGOV balance of the staking contract
+        uint256 stakingSupply = IERC20(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).balanceOf(address(this));
+
+        // (amountStaked / balanceOf(stakingContract)) * interestRate
+        interest = (_amount * interestRate * duration) / (100 * NUMBER_OF_SECONDS_IN_YEAR * stakingSupply);
+    }
+
+    function votingInterestRate() public view returns(uint256) {
+        uint256 cdpPrice = IGovStorage(govStorageAddress).cdpDGOVToDBIT();
+        uint256 benchmarkInterestRate = IGovStorage(govStorageAddress).getBenchmarkIR();
+        
+        return benchmarkInterestRate * cdpPrice * 34 / 100;
+    }
+
+    /**
+    * @dev return the daily interest rate for staking DGOV (in percent)
+    */
+    function stakingInterestRate() public view returns(uint256) {
+        uint256 cdpPrice = IGovStorage(govStorageAddress).cdpDGOVToDBIT();
+        uint256 benchmarkInterestRate = IGovStorage(govStorageAddress).getBenchmarkIR();
+        
+        return benchmarkInterestRate * cdpPrice * 66 / 100;
     }
 
     /**

@@ -157,12 +157,12 @@ contract("Governance", async (accounts) => {
         await dgov.transfer(user4, amountToStake, { from: debondTeam });
         await dgov.transfer(user5, amountToStake, { from: debondTeam });
         await dgov.transfer(operator, amountToStake, { from: debondTeam });
-        await dgov.approve(stak.address, amountToStake, { from: user1 });
-        await dgov.approve(stak.address, amountToStake, { from: user2 });
-        await dgov.approve(stak.address, amountToStake, { from: user3 });
-        await dgov.approve(stak.address, amountToStake, { from: user4});
-        await dgov.approve(stak.address, amountToStake, { from: user5 });
-        await dgov.approve(stak.address, amountToStake, { from: operator });
+        await dgov.approve(gov.address, amountToStake, { from: user1 });
+        await dgov.approve(gov.address, amountToStake, { from: user2 });
+        await dgov.approve(gov.address, amountToStake, { from: user3 });
+        await dgov.approve(gov.address, amountToStake, { from: user4});
+        await dgov.approve(gov.address, amountToStake, { from: user5 });
+        await dgov.approve(gov.address, amountToStake, { from: operator });
         await dgov.approve(user1, amountToStake, { from: user1 });
         await dgov.approve(user2, amountToStake, { from: user2 });
         await dgov.approve(user3, amountToStake, { from: user3 });
@@ -185,7 +185,7 @@ contract("Governance", async (accounts) => {
         await gov.stakeDGOV(amountToStake, 0, { from: operator });
     });
 
-    it.only("Stake DGOV tokens", async () => {
+    it("Stake DGOV tokens", async () => {
         let balanceUser1AfterStake = await dgov.balanceOf(user1);
         let balanceStakingContractAfterStake = await dgov.balanceOf(stak.address);
 
@@ -209,7 +209,7 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it("Unstake DGOV tokens", async () => {
+    it.only("Unstake DGOV tokens", async () => {
         let balBefore = await dgov.balanceOf(user1);
         let balContractBefore = await dgov.balanceOf(stak.address);
 
@@ -249,7 +249,7 @@ contract("Governance", async (accounts) => {
 
         await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToStake, { from: operator });
         await dgov.transfer(user6, amountToStake, { from: debondTeam });
-        await dgov.approve(stak.address, amountToStake, { from: user6 });
+        await dgov.approve(gov.address, amountToStake, { from: user6 });
         await dgov.approve(user6, amountToStake, { from: user6 });
 
         await gov.stakeDGOV(amountToStake, 0, { from: user6 });
@@ -281,7 +281,7 @@ contract("Governance", async (accounts) => {
 
         await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToStake, { from: operator });
         await dgov.transfer(user6, amountToStake, { from: debondTeam });
-        await dgov.approve(stak.address, amountToStake, { from: user6 });
+        await dgov.approve(gov.address, amountToStake, { from: user6 });
         await dgov.approve(user6, amountToStake, { from: user6 });
 
         await gov.stakeDGOV(amountToStake, 0, { from: user6 });
@@ -313,7 +313,7 @@ contract("Governance", async (accounts) => {
 
         await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToStake, { from: operator });
         await dgov.transfer(user7, amountToStake, { from: debondTeam });
-        await dgov.approve(stak.address, amountToStake, { from: user7 });
+        await dgov.approve(gov.address, amountToStake, { from: user7 });
         await dgov.approve(user7, amountToStake, { from: user7 });
 
         await gov.stakeDGOV(amountToStake, 0, { from: user7 });

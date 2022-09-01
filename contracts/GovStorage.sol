@@ -451,6 +451,13 @@ contract GovStorage is IGovStorage {
         return _totalStackedDGOV;
     }
 
+    function getUserStakedDGOVInfo(
+        address _staker,
+        uint256 _stakingCounter
+    ) public view returns(StackedDGOV memory) {
+        return stackedDGOV[_staker][_stakingCounter];
+    }
+
     function getVoteTokenAllocations() public view returns(VoteTokenAllocation[] memory) {
         return _voteTokenAllocation;
     }
@@ -705,16 +712,19 @@ contract GovStorage is IGovStorage {
         uint256 _amount,
         uint256 _duration
     ) external view returns(uint256 interest) {
-        interest = (
-            (_amount * stakingInterestRate() / 1 ether) * _duration
-        ) / (100 * getNumberOfSecondInYear());
+        uint256 stakingSupply = IERC20(
+            dgovContract
+        ).balanceOf(stakingContract);
+
+        interest = (_amount * stakingInterestRate() * _duration)
+                    / (100 * getNumberOfSecondInYear() * stakingSupply);
     }
 
     /**
     * @dev return the daily interest rate for voting (in percent)
     */
     function votingInterestRate() public view returns(uint256) {
-        uint256 cdpPrice = _cdpDGOVToDBIT();
+        uint256 cdpPrice = cdpDGOVToDBIT();
         
         return benchmarkInterestRate * cdpPrice * 34 / 100;
     }
@@ -723,7 +733,7 @@ contract GovStorage is IGovStorage {
     * @dev return the daily interest rate for staking DGOV (in percent)
     */
     function stakingInterestRate() public view returns(uint256) {
-        uint256 cdpPrice = _cdpDGOVToDBIT();
+        uint256 cdpPrice = cdpDGOVToDBIT();
         
         return benchmarkInterestRate * cdpPrice * 66 / 100;
     }
@@ -731,7 +741,7 @@ contract GovStorage is IGovStorage {
     /**
     * return the CDP of DGOV to DBIT
     */
-    function _cdpDGOVToDBIT() private view returns(uint256) {
+    function cdpDGOVToDBIT() public view returns(uint256) {
         uint256 dgovTotalSupply = IDebondToken(getDGOVAddress()).getTotalCollateralisedSupply();
 
         return 100 ether + ((dgovTotalSupply / 33333)**2 / 1 ether);

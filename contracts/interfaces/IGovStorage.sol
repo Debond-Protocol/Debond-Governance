@@ -49,6 +49,7 @@ interface IGovStorage is IGovSharedStorage {
     function getAllocatedToken(address _account) external view returns(uint256, uint256);
     function getAllocatedTokenMinted(address _account) external view returns(uint256, uint256);
     function getMinimumStakingDuration() external view returns(uint256);
+    function cdpDGOVToDBIT() external view returns(uint256);
 
     function updateBankAddress(address _bankAddress) external;
     function updateExchangeAddress(address _exchangeAddress) external;
@@ -69,6 +70,10 @@ interface IGovStorage is IGovSharedStorage {
     function getStakedDGOV() external view returns(StackedDGOV[] memory);
     function getVoteTokenAllocations() external view returns(VoteTokenAllocation[] memory);
     function getVoteTokenAllocAtIndex(uint256 _index) external view returns(VoteTokenAllocation memory);
+    function getUserStakedDGOVInfo(
+        address _staker,
+        uint256 _stakingCounter
+    ) external view returns(StackedDGOV memory);
 
     function hasVoted(
         uint128 _class,

@@ -257,13 +257,23 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
 
         IGovStorage(govStorageAddress).setStackedDGOV(staker, _durationIndex, _amount);
 
+        /*
         IStaking(
             IGovStorage(govStorageAddress).getStakingContract()
         ).stakeDgovToken(staker, _amount);
+        */
 
         IVoteToken(
             IGovStorage(govStorageAddress).getVoteTokenContract()
         ).mintVoteToken(staker, _amount * voteTokenAlloc.allocation/ 10**16);
+
+        IERC20(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).transferFrom(
+            staker,
+            IGovStorage(govStorageAddress).getStakingContract(),
+            _amount
+        );
 
         emit dgovStaked(staker, _amount, voteTokenAlloc.duration);
     }
@@ -271,37 +281,64 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
     /**
     * @dev unstake DGOV tokens
     * @param _stakingCounter counter that returns the rank of staking dGoV
-    * @param unstaked true if DGOV tokens have been unstaked successfully, false otherwise
     */
     function unstakeDGOV(
         uint256 _stakingCounter
-    ) public returns(bool unstaked) {
+    ) public {
         address staker = _msgSender();
         require(staker != address(0), "Gov: zero address");
 
-        (uint256 amountDGOV, ) = IStaking(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).unstakeDgovToken(staker, _stakingCounter);
+        StackedDGOV memory _staked  = IGovStorage(
+            govStorageAddress
+        ).getUserStakedDGOVInfo(staker, _stakingCounter);
 
-        (uint256 interest, uint256 duration) = IStaking(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).calculateInterestEarned(
-            staker,
-            _stakingCounter,
-            IGovStorage(govStorageAddress).stakingInterestRate()
+        require(_staked.amountDGOV > 0, "Staking: no dGoV staked");
+        require(
+            block.timestamp >= _staked.startTime + _staked.duration,
+            "Staking: still staking"
         );
 
+        uint256 amountDGOV = _staked.amountDGOV;
+        uint256 amountVote = _staked.amountVote;
+        uint256 startTime = _staked.startTime;
+        uint256 lastWithDarawTime = _staked.lastInterestWithdrawTime;
+
+        _staked.amountDGOV = 0;
+        _staked.amountVote = 0;
+        _staked.startTime = 0;
+        _staked.lastInterestWithdrawTime = 0;
+
+        // burn the vote tokens
+        IVoteToken(
+            IGovStorage(govStorageAddress).getVoteTokenContract()
+        ).burnVoteToken(staker, amountVote);
+
+        // transfer DGOV to the staker
+        IStaking(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).transferDGOV(staker, amountDGOV);
+
+        uint256 interest = IStaking(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).calculateInterestEarned(
+            amountDGOV,
+            lastWithDarawTime
+        );
+
+        // transfer DBIT interest from APM
         IAPM(
             IGovStorage(govStorageAddress).getAPMAddress()
         ).removeLiquidity(
             staker,
             IGovStorage(govStorageAddress).getDBITAddress(),
-            amountDGOV * interest / 1 ether
+            interest
         );
 
-        unstaked = true;
-
-        emit dgovUnstaked(staker, duration, interest);
+        emit dgovUnstaked(
+            staker,
+            block.timestamp - startTime,
+            interest
+        );
     }
 
     /**
