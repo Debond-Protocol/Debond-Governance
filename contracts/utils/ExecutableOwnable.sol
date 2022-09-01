@@ -1,5 +1,7 @@
 pragma solidity ^0.8.0;
 
+import "../interfaces/IExecutableUpdatable.sol";
+
 // SPDX-License-Identifier: apache 2.0
 /*
     Copyright 2022 Debond Protocol <info@debond.org>
@@ -14,9 +16,13 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "../interfaces/IActivable.sol";
+interface IActivable {
 
-abstract contract ExecutableOwnable is IActivable {
+    function setIsActive(bool _isActive) external;
+    function contractIsActive() external view returns(bool);
+}
+
+abstract contract ExecutableOwnable is IActivable, IExecutableUpdatable {
     address executableAddress;
     bool private isActive;
 
@@ -41,5 +47,9 @@ abstract contract ExecutableOwnable is IActivable {
 
     function contractIsActive() public view returns(bool) {
         return isActive;
+    }
+
+    function updateExecutableAddress(address _newExecutableAddress) external onlyExecutable {
+        executableAddress = _newExecutableAddress;
     }
 }

@@ -23,18 +23,16 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IVoteToken.sol";
-import "./interfaces/IExecutable.sol";
 import "./interfaces/IGovSettings.sol";
 import "./interfaces/IVoteCounting.sol";
 import "./interfaces/IProposalLogic.sol";
 import "./interfaces/IGovSharedStorage.sol";
 import "./utils/GovernanceMigrator.sol";
-import "./Pausable.sol";
 
 /**
 * @author Samuel Gwlanold Edoumou (Debond Organization)
 */
-contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovSharedStorage {
+contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
     using SafeERC20 for IERC20;
 
     address govStorageAddress;
@@ -106,7 +104,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).proposalSetUp(
-            _class, _nonce, _msgSender(), _targets, _values, _calldatas, _title, _descriptionHash
+            _class, _nonce, msg.sender, _targets, _values, _calldatas, _title, _descriptionHash
         );
 
         emit ProposalCreated(
@@ -114,7 +112,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             _nonce,
             start,
             end,
-            _msgSender(),
+            msg.sender,
             _targets,
             _values,
             _calldatas,
@@ -177,7 +175,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             govStorageAddress
         ).getProposalStruct(_class, _nonce);
 
-        require(_msgSender() == proposal.proposer, "Gov: permission denied");
+        require(msg.sender == proposal.proposer, "Gov: permission denied");
 
         IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
@@ -203,7 +201,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint256 _amountVoteTokens,
         uint256 _stakingCounter
     ) public {
-        address voter = _msgSender();
+        address voter = msg.sender;
 
         // TODO don't we need to chack if a proposal exists first for a class and nonce given?
         IProposalLogic(
@@ -228,7 +226,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint128 _nonce,
         bool _veto
     ) public onlyVetoOperator {
-        address vetoAddress = _msgSender();
+        address vetoAddress = msg.sender;
         require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
         require(
             IGovStorage(
@@ -254,7 +252,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint256 _amount,
         uint256 _duration
     ) public nonReentrant returns(bool staked) {
-        address staker = _msgSender();
+        address staker = msg.sender;
 
         IStaking(
             IGovStorage(govStorageAddress).getStakingContract()
@@ -273,7 +271,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
     function unstakeDGOV(
         uint256 _stakingCounter
     ) public returns(bool unstaked) {
-        address staker = _msgSender();
+        address staker = msg.sender;
         require(staker != address(0), "Gov: zero address");
 
         (uint256 amountStaked, uint256 interest, uint256 duration) = IProposalLogic(
@@ -300,7 +298,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
     function withdrawInterest(
         uint256 _stakingCounter
     ) public {
-        address staker = _msgSender();
+        address staker = msg.sender;
         uint256 StackedDGOV = IStaking(
             IGovStorage(govStorageAddress).getStakingContract()
         ).getStakedDGOVAmount(staker, _stakingCounter);
@@ -346,7 +344,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint128 _class,
         uint128 _nonce
     ) external {
-        address tokenOwner = _msgSender();
+        address tokenOwner = msg.sender;
 
         IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()

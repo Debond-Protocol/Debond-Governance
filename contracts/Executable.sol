@@ -16,14 +16,20 @@ pragma solidity ^0.8.0;
 
 import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
 import "@debond-protocol/debond-token-contracts/interfaces/IDGOV.sol";
+import "@debond-protocol/debond-apm-contracts/interfaces/IAPM.sol";
+import "@debond-protocol/debond-erc3475-contracts/interfaces/IDebondBond.sol";
+import "@debond-protocol/debond-bank-contracts/interfaces/IBankBondManager.sol";
+import "@debond-protocol/debond-bank-contracts/interfaces/IBank.sol";
+import "@debond-protocol/debond-bank-contracts/interfaces/IBankStorage.sol";
+import "@debond-protocol/debond-exchange-contracts/interfaces/IExchangeStorage.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IGovStorage.sol";
 import "./interfaces/IGovSharedStorage.sol";
-import "./interfaces/IExecutable.sol";
-import "./interfaces/IUpdatable.sol";
+import "./interfaces/IExecutableUpdatable.sol";
+import "./interfaces/IMigrate.sol";
 
-contract Executable is IExecutable, IGovSharedStorage {
+contract Executable is IGovSharedStorage {
     using SafeERC20 for IERC20;
     address public govStorageAddress;
 
@@ -111,9 +117,9 @@ contract Executable is IExecutable, IGovSharedStorage {
     ) external onlyGov returns(bool) {
         IGovStorage(govStorageAddress).setBenchmarkIR(_newBenchmarkInterestRate);
 
-        IUpdatable(
+        IBankStorage(
             IGovStorage(govStorageAddress).getBankAddress()
-        ).updateBenchmarkIR(_newBenchmarkInterestRate);
+        ).updateBenchmarkInterest(_newBenchmarkInterestRate);
 
         emit benchmarkUpdated(_newBenchmarkInterestRate);
 
@@ -124,13 +130,13 @@ contract Executable is IExecutable, IGovSharedStorage {
         uint256 _classId,
         string memory _symbol,
         address _tokenAddress,
-        InterestRateType _interestRateType,
+        IBankBondManager.InterestRateType _interestRateType,
         uint256 _period
     ) external onlyGov returns(bool) {
 
-        IUpdatable(
+        IBankBondManager(
             IGovStorage(govStorageAddress).getBankBondManagerAddress()
-        ).createBondClass(
+        ).createClass(
             _classId,
             _symbol,
             _tokenAddress,
@@ -228,7 +234,7 @@ contract Executable is IExecutable, IGovSharedStorage {
         uint256 _amount
     ) external onlyGov returns(bool) {
 
-        IUpdatable(_from).migrate(_token, _to, _amount);
+        IMigrate(_from).migrate(_token, _to, _amount);
 
         emit tokenMigrated(_token, _from, _to, _amount);
 
@@ -241,42 +247,41 @@ contract Executable is IExecutable, IGovSharedStorage {
         IGovStorage(govStorageAddress).updateExecutableAddress(_executableAddress);
 
         // in Bank
-        IUpdatable(
+        IExecutableUpdatable(
             IGovStorage(govStorageAddress).getBankAddress()
-        ).updateExecutable(_executableAddress);
-        // in DBIT
-        IUpdatable(
-            IGovStorage(govStorageAddress).getDBITAddress()
-        ).updateExecutable(_executableAddress);
-        // in DGOV
-        IUpdatable(
-            IGovStorage(govStorageAddress).getDGOVAddress()
-        ).updateExecutable(_executableAddress);
+        ).updateExecutableAddress(_executableAddress);
         // in Bank data
-        IUpdatable(IGovStorage(
+        IExecutableUpdatable(IGovStorage(
             govStorageAddress).getBankDataAddress()
-        ).updateExecutable(_executableAddress);
+        ).updateExecutableAddress(_executableAddress);
+        // in Bank data
+        IExecutableUpdatable(IGovStorage(
+            govStorageAddress).getBankBondManagerAddress()
+        ).updateExecutableAddress(_executableAddress);
+        // in DBIT
+        IExecutableUpdatable(
+            IGovStorage(govStorageAddress).getDBITAddress()
+        ).updateExecutableAddress(_executableAddress);
+        // in DGOV
+        IExecutableUpdatable(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).updateExecutableAddress(_executableAddress);
         // in APM
-        IUpdatable(
+        IExecutableUpdatable(
             IGovStorage(govStorageAddress).getAPMAddress()
-        ).updateExecutable(_executableAddress);
+        ).updateExecutableAddress(_executableAddress);
         // in Debond Bond
-        IUpdatable(
+        IExecutableUpdatable(
             IGovStorage(govStorageAddress).getERC3475Address()
-        ).updateExecutable(_executableAddress);
-        // in Exchange storage
-        IUpdatable(
-            IGovStorage(govStorageAddress).getExchangeStorageAddress()
-        ).updateExecutable(_executableAddress);
-        // in Staking contract
-        IUpdatable(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).updateExecutable(_executableAddress);
-
+        ).updateExecutableAddress(_executableAddress);
         // in Exchange
-        IUpdatable(
+        IExecutableUpdatable(
             IGovStorage(govStorageAddress).getExchangeAddress()
-        ).updateExecutable(_executableAddress);
+        ).updateExecutableAddress(_executableAddress);
+        // in Staking contract
+        IExecutableUpdatable(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).updateExecutableAddress(_executableAddress);
 
         emit executableContractUpdated(_executableAddress);
 
@@ -289,32 +294,32 @@ contract Executable is IExecutable, IGovSharedStorage {
         IGovStorage(govStorageAddress).updateBankAddress(_bankAddress);
 
         // in DBIT
-        IUpdatable(
+        IDebondToken(
             IGovStorage(govStorageAddress).getDBITAddress()
-        ).updateBank(_bankAddress);
-        // i DGOV
-        IUpdatable(
+        ).setBankAddress(_bankAddress);
+        // in DGOV
+        IDebondToken(
             IGovStorage(govStorageAddress).getDGOVAddress()
-        ).updateBank(_bankAddress);
+        ).setBankAddress(_bankAddress);
         // in APM
-        IUpdatable(
+        IAPM(
             IGovStorage(govStorageAddress).getAPMAddress()
-        ).updateBank(_bankAddress);
+        ).updateBankAddress(_bankAddress);
         
         // in Debond Bond
-        IUpdatable(
+        IDebondBond(
             IGovStorage(govStorageAddress).getERC3475Address()
-        ).updateBank(_bankAddress);
+        ).updateRedeemableAddress(_bankAddress);
 
         // in Bank Data
-        IUpdatable(
+        IBankStorage(
             IGovStorage(govStorageAddress).getBankDataAddress()
-        ).updateBank(_bankAddress);
+        ).updateBankAddress(_bankAddress);
 
         // in Bank Bond Manager
-        IUpdatable(
+        IBankBondManager(
             IGovStorage(govStorageAddress).getBankBondManagerAddress()
-        ).updateBank(_bankAddress);
+        ).updateBankAddress(_bankAddress);
 
         emit bankContractUpdated(_bankAddress);
         
@@ -326,9 +331,9 @@ contract Executable is IExecutable, IGovSharedStorage {
     ) external onlyGov returns(bool) {
         IGovStorage(govStorageAddress).updateExchangeAddress(_exchangeAddress);
 
-        IUpdatable(
+        IExchangeStorage(
             IGovStorage(govStorageAddress).getExchangeStorageAddress()
-        ).updateExchange(_exchangeAddress);
+        ).setExchangeAddress(_exchangeAddress);
 
         emit exchangeContractUpdated(_exchangeAddress);
 
@@ -343,13 +348,13 @@ contract Executable is IExecutable, IGovSharedStorage {
         ).updateBankBondManagerAddress(_bankBondManagerAddress);
 
         // in Bank
-        IUpdatable(
+        IBank(
             IGovStorage(govStorageAddress).getBankAddress()
-        ).updateBankBondManager(_bankBondManagerAddress);
+        ).updateBondManagerAddress(_bankBondManagerAddress);
         // in Debond Bond
-        IUpdatable(
+        IDebondBond(
             IGovStorage(govStorageAddress).getERC3475Address()
-        ).updateBankBondManager(_bankBondManagerAddress);
+        ).updateBondManagerAddress(_bankBondManagerAddress);
 
         emit bondManagerContractUpdated(_bankBondManagerAddress);
 
@@ -362,82 +367,15 @@ contract Executable is IExecutable, IGovSharedStorage {
         IGovStorage(govStorageAddress).updateOracleAddress(_oracleAddress);
 
         // in Bank
-        IUpdatable(
+        IBank(
             IGovStorage(govStorageAddress).getBankAddress()
-        ).updateOracle(_oracleAddress);
+        ).updateOracleAddress(_oracleAddress);
 
-        IUpdatable(
+        IBankBondManager(
             IGovStorage(govStorageAddress).getBankBondManagerAddress()
-        ).updateOracle(_oracleAddress);
+        ).updateOracleAddress(_oracleAddress);
 
         emit oracleContractUpdated(_oracleAddress);
-
-        return true;
-    }
-
-    function updateDBITAirdropAddress(
-        address _airdropAddress
-    ) external onlyGov returns(bool) {
-        IGovStorage(govStorageAddress).updateAirdropAddress(_airdropAddress);
-
-        // in DBIT
-        IUpdatable(
-            IGovStorage(govStorageAddress).getDBITAddress()
-        ).updateAirdrop(_airdropAddress);
-        // in DGOV
-        IUpdatable(
-            IGovStorage(govStorageAddress).getDGOVAddress()
-        ).updateAirdrop(_airdropAddress);
-
-        emit airdropContractUpdated(_airdropAddress);
-
-        return true;
-    }
-
-    function updateGovernanceAddress(
-        address _governanceAddress
-    ) external onlyGov returns(bool) {
-        IGovStorage(govStorageAddress).updateGovernanceAddress(_governanceAddress);
-
-        // in Bank
-        IUpdatable(
-            IGovStorage(govStorageAddress).getBankAddress()
-        ).updateGovernance(_governanceAddress);
-        // in DBIT
-        IUpdatable(
-            IGovStorage(govStorageAddress).getDBITAddress()
-        ).updateGovernance(_governanceAddress);
-        // in DGOV
-        IUpdatable(
-            IGovStorage(govStorageAddress).getDGOVAddress()
-        ).updateGovernance(_governanceAddress);
-        // in Bank data
-        IUpdatable(IGovStorage(
-            govStorageAddress).getBankDataAddress()
-        ).updateGovernance(_governanceAddress);
-        // in APM
-        IUpdatable(
-            IGovStorage(govStorageAddress).getAPMAddress()
-        ).updateGovernance(_governanceAddress);
-        // in Debond Bond
-        IUpdatable(
-            IGovStorage(govStorageAddress).getERC3475Address()
-        ).updateGovernance(_governanceAddress);
-        // in Exchange storage
-        IUpdatable(
-            IGovStorage(govStorageAddress).getExchangeStorageAddress()
-        ).updateGovernance(_governanceAddress);
-        // in Staking contract
-        IUpdatable(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).updateGovernance(_governanceAddress);
-
-        // in Exchange
-        IUpdatable(
-            IGovStorage(govStorageAddress).getExchangeAddress()
-        ).updateGovernance(_governanceAddress);
-
-        emit governanceContractUpdated(_governanceAddress);
 
         return true;
     }
