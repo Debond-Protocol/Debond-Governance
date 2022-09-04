@@ -18,7 +18,7 @@ import "./IGovSharedStorage.sol";
 
 interface IGovStorage is IGovSharedStorage {
     function isInitialized() external view returns(bool);
-    function getThreshold() external view returns(uint256);
+    function getProposalThreshold() external view returns(uint256);
     function getVetoOperator() external view returns(address);
     function getExecutableContract() external view returns(address);
     function getStakingContract() external view returns(address);
@@ -41,8 +41,7 @@ interface IGovStorage is IGovSharedStorage {
     function getGovernanceOwnableAddress() external view returns(address);
     function getDebondTeamAddress() external view returns(address);
     function getBenchmarkIR() external view returns(uint256);
-    function votingInterestRate() external view returns(uint256);
-    function stakingInterestRate() external view returns(uint256);
+    function getInterestRatesContract() external view returns(address);
     function getBudget() external view returns(uint256, uint256);
     function getAllocationDistributed() external view returns(uint256, uint256);
     function getTotalAllocationDistributed() external view returns(uint256, uint256);
@@ -67,50 +66,10 @@ interface IGovStorage is IGovSharedStorage {
         uint128 _class
     ) external view returns(uint256);
 
-    function getStakedDGOV() external view returns(StackedDGOV[] memory);
-    function getVoteTokenAllocations() external view returns(VoteTokenAllocation[] memory);
-    function getVoteTokenAllocAtIndex(uint256 _index) external view returns(VoteTokenAllocation memory);
-    function getUserStakedDGOVInfo(
-        address _staker,
-        uint256 _stakingCounter
-    ) external view returns(StackedDGOV memory);
-
-    function hasVoted(
-        uint128 _class,
-        uint128 _nonce,
-        address _account
-    ) external view returns(bool voted);
-
-    function getProposal(
-        uint128 _class,
-        uint128 _nonce
-    ) external view returns(
-        uint256,
-        uint256,
-        address,
-        ProposalStatus,
-        ProposalApproval,
-        address,
-        uint256,
-        bytes memory,
-        string memory,
-        bytes32
-    );
-
     function getProposalStatus(
         uint128 _class,
         uint128 _nonce
     ) external view returns(ProposalStatus unassigned);
-
-    function getProposalInfoForExecutable(
-        uint128 _class,
-        uint128 _nonce
-    ) external view returns(
-        address,
-        address,
-        uint256,
-        bytes memory
-    );
 
     function getProposalProposer(
         uint128 _class,
@@ -134,8 +93,6 @@ interface IGovStorage is IGovSharedStorage {
         uint256 _amountVoteTokens
     ) external;
 
-    function dbitDistributedPerDay() external view returns(uint256);
-
     function setProposal(
         uint128 _class,
         uint128 _nonce,
@@ -146,12 +103,7 @@ interface IGovStorage is IGovSharedStorage {
         address _targets,
         uint256 _values,
         bytes memory _calldatas,
-        string memory _title
-    ) external;
-
-    function setProposalDescriptionHash(
-        uint128 _class,
-        uint128 _nonce,
+        string memory _title,
         bytes32 _descriptionHash
     ) external;
 
@@ -170,30 +122,9 @@ interface IGovStorage is IGovSharedStorage {
         uint128 _nonce
     ) external;
 
-    function estimateInterestEarned(
-        uint256 _amount,
-        uint256 _duration
-    ) external view returns(uint256 interest);
-
-    //== FROM EXECUTABLE
-    function updateGovernanceContract(
-        address _newGovernanceAddress,
-        address _executor
-    ) external returns(bool);
-
     function updateExecutableAddress(
         address _executableAddress
     ) external;
-
-    function updateExchangeContract(
-        address _newExchangeAddress,
-        address _executor
-    ) external returns(bool);
-
-    function updateBankContract(
-        address _newBankAddress,
-        address _executor
-    ) external returns(bool);
 
     function setBenchmarkIR(
         uint256 _newBenchmarkInterestRate
@@ -220,12 +151,6 @@ interface IGovStorage is IGovSharedStorage {
         uint256 _amount
     ) external;
 
-    function setStackedDGOV(
-        address _staker,
-        uint256 _durationIndex,
-        uint256 _amountDGOV
-    ) external;
-
     function claimFundForProposal(
         address _to,
         uint256 _amountDBIT,
@@ -237,23 +162,4 @@ interface IGovStorage is IGovSharedStorage {
         uint256 _amountDBIT,
         uint256 _amountDGOV
     ) external view returns(bool);
-
-    function getProposalCallData(
-        uint128 _class,
-        uint128 _nonce
-    ) external view returns(bytes memory);
-
-    function getGovernanceCallData(
-        uint128 _class,
-        uint128 _nonce,
-        address _newGovernanceAddress
-    ) external pure returns(bytes memory);
-
-    function decodeGovernanceCallData(
-        bytes calldata _data
-    ) external pure returns(
-        uint128,
-        uint128,
-        address
-    );
 }

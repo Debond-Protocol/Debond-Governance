@@ -102,7 +102,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         uint256 _amount,
         uint128 _class,
         uint128 _nonce
-    ) public onlyProposalLogic {
+    ) public onlyGov {
         require(_owner != address(0), "VoteToken: zero address");
         require(_spender != address(0), "VoteToken: zero address");
         require(
@@ -123,57 +123,11 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         uint128 _nonce,
         address _tokenOwner
     ) external onlyGov {
-        ProposalStatus status = IGovStorage(
-            govStorageAddress
-        ).getProposalStatus(_class, _nonce);
+        uint256 amount = lockedBalanceOf(_tokenOwner, _class, _nonce);
+        require(amount > 0, "VoteToken: no vote tokens locked");
 
-        address proposer = IGovStorage(
-            govStorageAddress
-        ).getProposalProposer(_class, _nonce);
-
-        require(
-            status == ProposalStatus.Canceled ||
-            status == ProposalStatus.Succeeded ||
-            status == ProposalStatus.Defeated ||
-            status == ProposalStatus.Executed,
-            "ProposalLogic: still voting"
-        );
-
-        if(_tokenOwner != proposer) {
-            require(
-                IGovStorage(govStorageAddress).hasVoted(_class, _nonce, _tokenOwner),
-                "Gov: you haven't voted"
-            );       
-        }
-        
-        uint256 _amount = IVoteToken(
-            IGovStorage(govStorageAddress).getVoteTokenContract()
-        ).lockedBalanceOf(_tokenOwner, _class, _nonce);
-
-        _unlockTokens(_tokenOwner, _amount, _class, _nonce);
-    }
-
-    /**
-    * @dev unlock vote tokens
-    * @param _owner owner address of vote tokens
-    * @param _amount the amount of vote tokens to lock
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    */
-    function _unlockTokens(
-        address _owner,
-        uint256 _amount,
-        uint128 _class,
-        uint128 _nonce
-    ) private {
-        require(_owner != address(0), "VoteToken: zero address");
-        require(
-            _amount <= _lockedBalance[_owner][_class][_nonce],
-            "VoteToken: not enough tokens locked"
-        );
-
-        _lockedBalance[_owner][_class][_nonce] -= _amount;
-        _availableBalance[_owner] = balanceOf(_owner) - _lockedBalance[_owner][_class][_nonce];
+        _lockedBalance[_tokenOwner][_class][_nonce] -= amount;
+        _availableBalance[_tokenOwner] = balanceOf(_tokenOwner) - _lockedBalance[_tokenOwner][_class][_nonce];
     }
 
     /**

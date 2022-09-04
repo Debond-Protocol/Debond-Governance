@@ -15,33 +15,45 @@ pragma solidity ^0.8.0;
 */
 
 interface IStaking {
-    function transferDGOV(
+    function stakeDgovToken(
         address _staker,
-        uint256 _amountDGOV
-    ) external;
+        uint256 _amount,
+        uint256 _durationIndex
+    ) external returns(uint256 duration, uint256 _amountToMint);
 
-    function getStakedDGOVAmount(
+    function transferDgov(
         address _staker,
         uint256 _stakingCounter
-    ) external view returns(uint256 _stakedAmount);
+    ) external returns(uint256 amountDGOV, uint256 amountVote);
 
     function getAvailableVoteTokens(
         address _staker,
         uint256 _stakingCounter
     ) external view returns(uint256 _voteTokens);
 
-    function setLastTimeInterestWithdraw(
+    function updateLastTimeInterestWithdraw(
         address _staker,
         uint256 _stakingCounter
     ) external;
 
     function calculateInterestEarned(
+        address _staker,
         uint256 _amount,
-        uint256 _lastInterestWithdrawTime
+        uint256 _stakingCounter
+    ) external view returns(uint256 interest, uint256 duration);
+
+    function estimateInterestEarned(
+        uint256 _amount,
+        uint256 _duration
     ) external view returns(uint256 interest);
 
-    function getStartTimeDurationAndLastWithdrawTime(
+    function getStakingData(
         address _staker,
         uint256 _stakingCounter
-    ) external view returns(uint256 startTime, uint256 duration, uint256 lastWithdrawTime);
+    ) external view returns(
+        uint256 _stakedAmount,
+        uint256 startTime,
+        uint256 duration,
+        uint256 lastWithdrawTime
+    );
 }

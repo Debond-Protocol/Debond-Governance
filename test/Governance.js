@@ -23,6 +23,7 @@ const ExchangeStorage = artifacts.require("ExchangeStorageTest");
 const BankData = artifacts.require("BankData");
 const BankBondManager = artifacts.require("BankBondManager");
 const Oracle = artifacts.require("Oracle");
+const InterestRates = artifacts.require("InterestRates");
 const AdvanceBlockTimeStamp = artifacts.require("AdvanceBlockTimeStamp");
 
 contract("Governance", async (accounts) => {
@@ -46,6 +47,7 @@ contract("Governance", async (accounts) => {
     let bondManager;
     let oracle;
     let nextTime;
+    let rates;
 
     let balanceUser1BeforeStake;
     let balanceStakingContractBeforeStake;
@@ -87,6 +89,7 @@ contract("Governance", async (accounts) => {
         dgov = await DGOV.new(gov.address, bank.address, operator, exchange.address, exec.address);
         logic = await ProposalLogic.new(storage.address);
         stak = await StakingDGOV.new(storage.address);
+        rates = await InterestRates.new();
 
         nextTime = await AdvanceBlockTimeStamp.new();
 
@@ -99,6 +102,7 @@ contract("Governance", async (accounts) => {
             bondManager.address,
             oracle.address,
             stak.address,
+            rates.address,
             vote.address,
             {from: operator}
         );
@@ -209,7 +213,7 @@ contract("Governance", async (accounts) => {
         );
     });
 
-    it.only("Unstake DGOV tokens", async () => {
+    it("Unstake DGOV tokens", async () => {
         let balBefore = await dgov.balanceOf(user1);
         let balContractBefore = await dgov.balanceOf(stak.address);
 
@@ -220,7 +224,7 @@ contract("Governance", async (accounts) => {
         let event = unstake.logs[0].args;
         let duration = event.duration.toString();
 
-        let estimate = await storage.estimateInterestEarned(amountToStake, duration);
+        let estimate = await stak.estimateInterestEarned(amountToStake, duration);
 
         let balanceAfter = await dbit.balanceOf(user1);
 
@@ -265,7 +269,7 @@ contract("Governance", async (accounts) => {
         let event = unstake.logs[0].args;
         let duration = event.duration.toString();
 
-        let estimate = await storage.estimateInterestEarned(amountToStake, duration);
+        let estimate = await stak.estimateInterestEarned(amountToStake, duration);
 
         let userBalanceFinal = await dbit.balanceOf(user6);
 
@@ -299,7 +303,7 @@ contract("Governance", async (accounts) => {
         let duration = event.duration.toString();
 
         let userBalanceFinal = await dbit.balanceOf(user6);
-        let estimate = await storage.estimateInterestEarned(amountToStake, duration);
+        let estimate = await stak.estimateInterestEarned(amountToStake, duration);
 
         expect(
             (Number(userBalanceFinal.toString()) / 1000).toFixed(0)
@@ -1077,7 +1081,7 @@ contract("Governance", async (accounts) => {
         let _class = 0;
 
         let title = "Propsal-1: Update the proposal threshold";
-        let callData = await exec.contract.methods.updateProposalThresholdForProposer(
+        let callData = await exec.contract.methods.updateProposalThreshold(
             _class,
             newTherehold
         ).encodeABI();
@@ -1111,7 +1115,7 @@ contract("Governance", async (accounts) => {
         await wait(17000);
         await nextTime.increment();
 
-        let thresholdBefore = await storage.getThreshold();
+        let thresholdBefore = await storage.getProposalThreshold();
 
         // Execute the proposal
         await gov.executeProposal(
@@ -1120,7 +1124,7 @@ contract("Governance", async (accounts) => {
             { from: operator }
         );
 
-        let thresholdAfter = await storage.getThreshold();
+        let thresholdAfter = await storage.getProposalThreshold();
 
         await nextTime.increment();
 
@@ -1532,7 +1536,8 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user1, 0, amountVoteToken, 1, { from: user1 });
         await gov.vote(event.class, event.nonce, user2, 1, amountVoteToken, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountVoteToken, 1, { from: user3 });
-        await gov.vote(event.class, event.nonce, operator, 0, amountVoteToken, 1, { from: operator });
+        await gov.vote(event.class, event.nonce, user4, 0, amountVoteToken, 1, { from: user4 });
+        //await gov.vote(event.class, event.nonce, operator, 0, amountVoteToken, 1, { from: operator });
         
         await gov.veto(event.class, event.nonce, false, { from: operator });
 
@@ -1546,19 +1551,18 @@ contract("Governance", async (accounts) => {
         balanceVoteAfter = Number(balanceVoteAfter.toString()) / 1e18;
         balanceVoteAfter = balanceVoteAfter.toFixed(15);
 
-        let balanceProposer = await dbit.balanceOf(operator);
-        balanceProposer = Number(balanceProposer.toString()) / 1e18;
-        balanceProposer = balanceProposer.toFixed(15);
+        let cdp = await storage.cdpDGOVToDBIT();
+        let benchmarkIR = await storage.getBenchmarkIR();
+        let dbitPerDay = await rates.votingInterestRate(benchmarkIR, cdp);
 
-        let dbitPerDay = await storage.dbitDistributedPerDay();
+
         dbitPerDay = Number(dbitPerDay.toString()) / 1e18;
         let numberOfDays = await storage.getNumberOfVotingDays(_class);
         numberOfDays = Number(numberOfDays.toString());
-        let reward = amountToStake * dbitPerDay * numberOfDays / (4 * amountToStake);
+        let reward = amountToStake * (dbitPerDay / 36500) * numberOfDays / (4 * amountToStake);
         reward = reward.toFixed(15);
 
         expect(balanceVoteAfter).to.equal(reward);
-        expect(balanceProposer).to.equal(reward);
     });
 
     it('Check proposer can unstake their vote tokens', async () => {

@@ -19,6 +19,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IVoteToken.sol";
 import "./interfaces/IGovStorage.sol";
 import "./interfaces/IStaking.sol";
+import "./interfaces/IInterestRates.sol";
 
 contract StakingDGOV is IStaking, ReentrancyGuard {
     /**
@@ -38,15 +39,11 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
     }
 
     // key1: staker address, key2: staking rank of the staker
-    mapping(address => mapping(uint256 => StackedDGOV)) stackedDGOV;
+    mapping(address => mapping(uint256 => StackedDGOV)) internal stackedDGOV;
     mapping(address => uint256) public stakingCounter;
     mapping(uint256 => VoteTokenAllocation) private voteTokenAllocation;
 
-    StackedDGOV[] private _totalStackedDGOV;
-    VoteTokenAllocation[] private _voteTokenAllocation;
-
     uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
-
     address public govStorageAddress;
 
     modifier onlyGov() {
@@ -76,38 +73,71 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
 
         //voteTokenAllocation[0].duration = 4 weeks;
         //voteTokenAllocation[0].allocation = 3000000000000000;
-        _voteTokenAllocation.push(voteTokenAllocation[0]);
 
         voteTokenAllocation[1].duration = 12 weeks;
         voteTokenAllocation[1].allocation = 3653793637913968;
-        _voteTokenAllocation.push(voteTokenAllocation[1]);
 
         voteTokenAllocation[2].duration = 24 weeks;
         voteTokenAllocation[2].allocation = 4578397467645146;
-        _voteTokenAllocation.push(voteTokenAllocation[2]);
 
         voteTokenAllocation[3].duration = 48 weeks;
         voteTokenAllocation[3].allocation = 5885984743473081;
-        _voteTokenAllocation.push(voteTokenAllocation[3]);
 
         voteTokenAllocation[4].duration = 96 weeks;
         voteTokenAllocation[4].allocation = 7735192402935436;
-        _voteTokenAllocation.push(voteTokenAllocation[4]);
 
         voteTokenAllocation[5].duration = 144 weeks;
         voteTokenAllocation[5].allocation = 10000000000000000;
-        _voteTokenAllocation.push(voteTokenAllocation[5]);
+    }
+    
+    /**
+    * @dev stack dGoV tokens
+    * @param _staker the address of the staker
+    * @param _amount the amount of dGoV tokens to stak
+    * @param _durationIndex index of the staking duration in the `voteTokenAllocation` mapping
+    */
+    function stakeDgovToken(
+        address _staker,
+        uint256 _amount,
+        uint256 _durationIndex
+    ) external override onlyGov returns(uint256 duration, uint256 _amountToMint) {
+        uint256 counter = stakingCounter[_staker];
+
+        stackedDGOV[_staker][counter + 1].startTime = block.timestamp;
+        stackedDGOV[_staker][counter + 1].lastInterestWithdrawTime = block.timestamp;
+        stackedDGOV[_staker][counter + 1].duration = voteTokenAllocation[_durationIndex].duration;
+        stackedDGOV[_staker][counter + 1].amountDGOV += _amount;
+        stackedDGOV[_staker][counter + 1].amountVote += _amount * voteTokenAllocation[_durationIndex].allocation / 10**16;
+        stakingCounter[_staker] = counter + 1;
+
+        _amountToMint = _amount * voteTokenAllocation[_durationIndex].allocation / 10**16;
+        duration = voteTokenAllocation[_durationIndex].duration;
     }
 
-    function transferDGOV(
+    /**
+    * @dev unstack dGoV tokens
+    * @param _staker the address of the staker
+    * @param _stakingCounter the staking rank
+    */
+    function transferDgov(
         address _staker,
-        uint256 _amountDGOV
-    ) external override onlyGov {
+        uint256 _stakingCounter
+    ) external override onlyGov nonReentrant returns(uint256 amountDGOV, uint256 amountVote) {
+        StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
+
         require(
-            IERC20(
-                IGovStorage(govStorageAddress).getDGOVAddress()
-            ).transfer(_staker, _amountDGOV)
+            block.timestamp >= _staked.startTime + _staked.duration,
+            "Staking: still staking"
         );
+
+        amountDGOV = _staked.amountDGOV;
+        amountVote = _staked.amountVote;
+        _staked.amountDGOV = 0;
+        _staked.amountVote = 0;
+
+        IERC20(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).transfer(_staker, amountDGOV);
     }
 
     /**
@@ -115,7 +145,7 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
     * @param _staker DGOV staker
     * @param _stakingCounter the staking rank
     */
-    function setLastTimeInterestWithdraw(
+    function updateLastTimeInterestWithdraw(
         address _staker,
         uint256 _stakingCounter
     ) external onlyGov {
@@ -133,54 +163,46 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
 
     /**
     * @dev calculate the interest earned by DGOV staker
-    * @param _amount amount of staked DGOV
-    * @param _lastInterestWithdrawTime last withdraw time
+    * @param _staker DGOV staker
+    * @param _stakingCounter the staking rank
+    * @param totalDuration duration  between now and last time withdraw
     */
     function calculateInterestEarned(
-        uint256 _amount,
-        uint256 _lastInterestWithdrawTime
-    ) external view returns(uint256 interest) {
-        uint256 interestRate = stakingInterestRate();
-
-        uint256 duration = block.timestamp - _lastInterestWithdrawTime;
-
-        // DGOV balance of the staking contract
-        uint256 stakingSupply = IERC20(
-            IGovStorage(govStorageAddress).getDGOVAddress()
-        ).balanceOf(address(this));
-
-        // (amountStaked / balanceOf(stakingContract)) * interestRate
-        interest = (_amount * interestRate * duration) / (100 * NUMBER_OF_SECONDS_IN_YEAR * stakingSupply);
-    }
-
-    function votingInterestRate() public view returns(uint256) {
-        uint256 cdpPrice = IGovStorage(govStorageAddress).cdpDGOVToDBIT();
-        uint256 benchmarkInterestRate = IGovStorage(govStorageAddress).getBenchmarkIR();
-        
-        return benchmarkInterestRate * cdpPrice * 34 / 100;
-    }
-
-    /**
-    * @dev return the daily interest rate for staking DGOV (in percent)
-    */
-    function stakingInterestRate() public view returns(uint256) {
-        uint256 cdpPrice = IGovStorage(govStorageAddress).cdpDGOVToDBIT();
-        uint256 benchmarkInterestRate = IGovStorage(govStorageAddress).getBenchmarkIR();
-        
-        return benchmarkInterestRate * cdpPrice * 66 / 100;
-    }
-
-    /**
-    * @dev get the amount of dGoV staked by a user
-    * @param _staker address of the staker
-    * @param _stakingCounter the staking rank
-    * @param _stakedAmount amount of dGoV staked by the user
-    */
-    function getStakedDGOVAmount(
         address _staker,
+        uint256 _amount,
         uint256 _stakingCounter
-    ) external view returns(uint256 _stakedAmount) {
-        _stakedAmount = stackedDGOV[_staker][_stakingCounter].amountDGOV;
+    ) public view returns(uint256 interest, uint256 totalDuration) {
+        StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
+        uint256 duration = block.timestamp - _staked.lastInterestWithdrawTime;
+        totalDuration = block.timestamp - _staked.startTime;
+        uint256 cdp = IGovStorage(govStorageAddress).cdpDGOVToDBIT();
+        uint256 benchmarkIR = IGovStorage(govStorageAddress).getBenchmarkIR();
+        
+        uint256 interestRate = IInterestRates(
+            IGovStorage(govStorageAddress).getInterestRatesContract()
+        ).stakingInterestRate(benchmarkIR, cdp);
+
+        interest = (_amount * interestRate * duration) / (100 * NUMBER_OF_SECONDS_IN_YEAR * 1 ether);
+    }
+
+    /**
+    * @dev Estimate how much Interest the user has gained since he staked dGoV
+    * @param _amount the amount of DGOV staked
+    * @param _duration staking duration to estimate interest from
+    * @param interest the estimated interest earned so far
+    */
+    function estimateInterestEarned(
+        uint256 _amount,
+        uint256 _duration
+    ) public view returns(uint256 interest) {
+        uint256 cdp = IGovStorage(govStorageAddress).cdpDGOVToDBIT();
+        uint256 benchmarkIR = IGovStorage(govStorageAddress).getBenchmarkIR();
+        
+        uint256 interestRate = IInterestRates(
+            IGovStorage(govStorageAddress).getInterestRatesContract()
+        ).stakingInterestRate(benchmarkIR, cdp);
+
+        interest = (_amount * interestRate / 1 ether) * _duration / (100 * NUMBER_OF_SECONDS_IN_YEAR);
     }
 
     function getAvailableVoteTokens(
@@ -190,16 +212,17 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
         _voteTokens = stackedDGOV[_staker][_stakingCounter].amountVote;
     }
 
-    function getStartTimeDurationAndLastWithdrawTime(
+    function getStakingData(
         address _staker,
         uint256 _stakingCounter
-    ) external view returns(uint256 startTime, uint256 duration, uint256 lastWithdrawTime) {
-        (
-            startTime,
-            duration,
-            lastWithdrawTime
-        ) =
-        (
+    ) public view returns(
+        uint256 _stakedAmount,
+        uint256 startTime,
+        uint256 duration,
+        uint256 lastWithdrawTime
+    ) {
+        return (
+            stackedDGOV[_staker][_stakingCounter].amountDGOV,
             stackedDGOV[_staker][_stakingCounter].startTime,
             stackedDGOV[_staker][_stakingCounter].duration,
             stackedDGOV[_staker][_stakingCounter].lastInterestWithdrawTime

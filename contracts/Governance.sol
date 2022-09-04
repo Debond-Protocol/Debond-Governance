@@ -105,12 +105,32 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint128 nonce = _generateNewNonce(_class);
       
         (
-            uint256 start, uint256 end, ProposalApproval approval
+            uint256 start,
+            uint256 end,
+            ProposalApproval approval
         ) =
         IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
-        ).proposalSetUp(
+        ).setProposal(
             _class, nonce, _msgSender(), _targets, _values, _calldatas, _title, _descriptionHash
+        );
+
+        require(
+            IVoteToken(
+                IGovStorage(govStorageAddress).getVoteTokenContract()
+            ).availableBalance(_msgSender()) >=
+            IGovStorage(govStorageAddress).getProposalThreshold(),
+            "Gov: insufficient vote tokens"
+        );
+
+        IVoteToken(
+            IGovStorage(govStorageAddress).getVoteTokenContract()
+        ).lockTokens(
+            _msgSender(),
+            _msgSender(),
+            IGovStorage(govStorageAddress).getProposalThreshold(),
+            _class,
+            nonce
         );
 
         emit ProposalCreated(
@@ -177,12 +197,20 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         Proposal memory proposal = IGovStorage(
             govStorageAddress
         ).getProposalStruct(_class, _nonce);
-
         require(_msgSender() == proposal.proposer, "Gov: permission denied");
 
-        IProposalLogic(
-            IGovStorage(govStorageAddress).getProposalLogicContract()
-        ).cancelProposal(_class, _nonce);
+        ProposalStatus status = IGovStorage(
+            govStorageAddress
+        ).getProposalStatus(_class, _nonce);
+
+        require(
+            status != ProposalStatus.Canceled &&
+            status != ProposalStatus.Executed
+        );
+
+        IGovStorage(
+            govStorageAddress
+        ).setProposalStatus(_class, _nonce, ProposalStatus.Canceled);
 
         emit ProposalCanceled(_class, _nonce);
     }
@@ -205,14 +233,39 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint256 _stakingCounter
     ) public {
         address voter = _msgSender();
+        require(voter != address(0), "Governance: zero address");
+        require(
+            IGovStorage(
+                govStorageAddress
+            ).getProposalStatus(_class, _nonce) == ProposalStatus.Active,
+            "Gov: vote not active"
+        );
+        require(
+            _amountVoteTokens <= IERC20(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).allowance(_tokenOwner, voter),
+            "ProposalLogic: not enough allowance"
+        );
+        require(
+            _amountVoteTokens <= 
+            IERC20(
+                IGovStorage(govStorageAddress).getVoteTokenContract()
+            ).balanceOf(_tokenOwner) - 
+            IVoteToken(
+                IGovStorage(govStorageAddress).getVoteTokenContract()
+            ).lockedBalanceOf(_tokenOwner, _class, _nonce),
+            "ProposalLogic: not enough vote tokens"
+        );
 
+        // lock vote tokens
+        IVoteToken(
+            IGovStorage(govStorageAddress).getVoteTokenContract()
+        ).lockTokens(_tokenOwner, voter, _amountVoteTokens, _class, _nonce);          
+
+        // update the vote object
         IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
-        ).voteRequirement(_class, _nonce, _tokenOwner, voter, _amountVoteTokens, _stakingCounter);
-
-        IProposalLogic(
-            IGovStorage(govStorageAddress).getProposalLogicContract()
-        ).vote(_class, _nonce, voter, _userVote, _amountVoteTokens);
+        ).setVote(_class, _nonce, voter, _userVote, _amountVoteTokens);
 
         emit voted(_class, _nonce, voter, _stakingCounter, _amountVoteTokens);
     }
@@ -253,29 +306,27 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         address staker = _msgSender();
         require(staker != address(0), "StakingDGOV: zero address");
 
-        VoteTokenAllocation memory voteTokenAlloc = IGovStorage(govStorageAddress).getVoteTokenAllocAtIndex(_durationIndex);
+        uint256 stakerBalance = IERC20(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).balanceOf(staker);
+        require(_amount <= stakerBalance, "Debond: not enough dGov");
 
-        IGovStorage(govStorageAddress).setStackedDGOV(staker, _durationIndex, _amount);
-
-        /*
-        IStaking(
+        // update the user staking data
+        (uint256 duration, uint256 _amountToMint) = IStaking(
             IGovStorage(govStorageAddress).getStakingContract()
-        ).stakeDgovToken(staker, _amount);
-        */
+        ).stakeDgovToken(staker, _amount, _durationIndex);
 
+        // mint vote tokens into the staker account
         IVoteToken(
             IGovStorage(govStorageAddress).getVoteTokenContract()
-        ).mintVoteToken(staker, _amount * voteTokenAlloc.allocation/ 10**16);
-
+        ).mintVoteToken(staker, _amountToMint);
+        
+        // transfer DGOV to the staking contract
         IERC20(
             IGovStorage(govStorageAddress).getDGOVAddress()
-        ).transferFrom(
-            staker,
-            IGovStorage(govStorageAddress).getStakingContract(),
-            _amount
-        );
+        ).transferFrom(staker, IGovStorage(govStorageAddress).getStakingContract(), _amount);
 
-        emit dgovStaked(staker, _amount, voteTokenAlloc.duration);
+        emit dgovStaked(staker, _amount, duration);
     }
 
     /**
@@ -288,44 +339,26 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         address staker = _msgSender();
         require(staker != address(0), "Gov: zero address");
 
-        StackedDGOV memory _staked  = IGovStorage(
-            govStorageAddress
-        ).getUserStakedDGOVInfo(staker, _stakingCounter);
+        // update the user staking data and stransfer DGOV to the staker
+        (uint256 amountDGOV, uint256 amountVote) = IStaking(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).transferDgov(staker, _stakingCounter);
 
-        require(_staked.amountDGOV > 0, "Staking: no dGoV staked");
-        require(
-            block.timestamp >= _staked.startTime + _staked.duration,
-            "Staking: still staking"
-        );
-
-        uint256 amountDGOV = _staked.amountDGOV;
-        uint256 amountVote = _staked.amountVote;
-        uint256 startTime = _staked.startTime;
-        uint256 lastWithDarawTime = _staked.lastInterestWithdrawTime;
-
-        _staked.amountDGOV = 0;
-        _staked.amountVote = 0;
-        _staked.startTime = 0;
-        _staked.lastInterestWithdrawTime = 0;
-
-        // burn the vote tokens
+        // burn the staker vote tokens
         IVoteToken(
             IGovStorage(govStorageAddress).getVoteTokenContract()
         ).burnVoteToken(staker, amountVote);
 
-        // transfer DGOV to the staker
-        IStaking(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).transferDGOV(staker, amountDGOV);
-
-        uint256 interest = IStaking(
+        // calculate the interest earned by staking DGOV
+        (uint256 interest, uint256 duration) = IStaking(
             IGovStorage(govStorageAddress).getStakingContract()
         ).calculateInterestEarned(
+            staker,
             amountDGOV,
-            lastWithDarawTime
+            _stakingCounter
         );
 
-        // transfer DBIT interest from APM
+        // transfer DBIT interest from APM to the staker account
         IAPM(
             IGovStorage(govStorageAddress).getAPMAddress()
         ).removeLiquidity(
@@ -334,11 +367,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             interest
         );
 
-        emit dgovUnstaked(
-            staker,
-            block.timestamp - startTime,
-            interest
-        );
+        emit dgovUnstaked(staker, duration, interest);
     }
 
     /**
@@ -349,16 +378,17 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint256 _stakingCounter
     ) public {
         address staker = _msgSender();
-        uint256 StackedDGOV = IStaking(
+
+        (
+            uint256 amount,
+            uint256 startTime,
+            uint256 duration,
+            uint256 lastWithdrawTime
+        ) = IStaking(
             IGovStorage(govStorageAddress).getStakingContract()
-        ).getStakedDGOVAmount(staker, _stakingCounter);
+        ).getStakingData(staker, _stakingCounter);
 
-        require(StackedDGOV > 0, "Gov: no DGOV staked");
-
-        (uint256 startTime, uint256 duration, uint256 lastWithdrawTime) = IStaking(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).getStartTimeDurationAndLastWithdrawTime(staker, _stakingCounter);
-
+        require(amount > 0, "Gov: no DGOV staked");
         require(
             block.timestamp >= startTime && block.timestamp <= startTime + duration,
             "Gov: Unstake DGOV to get interests"
@@ -366,14 +396,17 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
 
         uint256 currentDuration = block.timestamp - lastWithdrawTime;
 
-        uint256 interestEarned = IGovStorage(
-            govStorageAddress
-        ).estimateInterestEarned(StackedDGOV, currentDuration);
+        // calculate the interest earned since last winthdraw
+        uint256 interestEarned = IStaking(
+            IGovStorage(govStorageAddress).getStakingContract()
+        ).estimateInterestEarned(amount, currentDuration);
 
+        // update the last withdraw time
         IStaking(
             IGovStorage(govStorageAddress).getStakingContract()
-        ).setLastTimeInterestWithdraw(staker, _stakingCounter);
+        ).updateLastTimeInterestWithdraw(staker, _stakingCounter);
 
+        // transfer DBIT interests from APM to the staker account
         IAPM(
             IGovStorage(govStorageAddress).getAPMAddress()
         ).removeLiquidity(
@@ -395,7 +428,35 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint128 _nonce
     ) external {
         address tokenOwner = _msgSender();
+        require(tokenOwner != address(0), "Gov: zero address");
 
+        ProposalStatus status = IGovStorage(
+            govStorageAddress
+        ).getProposalStatus(_class, _nonce);
+
+        address proposer = IGovStorage(
+            govStorageAddress
+        ).getProposalProposer(_class, _nonce);
+
+        require(
+            status == ProposalStatus.Canceled ||
+            status == ProposalStatus.Succeeded ||
+            status == ProposalStatus.Defeated ||
+            status == ProposalStatus.Executed,
+            "ProposalLogic: still voting"
+        );
+
+        // proposer locks vote tokens by submiting the proposal, and may not have voted
+        if(tokenOwner != proposer) {
+            require(
+                IProposalLogic(
+                    IGovStorage(govStorageAddress).getProposalLogicContract()
+                ).hasVoted(_class, _nonce, tokenOwner),
+                "Gov: you haven't voted"
+            );      
+        }
+
+        // update user locked and available vote tokens balances
         IVoteToken(
             IGovStorage(govStorageAddress).getVoteTokenContract()
         ).unlockVoteTokens(_class, _nonce, tokenOwner);
@@ -419,7 +480,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint256 reward = IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).calculateReward(_class, _nonce, _tokenOwner);
-
 
         IAPM(
             IGovStorage(govStorageAddress).getAPMAddress()

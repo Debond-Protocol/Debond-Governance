@@ -35,58 +35,55 @@ contract GovStorage is IGovStorage {
 
     mapping(uint128 => uint256) numberOfVotingDays;
 
-    bool private initialized;
+    bool public initialized;
 
-    address private debondTeam;
-    address private governance;
-    address private exchangeContract;
-    address private exchangeStorageContract;
-    address private erc3475Contract;
-    address private bankContract;
-    address private bankDataContract;
-    address private dgovContract;
-    address private dbitContract;
-    address private apmContract;
-    address private bankBondManagerContract;
-    address private stakingContract;
-    address private voteTokenContract;
-    address private proposalLogicContract;
-    address private executable;
-    address private airdropContract;
-    address private governanceOwnableContract;
-    address private oracleContract;
-    address private governanceMigrator;
+    address public debondTeam;
+    address public governance;
+    address public exchangeContract;
+    address public exchangeStorageContract;
+    address public erc3475Contract;
+    address public bankContract;
+    address public bankDataContract;
+    address public dgovContract;
+    address public dbitContract;
+    address public apmContract;
+    address public bankBondManagerContract;
+    address public stakingContract;
+    address public voteTokenContract;
+    address public proposalLogicContract;
+    address public executable;
+    address public airdropContract;
+    address public governanceOwnableContract;
+    address public oracleContract;
+    address public governanceMigrator;
+    address public InterestRatesContract;
 
-    address private vetoOperator;
+    address public vetoOperator;
 
-    uint256 private dbitBudgetPPM;
-    uint256 private dgovBudgetPPM;
-    uint256 private dbitAllocationDistibutedPPM;
-    uint256 private dgovAllocationDistibutedPPM;
-    uint256 private dbitTotalAllocationDistributed;
-    uint256 private dgovTotalAllocationDistributed;
+    uint256 public dbitBudgetPPM;
+    uint256 public dgovBudgetPPM;
+    uint256 public dbitAllocationDistibutedPPM;
+    uint256 public dgovAllocationDistibutedPPM;
+    uint256 public dbitTotalAllocationDistributed;
+    uint256 public dgovTotalAllocationDistributed;
 
-    uint256 private benchmarkInterestRate;
+    uint256 public benchmarkInterestRate;
     uint256 private _proposalThreshold;
-    uint256 private minimumStakingDuration;
+    uint256 public minimumStakingDuration;
     uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
 
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
     mapping(uint128 =>  uint256) private _proposalQuorum;
     mapping(address => AllocatedToken) allocatedToken;
 
+    uint256 _lockGroup1;
+    uint256 _lockGroup2;
+
     // links proposal class to proposal nonce
     mapping(uint128 => uint128) public proposalNonce;
     // total vote tokens collected per day for a given proposal
     // key1: proposal class, key2: proposal nonce, key3: voting day (1, 2, 3, etc.)
     mapping(uint128 => mapping(uint128 => mapping(uint256 => uint256))) public totalVoteTokenPerDay;
-
-    mapping(address => mapping(uint256 => StackedDGOV)) stackedDGOV;
-    mapping(address => uint256) public stakingCounter;
-    mapping(uint256 => VoteTokenAllocation) private voteTokenAllocation;
-
-    StackedDGOV[] private _totalStackedDGOV;
-    VoteTokenAllocation[] private _voteTokenAllocation;
 
     modifier onlyVetoOperator {
         require(msg.sender == vetoOperator, "Gov: Need rights");
@@ -101,14 +98,6 @@ contract GovStorage is IGovStorage {
         _;
     }
 
-    modifier onlyDebondExecutor(address _executor) {
-        require(
-            _executor == getDebondTeamAddress(),
-            "Gov: can't execute this task"
-        );
-        _;
-    }
-
     modifier onlyExec {
         require(
             msg.sender == getExecutableContract(),
@@ -117,32 +106,8 @@ contract GovStorage is IGovStorage {
         _;
     }
 
-    modifier onlyGovOrExec() {
-        require(
-            msg.sender == getGovernanceAddress() ||
-            msg.sender == getExecutableContract()
-        );
-        _;
-    }
-
     modifier onlyProposalLogic {
         require(
-            msg.sender == getProposalLogicContract()
-        );
-        _;
-    }
-
-    modifier onlyStakingContract {
-        require(
-            msg.sender == getStakingContract()
-        );
-        _;
-    }
-
-    modifier onlyDebondContracts() {
-        require(
-            msg.sender == getGovernanceAddress() ||
-            msg.sender == getExecutableContract() ||
             msg.sender == getProposalLogicContract()
         );
         _;
@@ -184,34 +149,6 @@ contract GovStorage is IGovStorage {
         numberOfVotingDays[1] = 1;
         numberOfVotingDays[2] = 1;
         minimumStakingDuration = 10;
-
-        // for tests only
-        voteTokenAllocation[0].duration = 4;
-        voteTokenAllocation[0].allocation = 3000000000000000;
-
-        //voteTokenAllocation[0].duration = 4 weeks;
-        //voteTokenAllocation[0].allocation = 3000000000000000;
-        _voteTokenAllocation.push(voteTokenAllocation[0]);
-
-        voteTokenAllocation[1].duration = 12 weeks;
-        voteTokenAllocation[1].allocation = 3653793637913968;
-        _voteTokenAllocation.push(voteTokenAllocation[1]);
-
-        voteTokenAllocation[2].duration = 24 weeks;
-        voteTokenAllocation[2].allocation = 4578397467645146;
-        _voteTokenAllocation.push(voteTokenAllocation[2]);
-
-        voteTokenAllocation[3].duration = 48 weeks;
-        voteTokenAllocation[3].allocation = 5885984743473081;
-        _voteTokenAllocation.push(voteTokenAllocation[3]);
-
-        voteTokenAllocation[4].duration = 96 weeks;
-        voteTokenAllocation[4].allocation = 7735192402935436;
-        _voteTokenAllocation.push(voteTokenAllocation[4]);
-
-        voteTokenAllocation[5].duration = 144 weeks;
-        voteTokenAllocation[5].allocation = 10000000000000000;
-        _voteTokenAllocation.push(voteTokenAllocation[5]);
     }
 
     function setUpGoup1(
@@ -222,8 +159,11 @@ contract GovStorage is IGovStorage {
         address _bankBondManagerContract,
         address _oracleContract,
         address _stakingContract,
+        address _InterestRatesContract,
         address _voteContract
     ) external onlyVetoOperator {
+        require(_lockGroup1 == 0, "GovStorage: Group1 already set");
+
         governance = _governance;
         dgovContract = _dgovContract;
         dbitContract = _dbitContract;
@@ -232,6 +172,9 @@ contract GovStorage is IGovStorage {
         oracleContract = _oracleContract;
         stakingContract = _stakingContract;
         voteTokenContract = _voteContract;
+        InterestRatesContract = _InterestRatesContract;
+
+        _lockGroup1 == 1;
     }
 
     function setUpGoup2(
@@ -245,6 +188,8 @@ contract GovStorage is IGovStorage {
         address _airdropContract,
         address _governanceOwnableContract
     ) external onlyVetoOperator {
+        require(_lockGroup2 == 0, "GovStorage: Group2 already set");
+
         proposalLogicContract = _proposalLogicContract;
         executable = _executable;
         bankContract = _bankContract;
@@ -254,6 +199,8 @@ contract GovStorage is IGovStorage {
         exchangeStorageContract = _exchangeStorageContract;
         airdropContract = _airdropContract;
         governanceOwnableContract = _governanceOwnableContract;
+
+        _lockGroup2 == 1;
     }
 
     function isInitialized() public view returns(bool) {
@@ -301,8 +248,7 @@ contract GovStorage is IGovStorage {
         return true;
     }
 
-
-    function getThreshold() public view returns(uint256) {
+    function getProposalThreshold() public view returns(uint256) {
         return _proposalThreshold;
     }
 
@@ -322,6 +268,10 @@ contract GovStorage is IGovStorage {
         return stakingContract;
     }
 
+    function getInterestRatesContract() public view returns(address) {
+        return InterestRatesContract;
+    }
+
     function getVoteTokenContract() public view returns(address) {
         return voteTokenContract;
     }
@@ -332,10 +282,6 @@ contract GovStorage is IGovStorage {
 
     function getAirdropContract() public view returns(address) {
         return airdropContract;
-    }
-
-    function getNumberOfSecondInYear() public pure returns(uint256) {
-        return NUMBER_OF_SECONDS_IN_YEAR;
     }
 
     function getGovernanceAddress() public view returns(address) {
@@ -388,6 +334,10 @@ contract GovStorage is IGovStorage {
 
     function getDebondTeamAddress() public view returns(address) {
         return debondTeam;
+    }
+
+    function getNumberOfSecondInYear() public pure returns(uint256) {
+        return NUMBER_OF_SECONDS_IN_YEAR;
     }
 
     function getBenchmarkIR() public view returns(uint256) {
@@ -447,85 +397,6 @@ contract GovStorage is IGovStorage {
         return _proposalQuorum[_class];
     }
 
-    function getStakedDGOV() public view returns(StackedDGOV[] memory) {
-        return _totalStackedDGOV;
-    }
-
-    function getUserStakedDGOVInfo(
-        address _staker,
-        uint256 _stakingCounter
-    ) public view returns(StackedDGOV memory) {
-        return stackedDGOV[_staker][_stakingCounter];
-    }
-
-    function getVoteTokenAllocations() public view returns(VoteTokenAllocation[] memory) {
-        return _voteTokenAllocation;
-    }
-
-    function getVoteTokenAllocAtIndex(uint256 _index) public view returns(VoteTokenAllocation memory) {
-        return voteTokenAllocation[_index];
-    }
-
-    function hasVoted(
-        uint128 _class,
-        uint128 _nonce,
-        address _account
-    ) public view returns(bool voted) {
-        return IProposalLogic(proposalLogicContract).hasVoted(_class, _nonce, _account);
-    }
-
-    function setStackedDGOV(
-        address _staker,
-        uint256 _durationIndex,
-        uint256 _amountDGOV
-    ) external onlyGov {
-        uint256 counter = stakingCounter[_staker];
-        stackedDGOV[_staker][counter + 1].startTime = block.timestamp;
-        stackedDGOV[_staker][counter + 1].lastInterestWithdrawTime = block.timestamp;
-        stackedDGOV[_staker][counter + 1].duration = voteTokenAllocation[_durationIndex].duration;
-        stackedDGOV[_staker][counter + 1].amountDGOV += _amountDGOV;
-        stackedDGOV[_staker][counter + 1].amountVote += _amountDGOV * voteTokenAllocation[_durationIndex].allocation / 10**16;
-        stakingCounter[_staker] = counter + 1;
-
-        _totalStackedDGOV.push(stackedDGOV[_staker][counter + 1]);
-    }
-
-    /**
-    * @dev return a proposal
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    */
-    function getProposal(
-        uint128 _class,
-        uint128 _nonce
-    ) public view returns(
-        uint256,
-        uint256,
-        address,
-        ProposalStatus,
-        ProposalApproval,
-        address,
-        uint256,
-        bytes memory,
-        string memory,
-        bytes32
-    ) {
-        Proposal memory _proposal = proposal[_class][_nonce];
-
-        return (
-            _proposal.startTime,
-            _proposal.endTime,
-            _proposal.proposer,
-            _proposal.status,
-            _proposal.approvalMode,
-            _proposal.targets,
-            _proposal.values,
-            _proposal.calldatas,
-            _proposal.title,
-            _proposal.descriptionHash
-        );
-    }
-
     /**
     * @dev return the proposal status
     * @param _class proposal class
@@ -564,25 +435,6 @@ contract GovStorage is IGovStorage {
         }
     }
 
-    function getProposalInfoForExecutable(
-        uint128 _class,
-        uint128 _nonce
-    ) public view returns(
-        address,
-        address,
-        uint256,
-        bytes memory
-    ) {
-        Proposal memory _proposal = proposal[_class][_nonce];
-
-        return (
-            _proposal.proposer,
-            _proposal.targets,
-            _proposal.values,
-            _proposal.calldatas
-        );
-    }
-
     function getNumberOfVotingDays(
         uint128 _class
     ) public view returns(uint256) {
@@ -609,9 +461,69 @@ contract GovStorage is IGovStorage {
     ) public onlyProposalLogic {
         totalVoteTokenPerDay[_class][_nonce][_votingDay] += _amountVoteTokens;
     }
+ 
+    function setProposal(
+        uint128 _class,
+        uint128 _nonce,
+        uint256 _startTime,
+        uint256 _endTime,
+        address _proposer,
+        ProposalApproval _approvalMode,
+        address _targets,
+        uint256 _values,
+        bytes memory _calldatas,
+        string memory _title,
+        bytes32 _descriptionHash
+    ) public onlyProposalLogic {
+        require(_proposer != address(0), "GovStorage: zero address");
 
-    function dbitDistributedPerDay() public view returns(uint256) {
-        return votingInterestRate() / 36500;
+        proposal[_class][_nonce].startTime = _startTime;
+        proposal[_class][_nonce].endTime = _endTime;
+        proposal[_class][_nonce].proposer = _proposer;
+        proposal[_class][_nonce].approvalMode = _approvalMode;
+        proposal[_class][_nonce].targets = _targets;
+        proposal[_class][_nonce].values = _values;
+        proposal[_class][_nonce].calldatas = _calldatas;
+        proposal[_class][_nonce].title = _title;
+        proposal[_class][_nonce].descriptionHash = _descriptionHash;
+    }
+
+    function setProposalStatus(
+        uint128 _class,
+        uint128 _nonce,
+        ProposalStatus _status
+    ) public onlyGov {
+        proposal[_class][_nonce].status = _status;
+    }
+
+    function getProposalNonce(
+        uint128 _class
+    ) public view returns(uint128) {
+        return proposalNonce[_class];
+    }
+
+    function setProposalNonce(
+        uint128 _class,
+        uint128 _nonce
+    ) public onlyGov {
+        proposalNonce[_class] = _nonce;
+    }
+
+    /**
+    * return the CDP of DGOV to DBIT
+    */
+    function cdpDGOVToDBIT() public view returns(uint256) {
+        uint256 dgovTotalSupply = IDebondToken(getDGOVAddress()).getTotalCollateralisedSupply();
+
+        return 100 ether + ((dgovTotalSupply / 33333)**2 / 1 ether);
+    }
+
+    function setBenchmarkIR(uint256 _newBenchmarkInterestRate) external onlyExec {
+        benchmarkInterestRate = _newBenchmarkInterestRate;
+    }
+
+    function setProposalThreshold(uint256 _newProposalThreshold) external onlyExec {
+        _proposalThreshold = _newProposalThreshold;
     }
 
     function updateExecutableAddress(address _executableAddress) external onlyExec {
@@ -647,150 +559,6 @@ contract GovStorage is IGovStorage {
     function updateGovernanceAddress(address _governanceAddress) external onlyExec {
         require(_governanceAddress != address(0), "GovStorage: zero address");
         governance = _governanceAddress;
-    }
- 
-    function setProposal(
-        uint128 _class,
-        uint128 _nonce,
-        uint256 _startTime,
-        uint256 _endTime,
-        address _proposer,
-        ProposalApproval _approvalMode,
-        address _targets,
-        uint256 _values,
-        bytes memory _calldatas,
-        string memory _title
-    ) public onlyProposalLogic {
-        require(_proposer != address(0), "GovStorage: zero address");
-
-        proposal[_class][_nonce].startTime = _startTime;
-        proposal[_class][_nonce].endTime = _endTime;
-        proposal[_class][_nonce].proposer = _proposer;
-        proposal[_class][_nonce].approvalMode = _approvalMode;
-        proposal[_class][_nonce].targets = _targets;
-        proposal[_class][_nonce].values = _values;
-        proposal[_class][_nonce].calldatas = _calldatas;
-        proposal[_class][_nonce].title = _title;
-    }
-
-    function setProposalDescriptionHash(
-        uint128 _class,
-        uint128 _nonce,
-        bytes32 _descriptionHash
-    ) external onlyProposalLogic {
-        proposal[_class][_nonce].descriptionHash = _descriptionHash;
-    }
-
-    function setProposalStatus(
-        uint128 _class,
-        uint128 _nonce,
-        ProposalStatus _status
-    ) public onlyDebondContracts {
-        proposal[_class][_nonce].status = _status;
-    }
-
-    function getProposalNonce(
-        uint128 _class
-    ) public view returns(uint128) {
-        return proposalNonce[_class];
-    }
-
-    function setProposalNonce(
-        uint128 _class,
-        uint128 _nonce
-    ) public onlyGov {
-        proposalNonce[_class] = _nonce;
-    }
-
-    /**
-    * @dev Estimate how much Interest the user has gained since he staked dGoV
-    * @param _amount the amount of DGOV staked
-    * @param _duration staking duration to estimate interest from
-    * @param interest the estimated interest earned so far
-    */
-    function estimateInterestEarned(
-        uint256 _amount,
-        uint256 _duration
-    ) external view returns(uint256 interest) {
-        uint256 stakingSupply = IERC20(
-            dgovContract
-        ).balanceOf(stakingContract);
-
-        interest = (_amount * stakingInterestRate() * _duration)
-                    / (100 * getNumberOfSecondInYear() * stakingSupply);
-    }
-
-    /**
-    * @dev return the daily interest rate for voting (in percent)
-    */
-    function votingInterestRate() public view returns(uint256) {
-        uint256 cdpPrice = cdpDGOVToDBIT();
-        
-        return benchmarkInterestRate * cdpPrice * 34 / 100;
-    }
-
-    /**
-    * @dev return the daily interest rate for staking DGOV (in percent)
-    */
-    function stakingInterestRate() public view returns(uint256) {
-        uint256 cdpPrice = cdpDGOVToDBIT();
-        
-        return benchmarkInterestRate * cdpPrice * 66 / 100;
-    }
-
-    /**
-    * return the CDP of DGOV to DBIT
-    */
-    function cdpDGOVToDBIT() public view returns(uint256) {
-        uint256 dgovTotalSupply = IDebondToken(getDGOVAddress()).getTotalCollateralisedSupply();
-
-        return 100 ether + ((dgovTotalSupply / 33333)**2 / 1 ether);
-    }
-
-    //==== FROM EXECUTABLE
-
-    function updateGovernanceContract(
-        address _newGovernanceAddress,
-        address _executor
-    ) public onlyExec returns(bool) {
-        require(_newGovernanceAddress != address(0), "GovStorage: zero address");
-        require(_executor != address(0), "GovStorage: zero address");
-
-        governance = _newGovernanceAddress;
-
-        return true;
-    }
-
-    function updateExchangeContract(
-        address _newExchangeAddress,
-        address _executor
-    ) public onlyExec returns(bool) {
-        require(_newExchangeAddress != address(0), "GovStorage: zero address");
-        require(_executor != address(0), "GovStorage: zero address");
-
-        exchangeContract = _newExchangeAddress;
-
-        return true;
-    }
-
-    function updateBankContract(
-        address _newBankAddress,
-        address _executor
-    ) public onlyExec returns(bool) {
-        require(_newBankAddress != address(0), "GovStorage: zero address");
-        require(_executor != address(0), "GovStorage: zero address");
-        
-        bankContract = _newBankAddress;
-
-        return true;
-    }
-
-    function setBenchmarkIR(uint256 _newBenchmarkInterestRate) external onlyExec {
-        benchmarkInterestRate = _newBenchmarkInterestRate;
-    }
-
-    function setProposalThreshold(uint256 _newProposalThreshold) external onlyExec {
-        _proposalThreshold = _newProposalThreshold;
     }
 
     function setFundSize(
@@ -852,7 +620,6 @@ contract GovStorage is IGovStorage {
         uint256 _dbitTotalSupply = IDebondToken(dbitContract).totalSupply();
         uint256 _dgovTotalSupply = IDebondToken(dgovContract).totalSupply();
 
-        // NEED TO CHECK THIS WITH YU (see first param on require)
         require(
             _amountDBIT <= (_dbitTotalSupply - dbitTotalAllocationDistributed) / 1e6 * 
                            (dbitBudgetPPM - dbitAllocationDistibutedPPM),
@@ -938,31 +705,5 @@ contract GovStorage is IGovStorage {
         );
 
         return true;
-    }
-
-    function getProposalCallData(
-        uint128 _class,
-        uint128 _nonce
-    ) public view returns(bytes memory) {
-        return proposal[_class][_nonce].calldatas;
-    }
-
-    function getGovernanceCallData(
-        uint128 _class,
-        uint128 _nonce,
-        address _newGovernanceAddress
-    ) public pure returns(bytes memory) {
-        bytes4 SELECTOR = bytes4(keccak256(bytes('updateGovernanceAddress(uint128,uint128,address)')));
-        return abi.encodeWithSelector(SELECTOR, _class, _nonce, _newGovernanceAddress);
-    }
-
-    function decodeGovernanceCallData(
-        bytes calldata _data
-    ) public pure returns(
-        uint128,
-        uint128,
-        address
-    ) {
-        return abi.decode(_data[4:], (uint128, uint128, address));
     }
 }

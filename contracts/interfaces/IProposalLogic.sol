@@ -17,27 +17,13 @@ pragma solidity ^0.8.0;
 import "./IGovSharedStorage.sol";
 
 interface IProposalLogic is IGovSharedStorage {
-    function cancelProposal(
-        uint128 _class,
-        uint128 _nonce
-    ) external;
-
-    function voteRequirement(
-        uint128 _class,
-        uint128 _nonce,
-        address _tokenOwner,
-        address _voter,
-        uint256 _amountVoteTokens,
-        uint256 _stakingCounter
-    ) external;
-
     function calculateReward(
         uint128 _class,
         uint128 _nonce,
         address _tokenOwner
     ) external returns(uint256 reward);
 
-    function vote(
+    function setVote(
         uint128 _class,
         uint128 _nonce,
         address _voter,
@@ -45,7 +31,7 @@ interface IProposalLogic is IGovSharedStorage {
         uint256 _amountVoteTokens
     ) external;
 
-    function proposalSetUp(
+    function setProposal(
         uint128 _class,
         uint128 _nonce,
         address _proposer,

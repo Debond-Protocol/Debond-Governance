@@ -23,7 +23,7 @@ interface IExecutable {
         uint256 _newBenchmarkInterestRate
     ) external returns(bool);
 
-    function updateProposalThresholdForProposer(
+    function updateProposalThreshold(
         uint128 _proposalClass,
         uint256 _newProposalThreshold
     ) external returns(bool);
