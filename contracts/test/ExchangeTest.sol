@@ -16,53 +16,9 @@ pragma solidity ^0.8.0;
 
 import "@debond-protocol/debond-exchange-contracts/Exchange.sol";
 
-interface IUpdatable {
-    function updateGovernance(
-        address _governanceAddress
-    ) external;
-
-    function updateExecutable(
-        address _executableAddress
-    ) external;
-}
-
-contract ExchangeStorage is IUpdatable {
-    address governance;
-    address executable;
-
-    modifier onlyExec {
-        require(msg.sender == executable, "Exchange: only exec");
-        _;
-    }
-
-    function updateGovernance(
-        address _governanceAddress
-    ) external onlyExec {
-        governance = _governanceAddress;
-    }
-
-    function updateExecutable(
-        address _executableAddress
-    ) external onlyExec {
-        executable = _executableAddress;
-    }
-}
-
-contract ExchangeTest is Exchange, ExchangeStorage {
+contract ExchangeTest is Exchange {
     constructor(
         address _exchangeStorageAddress,
-        address _governanceAddress,
         address _executableAddress
-    ) Exchange(_exchangeStorageAddress, _governanceAddress) {
-        governance = _governanceAddress;
-        executable = _executableAddress;
-    }
-
-    function getGovernanceAddress() public view returns(address) {
-        return governance;
-    }
-
-    function getExecutableAddress() public view returns(address) {
-        return executable;
-    }
+    ) Exchange(_exchangeStorageAddress, _executableAddress) {}
 }

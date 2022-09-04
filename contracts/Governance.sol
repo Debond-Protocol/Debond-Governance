@@ -388,18 +388,4 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
     function generateNewNonce(uint128 _class) private view returns(uint128 nonce) {
         nonce = IGovStorage(govStorageAddress).getProposalNonce(_class) + 1;
     }
-
-    /**
-    * @dev transfer tokens from Governance contract to an address
-    * @param _token token address
-    * @param _to recipient address
-    * @param _amount amount of tokens to transfer
-    */
-    function migrate(
-        address _token,
-        address _to,
-        uint256 _amount
-    ) external override onlyExec {
-        IERC20(_token).safeTransfer(_to, _amount);
-    }
 }

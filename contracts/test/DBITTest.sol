@@ -14,11 +14,12 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-apm-contracts/APM.sol";
+import "@debond-protocol/debond-token-contracts/DBIT.sol";
 
-contract APMTest is APM {
+contract DBITTest is DBIT {
     constructor(
+        address _executableAddress,
         address _bank,
-        address _executable
-    ) APM(_executable, _bank) {}
+        address _airdrop
+    ) DBIT(_executableAddress, _bank, _airdrop) {}
 }

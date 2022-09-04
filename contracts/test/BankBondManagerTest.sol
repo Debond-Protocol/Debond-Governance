@@ -14,11 +14,23 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-apm-contracts/APM.sol";
+import "@debond-protocol/debond-bank-contracts/BankBondManager.sol";
 
-contract APMTest is APM {
+contract BankBondManagerTest is BankBondManager {
+
     constructor(
-        address _bank,
-        address _executable
-    ) APM(_executable, _bank) {}
+        address _governanceAddress,
+        address _debondBondAddress,
+        address _bankAddress,
+        address _bankDataAddress,
+        address _oracleAddress,
+        address _USDCAddress
+    ) BankBondManager(
+            _governanceAddress,
+            _debondBondAddress,
+            _bankAddress,
+            _bankDataAddress,
+            _oracleAddress,
+            _USDCAddress
+    ) {}
 }

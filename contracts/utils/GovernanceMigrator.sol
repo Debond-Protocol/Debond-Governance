@@ -17,16 +17,9 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IGovStorage.sol";
 import "../interfaces/IGovSharedStorage.sol";
+import "../interfaces/IMigrate.sol";
 
-interface IUpdatable {
-    function migrate(
-        address _token,
-        address _to,
-        uint256 _amount
-    ) external;
-}
-
-contract GovernanceMigrator is IUpdatable {
+contract GovernanceMigrator is IMigrate {
     using SafeERC20 for IERC20;
     uint8 private _lock;
     address public govStorage;

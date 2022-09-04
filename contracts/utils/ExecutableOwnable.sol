@@ -52,4 +52,8 @@ abstract contract ExecutableOwnable is IActivable, IExecutableUpdatable {
     function updateExecutableAddress(address _newExecutableAddress) external onlyExecutable {
         executableAddress = _newExecutableAddress;
     }
+
+    function getExecutableAddress() external view returns(address) {
+        return executableAddress;
+    }
 }

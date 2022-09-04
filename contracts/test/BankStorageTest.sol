@@ -14,33 +14,18 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-interface IUpdatable {
-    function updateExecutable(
-        address _executableAddress
-    ) external;
-}
+import "@debond-protocol/debond-bank-contracts/BankStorage.sol";
 
-contract OracleExecutable is IUpdatable {
-    address executable;
 
-    modifier onlyExec {
-        require(msg.sender == executable, "Oracle: only exec");
-        _;
-    }
+contract BankStorageTest is BankStorage {
 
-    function updateExecutable(
-        address _executableAddress
-    ) external onlyExec {
-        executable = _executableAddress;
-    }
-}
-
-contract Oracle is OracleExecutable {
-    constructor(address _executableAddress) {
-        executable = _executableAddress;
-    }
-
-    function getExecutableAddress() public view returns(address) {
-        return executable;
-    }
+    constructor(
+        address _governanceAddress,
+        address _bankAddress,
+        uint _baseTimestamp
+    ) BankStorage(
+        _governanceAddress,
+        _bankAddress,
+        _baseTimestamp
+    ) {}
 }

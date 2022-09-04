@@ -14,11 +14,12 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-apm-contracts/APM.sol";
+import "@debond-protocol/debond-token-contracts/DGOV.sol";
 
-contract APMTest is APM {
+contract DGOVTest is DGOV {
     constructor(
+        address _governanceAddress,
         address _bank,
-        address _executable
-    ) APM(_executable, _bank) {}
+        address _airdrop
+    ) DGOV(_governanceAddress, _bank, _airdrop) {}
 }

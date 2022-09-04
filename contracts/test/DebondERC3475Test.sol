@@ -14,11 +14,14 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-apm-contracts/APM.sol";
+import "@debond-protocol/debond-erc3475-contracts/DebondERC3475.sol";
 
-contract APMTest is APM {
+
+contract DebondERC3475Test is DebondERC3475 {
     constructor(
-        address _bank,
-        address _executable
-    ) APM(_executable, _bank) {}
+        address _excutableAddress,
+        address _bankAddress,
+        address _bankBondManagerAddress
+    ) DebondERC3475(_excutableAddress, _bankAddress, _bankBondManagerAddress) {}
+
 }
