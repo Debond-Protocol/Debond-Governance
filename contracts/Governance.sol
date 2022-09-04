@@ -23,8 +23,6 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IVoteToken.sol";
-import "./interfaces/IGovSettings.sol";
-import "./interfaces/IVoteCounting.sol";
 import "./interfaces/IProposalLogic.sol";
 import "./interfaces/IGovSharedStorage.sol";
 import "./utils/GovernanceMigrator.sol";
@@ -112,13 +110,13 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
         IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).setProposal(
-            _class, nonce, _msgSender(), _targets, _values, _calldatas, _title, _descriptionHash
+            _class, nonce, msg.sender, _targets, _values, _calldatas, _title, _descriptionHash
         );
 
         require(
             IVoteToken(
                 IGovStorage(govStorageAddress).getVoteTokenContract()
-            ).availableBalance(_msgSender()) >=
+            ).availableBalance(msg.sender) >=
             IGovStorage(govStorageAddress).getProposalThreshold(),
             "Gov: insufficient vote tokens"
         );
@@ -126,8 +124,8 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
         IVoteToken(
             IGovStorage(govStorageAddress).getVoteTokenContract()
         ).lockTokens(
-            _msgSender(),
-            _msgSender(),
+            msg.sender,
+            msg.sender,
             IGovStorage(govStorageAddress).getProposalThreshold(),
             _class,
             nonce
@@ -305,7 +303,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
     * @param _durationIndex index of the staking duration -defined in the staking contract-
     */
     function stakeDGOV(uint256 _amount, uint256 _durationIndex) public nonReentrant {
-        address staker = _msgSender();
+        address staker = msg.sender;
         require(staker != address(0), "StakingDGOV: zero address");
 
         uint256 stakerBalance = IERC20(

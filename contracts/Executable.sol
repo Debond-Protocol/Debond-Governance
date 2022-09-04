@@ -19,6 +19,7 @@ import "@debond-protocol/debond-token-contracts/interfaces/IDGOV.sol";
 import "@debond-protocol/debond-apm-contracts/interfaces/IAPM.sol";
 import "@debond-protocol/debond-erc3475-contracts/interfaces/IDebondBond.sol";
 import "@debond-protocol/debond-bank-contracts/interfaces/IBankBondManager.sol";
+import "@debond-protocol/debond-bank-contracts/interfaces/Types.sol";
 import "@debond-protocol/debond-bank-contracts/interfaces/IBank.sol";
 import "@debond-protocol/debond-bank-contracts/interfaces/IBankStorage.sol";
 import "@debond-protocol/debond-exchange-contracts/interfaces/IExchangeStorage.sol";
@@ -138,7 +139,7 @@ contract Executable is IGovSharedStorage {
         uint256 _classId,
         string memory _symbol,
         address _tokenAddress,
-        IBankBondManager.InterestRateType _interestRateType,
+        Types.InterestRateType _interestRateType,
         uint256 _period
     ) external onlyGov returns(bool) {
 
@@ -157,25 +158,25 @@ contract Executable is IGovSharedStorage {
         return true;
     }
 
-    function updateVoteClassInfo(
-        uint128 _ProposalClassInfoClass,
-        uint256 _timeLock,
-        uint256 _minimumApproval,
-        uint256 _quorum,
-        uint256 _needVeto,
-        uint256 _maximumExecutionTime,
-        uint256 _minimumExexutionInterval
-    ) external onlyGov returns(bool) {
-        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 0, _timeLock);
-        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 1, _minimumApproval);
-        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 2, _quorum);
-        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 3, _needVeto);
-        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 4, _maximumExecutionTime);
-        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 5, _minimumExexutionInterval);
-
-        emit voteClassUpdated(_ProposalClassInfoClass, _quorum);
-        return true;
-    }
+//    function updateVoteClassInfo(
+//        uint128 _ProposalClassInfoClass,
+//        uint256 _timeLock,
+//        uint256 _minimumApproval,
+//        uint256 _quorum,
+//        uint256 _needVeto,
+//        uint256 _maximumExecutionTime,
+//        uint256 _minimumExexutionInterval
+//    ) external onlyGov returns(bool) {
+//        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 0, _timeLock);
+//        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 1, _minimumApproval);
+//        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 2, _quorum);
+//        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 3, _needVeto);
+//        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 4, _maximumExecutionTime);
+//        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 5, _minimumExexutionInterval);
+//
+//        emit voteClassUpdated(_ProposalClassInfoClass, _quorum);
+//        return true;
+//    }
 
     function changeStampDuty(
         address _to,
@@ -317,7 +318,7 @@ contract Executable is IGovSharedStorage {
         // in Debond Bond
         IDebondBond(
             IGovStorage(govStorageAddress).getERC3475Address()
-        ).updateRedeemableAddress(_bankAddress);
+        ).updateBankAddress(_bankAddress);
 
         // in Bank Data
         IBankStorage(
