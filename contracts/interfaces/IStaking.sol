@@ -18,32 +18,42 @@ interface IStaking {
     function stakeDgovToken(
         address _staker,
         uint256 _amount,
-        uint256 _duration
-    ) external;
+        uint256 _durationIndex
+    ) external returns(uint256 duration, uint256 _amountToMint);
 
-    function unstakeDgovToken(
+    function transferDgov(
         address _staker,
         uint256 _stakingCounter
-    ) external returns(uint256 unstakedAmount);
+    ) external returns(uint256 amountDGOV, uint256 amountVote);
 
-    function getStakedDGOVAmount(
+    function getAvailableVoteTokens(
         address _staker,
         uint256 _stakingCounter
-    ) external view returns(uint256 _stakedAmount);
+    ) external view returns(uint256 _voteTokens);
 
-    function setLastTimeInterestWithdraw(
+    function updateLastTimeInterestWithdraw(
         address _staker,
         uint256 _stakingCounter
     ) external;
 
     function calculateInterestEarned(
         address _staker,
-        uint256 _stakingCounter,
-        uint256 _interestRate
+        uint256 _amount,
+        uint256 _stakingCounter
     ) external view returns(uint256 interest, uint256 duration);
 
-    function getStartTimeDurationAndLastWithdrawTime(
+    function estimateInterestEarned(
+        uint256 _amount,
+        uint256 _duration
+    ) external view returns(uint256 interest);
+
+    function getStakingData(
         address _staker,
         uint256 _stakingCounter
-    ) external view returns(uint256 startTime, uint256 duration, uint256 lastWithdrawTime);
+    ) external view returns(
+        uint256 _stakedAmount,
+        uint256 startTime,
+        uint256 duration,
+        uint256 lastWithdrawTime
+    );
 }

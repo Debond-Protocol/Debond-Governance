@@ -126,6 +126,14 @@ contract Executable is IGovSharedStorage {
         return true;
     }
 
+    function updateProposalThreshold(
+        uint256 _newProposalThreshold
+    ) external onlyGov returns(bool) {
+        IGovStorage(govStorageAddress).setProposalThreshold(_newProposalThreshold);
+
+        return true;
+    }
+
     function createNewBondClass(
         uint256 _classId,
         string memory _symbol,

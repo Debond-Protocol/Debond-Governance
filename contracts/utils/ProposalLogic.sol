@@ -19,24 +19,29 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "../interfaces/IGovStorage.sol";
 import "../interfaces/IVoteToken.sol";
 import "../interfaces/IStaking.sol";
-import "../interfaces/IVoteCounting.sol";
-import "../interfaces/IGovSettings.sol";
 import "../interfaces/IProposalLogic.sol";
 import "../interfaces/IGovSharedStorage.sol";
+import "../interfaces/IInterestRates.sol";
 
 contract ProposalLogic is IProposalLogic {
-    address vetoOperator;
+    mapping(uint128 => uint256) private _votingPeriod;
+    mapping(uint128 => mapping(uint128 => ProposalVote)) internal _proposalVotes;
+
+    event votingDelaySet(uint256 oldDelay, uint256 newDelay);
+    event votingPeriodSet(uint256 oldPeriod, uint256 newPeriod);
+    event periodSet(uint128 _class, uint256 _period);
+
     address govStorageAddress;
-    address voteTokenAddress;
-    address stakingAddress;
-    address voteCountingAddress;
 
     modifier onlyVetoOperator {
-        require(msg.sender == vetoOperator, "ProposalLogic: permission denied");
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getVetoOperator(),
+            "ProposalLogic: permission denied"
+        );
         _;
     }
 
-    modifier onlyGov() {
+    modifier onlyGov {
         require(
             msg.sender == IGovStorage(govStorageAddress).getGovernanceAddress(),
             "ProposalLogic: Only Gov"
@@ -45,240 +50,14 @@ contract ProposalLogic is IProposalLogic {
     }
 
     constructor(
-        address _vetoOperator,
-        address _govStorageAddress,
-        address _voteTokenAddress,
-        address _voteCountingAddress
+        address _govStorageAddress
     ) {
-        vetoOperator = _vetoOperator;
         govStorageAddress = _govStorageAddress;
-        voteTokenAddress = _voteTokenAddress;
-        voteCountingAddress = _voteCountingAddress;
-    }
 
-    /**
-    * @dev store proposal data
-    * @param _class proposal class
-    * @param _targets array of contract to interact with if the proposal passes
-    * @param _values array contraining ethers to send (can be array of zeros)
-    * @param _calldatas array of encoded functions to call if the proposal passes
-    * @param _title proposal title
-    */
-    function _setProposalData(
-        uint128 _class,
-        uint128 _nonce,
-        address _proposer, 
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
-        string memory _title
-    ) private returns(
-        uint256 start,
-        uint256 end,
-        ProposalApproval approval
-    ) {
-        require(
-            IVoteToken(
-                IGovStorage(govStorageAddress).getVoteTokenContract()
-            ).availableBalance(_proposer) >=
-            IGovStorage(govStorageAddress).getThreshold(),
-            "Gov: insufficient vote tokens"
-        );
-
-        require(
-            _targets.length == _values.length &&
-            _values.length == _calldatas.length,
-            "Gov: invalid proposal"
-        );
-     
-        approval = getApprovalMode(_class);
-
-        IVoteToken(
-            IGovStorage(govStorageAddress).getVoteTokenContract()
-        ).lockTokens(
-            _proposer,
-            _proposer,
-            IGovStorage(govStorageAddress).getThreshold(),
-            _class,
-            _nonce
-        );
-
-        start = block.timestamp;
-        
-        end = start + IGovSettings(
-            IGovStorage(govStorageAddress).getGovSettingContract()
-        ).getVotingPeriod(_class);
-
-        IGovStorage(govStorageAddress).setProposal(
-            _class,
-            _nonce,
-            start,
-            end,
-            _proposer,
-            approval,
-            _targets,
-            _values,
-            _calldatas,
-            _title
-        );
-    }
-
-    /**
-    * @dev hash a proposal
-    * @param _class proposal class
-    * @param _targets array of target contracts
-    * @param _values array of ether send
-    * @param _calldatas array of calldata to be executed
-    * @param _descriptionHash the hash of the proposal description
-    */
-    function hashProposal(
-        uint128 _class,
-        uint128 _nonce,
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
-        bytes32 _descriptionHash
-    ) internal pure returns (uint256 proposalHash) {
-        proposalHash = uint256(
-            keccak256(
-                abi.encode(
-                    _class,
-                    _nonce,
-                    _targets,
-                    _values,
-                    _calldatas,
-                    _descriptionHash
-                )
-            )
-        );
-    }
-
-    /**
-    * @dev execute a proposal
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    */
-    function cancelProposal(
-        uint128 _class,
-        uint128 _nonce
-    ) external onlyGov {
-        ProposalStatus status = IGovStorage(
-            govStorageAddress
-        ).getProposalStatus(_class, _nonce);
-
-        require(
-            status != ProposalStatus.Canceled &&
-            status != ProposalStatus.Executed
-        );
-
-        IGovStorage(
-            govStorageAddress
-        ).setProposalStatus(_class, _nonce, ProposalStatus.Canceled);
-    }
-
-    function voteRequirement(
-        uint128 _class,
-        uint128 _nonce,
-        address _tokenOwner,
-        address _voter,
-        uint256 _amountVoteTokens,
-        uint256 _stakingCounter
-    ) external onlyGov {
-        require(_voter != address(0), "Governance: zero address");
-        require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
-
-        uint256 _dgovStaked = IStaking(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).getStakedDGOVAmount(_tokenOwner, _stakingCounter);
-        
-        uint256 approvedToSpend = IERC20(
-            IGovStorage(govStorageAddress).getDGOVAddress()
-        ).allowance(_tokenOwner, _voter);
-        
-        require(
-            _amountVoteTokens <= _dgovStaked &&
-            _amountVoteTokens <= approvedToSpend,
-            "ProposalLogic: not approved or not enough dGoV staked"
-        );
-
-        if (_voter != _tokenOwner) {
-            require(
-                _amountVoteTokens <= 
-                IERC20(
-                    IGovStorage(govStorageAddress).getVoteTokenContract()
-                ).balanceOf(_tokenOwner) - 
-                IVoteToken(
-                    IGovStorage(govStorageAddress).getVoteTokenContract()
-                ).lockedBalanceOf(_tokenOwner, _class, _nonce),
-                "Gov: not enough vote tokens"
-            );
-
-            IVoteToken(
-                IGovStorage(govStorageAddress).getVoteTokenContract()
-            ).lockTokens(_tokenOwner, _voter, _amountVoteTokens, _class, _nonce);          
-        }
-    }
-
-    function unstakeDGOVandCalculateInterest(
-        address _staker,
-        uint256 _stakingCounter
-    ) external onlyGov returns(uint256 amountStaked, uint256 interest, uint256 duration) {
-        amountStaked = IStaking(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).unstakeDgovToken(_staker, _stakingCounter);
-
-        // the interest calculated from this function is in ether unit
-        (interest, duration) = IStaking(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).calculateInterestEarned(
-            _staker,
-            _stakingCounter,
-            IGovStorage(govStorageAddress).stakingInterestRate()
-        );
-    }
-
-
-    /**
-    * @dev internal unlockVoteTokens function
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    * @param _tokenOwner owner of vote tokens
-    */
-    function unlockVoteTokens(
-        uint128 _class,
-        uint128 _nonce,
-        address _tokenOwner
-    ) external onlyGov {
-        ProposalStatus status = IGovStorage(
-            govStorageAddress
-        ).getProposalStatus(_class, _nonce);
-
-        address proposer = IGovStorage(
-            govStorageAddress
-        ).getProposalProposer(_class, _nonce);
-
-        require(
-            status == ProposalStatus.Canceled ||
-            status == ProposalStatus.Succeeded ||
-            status == ProposalStatus.Defeated ||
-            status == ProposalStatus.Executed,
-            "ProposalLogic: still voting"
-        );
-
-        if(_tokenOwner != proposer) {
-            require(
-                IVoteCounting(voteCountingAddress).hasVoted(_class, _nonce, _tokenOwner),
-                "Gov: you haven't voted"
-            );          
-        }
-        
-        uint256 _amount = IVoteToken(
-            IGovStorage(govStorageAddress).getVoteTokenContract()
-        ).lockedBalanceOf(_tokenOwner, _class, _nonce);
-
-        IVoteToken(
-            IGovStorage(govStorageAddress).getVoteTokenContract()
-        ).unlockTokens(_tokenOwner, _amount, _class, _nonce);
+        // to define during deployment
+        _votingPeriod[0] = 2;
+        _votingPeriod[1] = 2;
+        _votingPeriod[2] = 2;
     }
 
     function calculateReward(
@@ -287,10 +66,18 @@ contract ProposalLogic is IProposalLogic {
         address _tokenOwner
     ) external onlyGov returns(uint256 reward) {
         require(
-            !IVoteCounting(voteCountingAddress).hasBeenRewarded(_class, _nonce, _tokenOwner),
+            !hasBeenRewarded(_class, _nonce, _tokenOwner),
             "Gov: already rewarded"
         );
-        IVoteCounting(voteCountingAddress).setUserHasBeenRewarded(_class, _nonce, _tokenOwner);
+
+        _setUserHasBeenRewarded(_class, _nonce, _tokenOwner);
+
+        uint256 benchmarkIR = IGovStorage(govStorageAddress).getBenchmarkIR();
+        uint256 cdp = IGovStorage(govStorageAddress).cdpDGOVToDBIT();
+
+        uint256 rewardRate = IInterestRates(
+            IGovStorage(govStorageAddress).getInterestRatesContract()
+        ).votingInterestRate(benchmarkIR, cdp);
 
         uint256 _reward;
         
@@ -298,40 +85,22 @@ contract ProposalLogic is IProposalLogic {
             _reward += (1 ether * 1 ether) / IGovStorage(govStorageAddress).getTotalVoteTokenPerDay(_class, _nonce, i);
         }
 
-        reward = _reward * IVoteCounting(voteCountingAddress).getVoteWeight(_class, _nonce, _tokenOwner) * 
-                  IGovStorage(govStorageAddress).dbitDistributedPerDay() / (1 ether * 1 ether);
+        reward = getVoteWeight(_class, _nonce, _tokenOwner) * rewardRate * _reward / (36500 * 1 ether * 1 ether);
     }
 
-    function vote(
+    function setVote(
         uint128 _class,
         uint128 _nonce,
         address _voter,
         uint8 _userVote,
         uint256 _amountVoteTokens
     ) external onlyGov {
-        require(
-            IGovStorage(
-                govStorageAddress
-            ).getProposalStatus(_class, _nonce) == ProposalStatus.Active,
-            "Gov: proposal not active"
-        );
-
         uint256 day = _getVotingDay(_class, _nonce);        
         IGovStorage(govStorageAddress).increaseTotalVoteTokenPerDay(
             _class, _nonce, day, _amountVoteTokens
         );
-        
-        IVoteCounting(voteCountingAddress).setVotingDay(
-            _class, _nonce, _voter, day
-        );
-
-        IVoteCounting(voteCountingAddress).countVote(
-            _class, _nonce, _voter, _userVote, _amountVoteTokens
-        );
-    }
-
-    function setStakingContract(address _stakingAddress) public onlyVetoOperator {
-        stakingAddress = _stakingAddress;
+        _setVotingDay(_class, _nonce, _voter, day);
+        _countVote(_class, _nonce, _voter, _userVote, _amountVoteTokens);
     }
 
     /**
@@ -367,69 +136,236 @@ contract ProposalLogic is IProposalLogic {
         day = (duration / IGovStorage(govStorageAddress).getNumberOfSecondInYear()) + 1; // TODO NumberOfSecondInYear can be a contract constant
     }
 
-    function proposalSetUp(
+    function setProposal(
         uint128 _class,
         uint128 _nonce,
         address _proposer,
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
+        address _targets,
+        uint256 _values,
+        bytes memory _calldatas,
         string memory _title,
         bytes32 _descriptionHash
     ) public onlyGov returns(uint256 start, uint256 end, ProposalApproval approval) {
-        IGovStorage(govStorageAddress).setProposalNonce(_class, _nonce);
+        approval = getApprovalMode(_class);
+        start = block.timestamp;
+        end = start + _getVotingPeriod(_class);
 
-        (
+        IGovStorage(govStorageAddress).setProposal(
+            _class,
+            _nonce,
             start,
             end,
-            approval
-        ) = 
-        _setProposalData(
-            _class, _nonce, _proposer, _targets, _values, _calldatas, _title
+            _proposer,
+            approval,
+            _targets,
+            _values,
+            _calldatas,
+            _title,
+            _descriptionHash
+        );
+    }
+
+    function _getVotingPeriod(uint128 _class) internal view returns(uint256) {
+        return _votingPeriod[_class];
+    }
+
+    function setVotingPeriod(uint128 _class, uint256 _period) public onlyVetoOperator {
+        _setPeriod(_class, _period);
+        emit periodSet(_class, _period);
+    }
+
+    function _setPeriod(uint128 _class, uint256 _period) private {
+        _votingPeriod[_class] = _period;
+    }
+
+    function hasVoted(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(bool voted) {
+        voted = _proposalVotes[_class][_nonce].user[_account].hasVoted;
+    }
+
+    function numberOfVoteTokens(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(uint256 amountTokens) {
+        amountTokens = _proposalVotes[_class][_nonce].user[_account].weight;
+    }
+
+    function getProposalVotes(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(uint256 forVotes, uint256 againstVotes, uint256 abstainVotes) {
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+
+        (forVotes, againstVotes, abstainVotes) =
+        (
+            proposalVote.forVotes,
+            proposalVote.againstVotes,
+            proposalVote.abstainVotes
+        );
+    }
+
+    function getUserInfo(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(
+        bool,
+        bool,
+        uint256,
+        uint256
+    ) {
+        return (
+            _proposalVotes[_class][_nonce].user[_account].hasVoted,
+            _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded,
+            _proposalVotes[_class][_nonce].user[_account].weight,
+            _proposalVotes[_class][_nonce].user[_account].votingDay
+        );
+    }
+
+    function _setUserHasBeenRewarded(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) private {
+        require(
+            _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded == false,
+            "VoteCounting: already rewarded"
         );
 
-        IGovStorage(
+        address proposer = IGovStorage(
             govStorageAddress
-        ).setProposalDescriptionHash(_class, _nonce, _descriptionHash);
+        ).getProposalProposer(_class, _nonce);
+
+        if(_account != proposer) {
+            require(
+                _proposalVotes[_class][_nonce].user[_account].hasVoted == true,
+                "VoteCounting: you didn't vote"
+            );
+        }
+
+        _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded = true;
     }
 
-    function getUpdateDGOVMaxSupplyCallData(
+    function hasBeenRewarded(
         uint128 _class,
         uint128 _nonce,
-        uint256 _maxSupply
-    ) public pure returns(bytes memory) {
-        bytes4 SELECTOR = bytes4(keccak256(bytes('updateDGOVMaxSupply(uint128,uint128,uint256)')));
-        return abi.encodeWithSelector(SELECTOR, _class, _nonce, _maxSupply);
+        address _account
+    ) public view returns(bool) {
+        return _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded;
     }
 
-    function getSetMaxAllocationPercentageCallData(
+    function getVoteWeight(
         uint128 _class,
         uint128 _nonce,
-        uint256 _newPercentage,
-        address _tokenAddress
-    ) public pure returns(bytes memory) {
-        bytes4 SELECTOR = bytes4(keccak256(bytes('setMaxAllocationPercentage(uint128,uint128,uint256,address)')));
-        return abi.encodeWithSelector(SELECTOR, _class, _nonce, _newPercentage, _tokenAddress);
+        address _account
+    ) public view returns(uint256) {
+        return _proposalVotes[_class][_nonce].user[_account].weight;
     }
 
-    function getUpdateMaxAirdropSupplyCallData(
+    function quorumReached(
         uint128 _class,
-        uint128 _nonce,
-        uint256 _newSupply,
-        address _tokenAddress
-    ) public pure returns(bytes memory) {
-        bytes4 SELECTOR = bytes4(keccak256(bytes('updateMaxAirdropSupply(uint128,uint128,uint256,address)')));
-        return abi.encodeWithSelector(SELECTOR, _class, _nonce, _newSupply, _tokenAddress);
+        uint128 _nonce
+    ) public view returns(bool reached) {
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+
+        reached =  proposalVote.forVotes + proposalVote.abstainVotes >= _quorum(_class, _nonce);
     }
 
-    function getMintAllocatedTokenCallData(
+    function voteSucceeded(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(bool succeeded) {
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+
+        succeeded = proposalVote.forVotes > proposalVote.againstVotes;
+    }
+
+    function _setVotingDay(
         uint128 _class,
         uint128 _nonce,
-        address _token,
-        address _to,
-        uint256 _amount
-    ) public pure returns(bytes memory) {
-        bytes4 SELECTOR = bytes4(keccak256(bytes('mintAllocatedToken(uint128,uint128,address,address,uint256)')));
-        return abi.encodeWithSelector(SELECTOR, _class, _nonce, _token, _to, _amount);
+        address _voter,
+        uint256 _day
+    ) private {
+        require(_voter != address(0), "VoteCounting: zero address");
+
+        _proposalVotes[_class][_nonce].user[_voter].votingDay = _day;
+    }
+
+    function getVotingDay(
+        uint128 _class,
+        uint128 _nonce,
+        address _voter
+    ) public view returns(uint256) {
+        return _proposalVotes[_class][_nonce].user[_voter].votingDay;
+    }
+
+    function vetoed(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(bool) {
+        return _proposalVotes[_class][_nonce].vetoed;
+    }
+
+    function setVetoApproval(
+        uint128 _class,
+        uint128 _nonce,
+        bool _vetoed,
+        address _vetoOperator
+    ) public onlyGov {
+        require(_vetoOperator != address(0), "VoteCounting: zero address");
+        require(
+            _vetoOperator == IGovStorage(govStorageAddress).getVetoOperator(),
+            "VoteCounting: permission denied"
+        );
+
+        _proposalVotes[_class][_nonce].vetoed = _vetoed;
+    }
+
+    function _countVote(
+        uint128 _class,
+        uint128 _nonce,
+        address _account,
+        uint8 _vote,
+        uint256 _weight
+    ) private {
+        require(_account != address(0), "VoteCounting: zero address");
+
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+        require(
+            !proposalVote.user[_account].hasVoted,
+            "VoteCounting: already voted"
+        );
+
+        proposalVote.user[_account].hasVoted = true;
+        proposalVote.user[_account].weight = _weight;
+
+        if (_vote == uint8(VoteType.For)) {
+            proposalVote.forVotes += _weight;
+        } else if (_vote == uint8(VoteType.Against)) {
+            proposalVote.againstVotes += _weight;
+        } else if (_vote == uint8(VoteType.Abstain)) {
+            proposalVote.abstainVotes += _weight;
+        } else {
+            revert("VoteCounting: invalid vote");
+        }
+    }
+
+    function _quorum(
+        uint128 _class,
+        uint128 _nonce
+    ) internal view returns(uint256 proposalQuorum) {
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+
+        uint256 minApproval = IGovStorage(govStorageAddress).getClassQuorum(_class);
+
+        proposalQuorum =  minApproval * (
+            proposalVote.forVotes +
+            proposalVote.againstVotes +
+            proposalVote.abstainVotes
+        ) / 100;
     }
 }

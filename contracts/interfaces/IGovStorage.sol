@@ -18,13 +18,12 @@ import "./IGovSharedStorage.sol";
 
 interface IGovStorage is IGovSharedStorage {
     function isInitialized() external view returns(bool);
-    function getThreshold() external view returns(uint256);
+    function getProposalThreshold() external view returns(uint256);
     function getVetoOperator() external view returns(address);
     function getExecutableContract() external view returns(address);
     function getStakingContract() external view returns(address);
     function getProposalLogicContract() external view returns(address);
     function getVoteTokenContract() external view returns(address);
-    function getGovSettingContract() external view returns(address);
     function getAirdropContract() external view returns(address);
     function getNumberOfSecondInYear() external pure returns(uint256);
 
@@ -39,17 +38,17 @@ interface IGovStorage is IGovSharedStorage {
     function getBankBondManagerAddress() external view returns(address);
     function getBankDataAddress() external view returns(address);
     function getOracleAddress() external view returns(address);
-    function getVoteCountingAddress() external view returns(address);
     function getGovernanceOwnableAddress() external view returns(address);
     function getDebondTeamAddress() external view returns(address);
     function getBenchmarkIR() external view returns(uint256);
-    function votingInterestRate() external view returns(uint256);
-    function stakingInterestRate() external view returns(uint256);
+    function getInterestRatesContract() external view returns(address);
     function getBudget() external view returns(uint256, uint256);
     function getAllocationDistributed() external view returns(uint256, uint256);
     function getTotalAllocationDistributed() external view returns(uint256, uint256);
     function getAllocatedToken(address _account) external view returns(uint256, uint256);
     function getAllocatedTokenMinted(address _account) external view returns(uint256, uint256);
+    function getMinimumStakingDuration() external view returns(uint256);
+    function cdpDGOVToDBIT() external view returns(uint256);
 
     function updateBankAddress(address _bankAddress) external;
     function updateExchangeAddress(address _exchangeAddress) external;
@@ -63,41 +62,14 @@ interface IGovStorage is IGovSharedStorage {
         uint128 _nonce
     ) external view returns(Proposal memory);
 
-    function getProposalClassInfo(
-        uint128 _class,
-        uint256 _index
+    function getClassQuorum(
+        uint128 _class
     ) external view returns(uint256);
-
-    function getProposal(
-        uint128 _class,
-        uint128 _nonce
-    ) external view returns(
-        uint256,
-        uint256,
-        address,
-        ProposalStatus,
-        ProposalApproval,
-        address[] memory,
-        uint256[] memory,
-        bytes[] memory,
-        string memory,
-        bytes32
-    );
 
     function getProposalStatus(
         uint128 _class,
         uint128 _nonce
     ) external view returns(ProposalStatus unassigned);
-
-    function getProposalInfoForExecutable(
-        uint128 _class,
-        uint128 _nonce
-    ) external view returns(
-        address,
-        address[] memory,
-        uint256[] memory,
-        bytes[] memory
-    );
 
     function getProposalProposer(
         uint128 _class,
@@ -121,13 +93,6 @@ interface IGovStorage is IGovSharedStorage {
         uint256 _amountVoteTokens
     ) external;
 
-    function dbitDistributedPerDay() external view returns(uint256);
-
-    function setThreshold(
-        uint256 _newProposalThreshold,
-        address _executor
-    ) external;
-
     function setProposal(
         uint128 _class,
         uint128 _nonce,
@@ -135,15 +100,10 @@ interface IGovStorage is IGovSharedStorage {
         uint256 _endTime,
         address _proposer,
         ProposalApproval _approvalMode,
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
-        string memory _title
-    ) external;
-
-    function setProposalDescriptionHash(
-        uint128 _class,
-        uint128 _nonce,
+        address _targets,
+        uint256 _values,
+        bytes memory _calldatas,
+        string memory _title,
         bytes32 _descriptionHash
     ) external;
 
@@ -151,12 +111,6 @@ interface IGovStorage is IGovSharedStorage {
         uint128 _class,
         uint128 _nonce,
         ProposalStatus _status
-    ) external;
-
-    function setProposalClassInfo(
-        uint128 _class,
-        uint256 _index,
-        uint256 _value
     ) external;
 
     function getProposalNonce(
@@ -168,33 +122,16 @@ interface IGovStorage is IGovSharedStorage {
         uint128 _nonce
     ) external;
 
-    function estimateInterestEarned(
-        uint256 _amount,
-        uint256 _duration
-    ) external view returns(uint256 interest);
-
-    //== FROM EXECUTABLE
-    function updateGovernanceContract(
-        address _newGovernanceAddress,
-        address _executor
-    ) external returns(bool);
-
     function updateExecutableAddress(
         address _executableAddress
     ) external;
 
-    function updateExchangeContract(
-        address _newExchangeAddress,
-        address _executor
-    ) external returns(bool);
-
-    function updateBankContract(
-        address _newBankAddress,
-        address _executor
-    ) external returns(bool);
-
     function setBenchmarkIR(
         uint256 _newBenchmarkInterestRate
+    ) external;
+
+    function setProposalThreshold(
+        uint256 _newProposalThreshold
     ) external;
 
     function setFundSize(
@@ -225,23 +162,4 @@ interface IGovStorage is IGovSharedStorage {
         uint256 _amountDBIT,
         uint256 _amountDGOV
     ) external view returns(bool);
-
-    function getProposalCallData(
-        uint128 _class,
-        uint128 _nonce
-    ) external view returns(bytes[] memory);
-
-    function getGovernanceCallData(
-        uint128 _class,
-        uint128 _nonce,
-        address _newGovernanceAddress
-    ) external pure returns(bytes memory);
-
-    function decodeGovernanceCallData(
-        bytes calldata _data
-    ) external pure returns(
-        uint128,
-        uint128,
-        address
-    );
 }

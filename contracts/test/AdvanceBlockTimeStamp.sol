@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 // SPDX-License-Identifier: apache 2.0
 /*
-    Copyright 2020 Sigmoid Foundation <info@dGOV.finance>
+    Copyright 2022 Debond Protocol <info@debond.org>
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
@@ -14,7 +14,12 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-interface IGovSettings {
-    function getVotingPeriod(uint128 _class) external view returns(uint256);
-    function setVotingPeriod(uint128 _class, uint256 _period) external;
+//@notice: This contract simulates changing the blocktimestamp only for tests purposes
+
+contract AdvanceBlockTimeStamp {
+    uint256 count;
+
+    function increment() public {
+        count += 1;
+    }
 }

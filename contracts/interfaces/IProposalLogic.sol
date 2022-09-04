@@ -17,38 +17,13 @@ pragma solidity ^0.8.0;
 import "./IGovSharedStorage.sol";
 
 interface IProposalLogic is IGovSharedStorage {
-    function cancelProposal(
-        uint128 _class,
-        uint128 _nonce
-    ) external;
-
-    function voteRequirement(
-        uint128 _class,
-        uint128 _nonce,
-        address _tokenOwner,
-        address _voter,
-        uint256 _amountVoteTokens,
-        uint256 _stakingCounter
-    ) external;
-
-    function unstakeDGOVandCalculateInterest(
-        address _staker,
-        uint256 _stakingCounter
-    ) external returns(uint256 amountStaked, uint256 interest, uint256 duration);
-
     function calculateReward(
         uint128 _class,
         uint128 _nonce,
         address _tokenOwner
     ) external returns(uint256 reward);
 
-    function unlockVoteTokens(
-        uint128 _class,
-        uint128 _nonce,
-        address _tokenOwner
-    ) external;
-
-    function vote(
+    function setVote(
         uint128 _class,
         uint128 _nonce,
         address _voter,
@@ -56,13 +31,13 @@ interface IProposalLogic is IGovSharedStorage {
         uint256 _amountVoteTokens
     ) external;
 
-    function proposalSetUp(
+    function setProposal(
         uint128 _class,
         uint128 _nonce,
         address _proposer,
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
+        address _targets,
+        uint256 _values,
+        bytes memory _calldatas,
         string memory _title,
         bytes32 _descriptionHash
     ) external returns(
@@ -71,31 +46,78 @@ interface IProposalLogic is IGovSharedStorage {
         ProposalApproval approval
     );
 
-    function getUpdateDGOVMaxSupplyCallData(
-        uint128 _class,
-        uint128 _nonce,
-        uint256 _maxSupply
-    ) external pure returns(bytes memory);
+    
 
-    function getSetMaxAllocationPercentageCallData(
-        uint128 _class,
-        uint128 _nonce,
-        uint256 _newPercentage,
-        address _tokenAddress
-    ) external pure returns(bytes memory);
 
-    function getUpdateMaxAirdropSupplyCallData(
+    function hasVoted(
         uint128 _class,
         uint128 _nonce,
-        uint256 _newSupply,
-        address _tokenAddress
-    ) external pure returns(bytes memory);
+        address _account
+    ) external view returns(bool voted);
 
-    function getMintAllocatedTokenCallData(
+    function numberOfVoteTokens(
         uint128 _class,
         uint128 _nonce,
-        address _token,
-        address _to,
-        uint256 _amount
-    ) external pure returns(bytes memory);
+        address _account
+    ) external view returns(uint256 amountTokens);
+
+    function getProposalVotes(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(
+        uint256 forVotes,
+        uint256 againstVotes,
+        uint256 abstainVotes
+    );
+
+    function getUserInfo(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external view returns(
+        bool,
+        bool,
+        uint256,
+        uint256
+    );
+
+    function hasBeenRewarded(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external view returns(bool);
+
+    function getVoteWeight(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external view returns(uint256);
+
+    function quorumReached(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(bool reached);
+
+    function voteSucceeded(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(bool succeeded);
+
+    function getVotingDay(
+        uint128 _class,
+        uint128 _nonce,
+        address _voter
+    ) external view returns(uint256);
+
+    function vetoed(
+        uint128 _class,
+        uint128 _nonce
+    ) external view returns(bool);
+
+    function setVetoApproval(
+        uint128 _class,
+        uint128 _nonce,
+        bool _vetoed,
+        address _vetoOperator
+    ) external;
 }
