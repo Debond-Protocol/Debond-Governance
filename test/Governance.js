@@ -335,7 +335,7 @@ contract("Governance", async (accounts) => {
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             _class,
-            '10'
+            '100000000000000000'
         ).encodeABI();
         
         let res = await gov.createProposal(
@@ -384,7 +384,7 @@ contract("Governance", async (accounts) => {
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             _class,
-            '10'
+            '100000000000000000'
         ).encodeABI();
 
         let res = await gov.createProposal(
@@ -1010,7 +1010,7 @@ contract("Governance", async (accounts) => {
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
             _class,
-            '10'
+            '100000000000000000'
         ).encodeABI();
         
         let res = await gov.createProposal(
@@ -1061,15 +1061,21 @@ contract("Governance", async (accounts) => {
 
         expect(status.toString()).to.equal(ProposalStatus.Active);
         expect(status1.toString()).to.equal(ProposalStatus.Executed);
+
+        expect(
+            benchmarkBefore.toString()
+        ).to.equal(
+            benchmarkBankBefore.toString()
+        ).to.equal(
+            "50000000000000000"
+        );
+
         expect(
             benchmarkAfter.toString()
         ).to.equal(
-            benchmarkBefore.add(web3.utils.toBN(5)).toString()
-        );
-        expect(
             benchmarkBankAfter.toString()
         ).to.equal(
-            benchmarkBankBefore.add(web3.utils.toBN(5)).toString()
+            "100000000000000000"
         );
     });
 

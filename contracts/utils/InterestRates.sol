@@ -26,7 +26,7 @@ contract InterestRates is IInterestRates {
         uint256 _benchmarkIR,
         uint256 _cdp
     ) public pure returns(uint256) {
-        return _benchmarkIR * _cdp * 66 / 100;
+        return _benchmarkIR * _cdp * 66 / (100 * 1 ether);
     }
 
     /**
@@ -38,6 +38,6 @@ contract InterestRates is IInterestRates {
         uint256 _benchmarkIR,
         uint256 _cdp
     ) public pure returns(uint256) {        
-        return _benchmarkIR * _cdp * 34 / 100;
+        return _benchmarkIR * _cdp * 34 / (100 * 1 ether);
     }
 }

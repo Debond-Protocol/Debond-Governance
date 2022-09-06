@@ -45,7 +45,7 @@ contract BankExecutable is IUpdatable {
     address bankBondManager;
     address apm;
     address oracle;
-    uint256 benchmarkIR = 5;
+    uint256 benchmarkIR = 5 * 10**16;
 
     modifier onlyExec {
         require(msg.sender == executable, "Bank: only exec");

@@ -34,30 +34,6 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         _;
     }
 
-    modifier onlyVetoOperator {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getVetoOperator(),
-            "VoteToken: permission denied"
-        );
-        _;
-    }
-
-    modifier onlyStakingContract {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getStakingContract(),
-            "VoteToken: permission denied"
-        );
-        _;
-    }
-
-    modifier onlyProposalLogic {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getProposalLogicContract(),
-            "VoteToken: permission denied"
-        );
-        _;
-    }
-
     constructor(
         string memory _name,
         string memory _symbol,
@@ -145,7 +121,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
             "VoteToken: can't transfer vote tokens"
         );
 
-        address owner = _msgSender();
+        address owner = msg.sender;
         _transfer(owner, _to, _amount);
         _availableBalance[owner] = balanceOf(owner);
         _availableBalance[_to] = balanceOf(_to);
@@ -169,7 +145,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
             "VoteToken: can't transfer vote tokens"
         );
 
-        address spender = _msgSender();
+        address spender = msg.sender;
         _spendAllowance(_from, spender, _amount);
         _transfer(_from, _to, _amount);
         _availableBalance[_from] = balanceOf(_from);

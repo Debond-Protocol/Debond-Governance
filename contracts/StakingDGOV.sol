@@ -182,7 +182,7 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
             IGovStorage(govStorageAddress).getInterestRatesContract()
         ).stakingInterestRate(benchmarkIR, cdp);
 
-        interest = (_amount * interestRate * duration) / (100 * NUMBER_OF_SECONDS_IN_YEAR * 1 ether);
+        interest = (_amount * interestRate * duration / 1 ether) / NUMBER_OF_SECONDS_IN_YEAR;
     }
 
     /**
@@ -202,7 +202,7 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
             IGovStorage(govStorageAddress).getInterestRatesContract()
         ).stakingInterestRate(benchmarkIR, cdp);
 
-        interest = (_amount * interestRate / 1 ether) * _duration / (100 * NUMBER_OF_SECONDS_IN_YEAR);
+        interest = (_amount * interestRate * _duration / 1 ether) / NUMBER_OF_SECONDS_IN_YEAR;
     }
 
     function getAvailableVoteTokens(

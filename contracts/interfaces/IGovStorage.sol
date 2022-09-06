@@ -56,6 +56,7 @@ interface IGovStorage is IGovSharedStorage {
     function updateOracleAddress(address _oracleAddress) external;
     function updateAirdropAddress(address _airdropAddress) external;
     function updateGovernanceAddress(address _governanceAddress) external;
+    function updateInterestRateAddress(address _interestRateAddress) external;
 
     function getProposalStruct(
         uint128 _class,

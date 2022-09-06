@@ -56,7 +56,7 @@ contract GovStorage is IGovStorage {
     address public governanceOwnableContract;
     address public oracleContract;
     address public governanceMigrator;
-    address public InterestRatesContract;
+    address public interestRatesContract;
 
     address public vetoOperator;
 
@@ -132,7 +132,7 @@ contract GovStorage is IGovStorage {
         vetoOperator = _vetoOperator;
 
         // in percent
-        benchmarkInterestRate = 5;
+        benchmarkInterestRate = 5 * 10**16;
 
         dbitBudgetPPM = 1e5 * 1 ether;
         dgovBudgetPPM = 1e5 * 1 ether;
@@ -159,7 +159,7 @@ contract GovStorage is IGovStorage {
         address _bankBondManagerContract,
         address _oracleContract,
         address _stakingContract,
-        address _InterestRatesContract,
+        address _interestRatesContract,
         address _voteContract
     ) external onlyVetoOperator {
         require(_lockGroup1 == 0, "GovStorage: Group1 already set");
@@ -172,7 +172,7 @@ contract GovStorage is IGovStorage {
         oracleContract = _oracleContract;
         stakingContract = _stakingContract;
         voteTokenContract = _voteContract;
-        InterestRatesContract = _InterestRatesContract;
+        interestRatesContract = _interestRatesContract;
 
         _lockGroup1 == 1;
     }
@@ -269,7 +269,7 @@ contract GovStorage is IGovStorage {
     }
 
     function getInterestRatesContract() public view returns(address) {
-        return InterestRatesContract;
+        return interestRatesContract;
     }
 
     function getVoteTokenContract() public view returns(address) {
@@ -518,12 +518,20 @@ contract GovStorage is IGovStorage {
         return 100 ether + ((dgovTotalSupply / 33333)**2 / 1 ether);
     }
 
+    /**
+    * @notice the benchmark must be in 10^16 basis/ Ex: 5 * 10**16 = 5%
+    */
     function setBenchmarkIR(uint256 _newBenchmarkInterestRate) external onlyExec {
         benchmarkInterestRate = _newBenchmarkInterestRate;
     }
 
     function setProposalThreshold(uint256 _newProposalThreshold) external onlyExec {
         _proposalThreshold = _newProposalThreshold;
+    }
+
+    function updateInterestRateAddress(address _interestRateAddress) external onlyExec {
+        require(_interestRateAddress != address(0), "GovStorage: zero address");
+        interestRatesContract = _interestRateAddress;
     }
 
     function updateExecutableAddress(address _executableAddress) external onlyExec {
