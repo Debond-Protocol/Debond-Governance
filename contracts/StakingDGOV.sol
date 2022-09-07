@@ -43,6 +43,9 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
     mapping(address => uint256) public stakingCounter;
     mapping(uint256 => VoteTokenAllocation) private voteTokenAllocation;
 
+    mapping(address => StackedDGOV[]) _totalStackedDGOV;
+    VoteTokenAllocation[] private _voteTokenAllocation;
+
     uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
     address public govStorageAddress;
 
@@ -73,21 +76,27 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
 
         //voteTokenAllocation[0].duration = 4 weeks;
         //voteTokenAllocation[0].allocation = 3000000000000000;
+        _voteTokenAllocation.push(voteTokenAllocation[0]);
 
         voteTokenAllocation[1].duration = 12 weeks;
         voteTokenAllocation[1].allocation = 3653793637913968;
+        _voteTokenAllocation.push(voteTokenAllocation[1]);
 
         voteTokenAllocation[2].duration = 24 weeks;
         voteTokenAllocation[2].allocation = 4578397467645146;
+        _voteTokenAllocation.push(voteTokenAllocation[2]);
 
         voteTokenAllocation[3].duration = 48 weeks;
         voteTokenAllocation[3].allocation = 5885984743473081;
+        _voteTokenAllocation.push(voteTokenAllocation[3]);
 
         voteTokenAllocation[4].duration = 96 weeks;
         voteTokenAllocation[4].allocation = 7735192402935436;
+        _voteTokenAllocation.push(voteTokenAllocation[4]);
 
         voteTokenAllocation[5].duration = 144 weeks;
         voteTokenAllocation[5].allocation = 10000000000000000;
+        _voteTokenAllocation.push(voteTokenAllocation[5]);
     }
     
     /**
@@ -109,6 +118,8 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
         stackedDGOV[_staker][counter + 1].amountDGOV += _amount;
         stackedDGOV[_staker][counter + 1].amountVote += _amount * voteTokenAllocation[_durationIndex].allocation / 10**16;
         stakingCounter[_staker] = counter + 1;
+        
+        _totalStackedDGOV[_staker].push(stackedDGOV[_staker][counter + 1]);
 
         _amountToMint = _amount * voteTokenAllocation[_durationIndex].allocation / 10**16;
         duration = voteTokenAllocation[_durationIndex].duration;
@@ -205,6 +216,14 @@ contract StakingDGOV is IStaking, ReentrancyGuard {
         interest = (_amount * interestRate * _duration / 1 ether) / NUMBER_OF_SECONDS_IN_YEAR;
     }
 
+    function getVoteTokenAllocation() public view returns(VoteTokenAllocation[] memory) {
+        return _voteTokenAllocation;
+    }
+
+    function getStakedDOVOf(address _account) public view returns(StackedDGOV[] memory) {
+        return _totalStackedDGOV[_account];
+    }
+ 
     function getAvailableVoteTokens(
         address _staker,
         uint256 _stakingCounter

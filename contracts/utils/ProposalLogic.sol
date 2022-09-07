@@ -24,8 +24,19 @@ import "../interfaces/IGovSharedStorage.sol";
 import "../interfaces/IInterestRates.sol";
 
 contract ProposalLogic is IProposalLogic {
+    /**
+    * weight: numner of vote tokens
+    * vote: 0 -> FOR, 1 -> AGAINST, 2 -> ABSTAIN
+    */
+    struct UserVoteData {
+        address voter;
+        uint256 weight;
+        uint8 vote;
+    }
+
     mapping(uint128 => uint256) private _votingPeriod;
     mapping(uint128 => mapping(uint128 => ProposalVote)) internal _proposalVotes;
+    mapping(uint128 => mapping(uint128 => UserVoteData[])) public userVoteData;
 
     event votingDelaySet(uint256 oldDelay, uint256 newDelay);
     event votingPeriodSet(uint256 oldPeriod, uint256 newPeriod);
@@ -134,6 +145,13 @@ contract ProposalLogic is IProposalLogic {
             0: block.timestamp - _proposal.startTime;
         
         day = (duration / IGovStorage(govStorageAddress).getNumberOfSecondInYear()) + 1;
+    }
+
+    function getUsersVoteData(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(UserVoteData[] memory) {
+        return userVoteData[_class][_nonce];
     }
 
     function setProposal(
@@ -352,6 +370,16 @@ contract ProposalLogic is IProposalLogic {
         } else {
             revert("VoteCounting: invalid vote");
         }
+
+        userVoteData[_class][_nonce].push(
+            UserVoteData(
+                {
+                    voter: _account,
+                    weight: _weight,
+                    vote: _vote
+                }
+            )
+        );
     }
 
     function _quorum(

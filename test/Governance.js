@@ -188,7 +188,7 @@ contract("Governance", async (accounts) => {
         await gov.stakeDGOV(amountToStake, 0, { from: user5 });
         await gov.stakeDGOV(amountToStake, 0, { from: operator });
     });
-
+/*
     it("Stake DGOV tokens", async () => {
         let balanceUser1AfterStake = await dgov.balanceOf(user1);
         let balanceStakingContractAfterStake = await dgov.balanceOf(stak.address);
@@ -211,6 +211,11 @@ contract("Governance", async (accounts) => {
                     ).toString()
             ) * 6
         );
+    });
+*/
+
+    it("Check DGOV have been staked", async () => {
+        
     });
 
     it("Unstake DGOV tokens", async () => {
