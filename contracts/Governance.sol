@@ -97,9 +97,12 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         );
 
         require(
+            IERC20(
+                IGovStorage(govStorageAddress).getVoteTokenContract()
+            ).balanceOf(msg.sender) - 
             IVoteToken(
                 IGovStorage(govStorageAddress).getVoteTokenContract()
-            ).availableBalance(msg.sender) >=
+            ).totalLockedBalanceOf(msg.sender) >=
             IGovStorage(govStorageAddress).getProposalThreshold(),
             "Gov: insufficient vote tokens"
         );
@@ -240,14 +243,14 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
             ).balanceOf(_tokenOwner) - 
             IVoteToken(
                 IGovStorage(govStorageAddress).getVoteTokenContract()
-            ).lockedBalanceOf(_tokenOwner, _class, _nonce),
+            ).totalLockedBalanceOf(_tokenOwner),
             "ProposalLogic: not enough vote tokens"
         );
 
         // lock vote tokens
         IVoteToken(
             IGovStorage(govStorageAddress).getVoteTokenContract()
-        ).lockTokens(_tokenOwner, voter, _amountVoteTokens, _class, _nonce);          
+        ).lockTokens(_tokenOwner, voter, _amountVoteTokens, _class, _nonce);     
 
         // update the vote object
         IProposalLogic(

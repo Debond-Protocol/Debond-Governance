@@ -48,7 +48,14 @@ interface IVoteToken is IGovSharedStorage {
     ) external returns (bool);
 
     /**
-    * @dev return the locked balance of an account
+    * @dev return the total locked balance of an account
+    */
+    function totalLockedBalanceOf(
+        address _account
+    ) external view returns(uint256);
+
+    /**
+    * @dev return the locked balance of an account for a given proposal
     */
     function lockedBalanceOf(
         address _account,
@@ -63,7 +70,7 @@ interface IVoteToken is IGovSharedStorage {
     ) external;
 
     /**
-    * @dev lock vote tokens
+    * @dev lock vote tokens 
     */
     function lockTokens(
         address _owner,

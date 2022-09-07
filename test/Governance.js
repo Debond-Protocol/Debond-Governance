@@ -378,6 +378,87 @@ contract("Governance", async (accounts) => {
         expect(event.descriptionHash).to.equal(web3.utils.soliditySha3(title));
     });
 
+    it("Create sevral proposals", async () => {
+        let toMint = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
+        await bank.mintCollateralisedSupply(dgov.address, operator, toMint, { from: operator  });
+        await dgov.approve(gov.address, toMint, { from: operator });
+        await gov.stakeDGOV(toMint, 0, { from: operator });
+
+        // first proposal
+        let _class1 = 0;
+        let title1 = "Propsal-1: Update the benchMark interest rate";
+        let callData1 = await exec.contract.methods.updateBenchmarkInterestRate(
+            _class1,
+            '100000000000000000'
+        ).encodeABI();
+
+        let res1 = await gov.createProposal(
+            _class1,
+            exec.address,
+            0,
+            callData1,
+            title1,
+            web3.utils.soliditySha3(title1),
+            { from: operator }
+        );
+
+        // second proposal
+        let _class2 = 1;
+        let title2 = "Propsal-1: Update the bank contract";
+        let callData2 = await exec.contract.methods.updateBankAddress(
+            _class2,
+            user6
+        ).encodeABI();
+        
+        let res2 = await gov.createProposal(
+            _class2,
+            exec.address,
+            0,
+            callData2,
+            title2,
+            web3.utils.soliditySha3(title2),
+            { from: operator }
+        );
+
+        // third proposal
+        let toAdd = await web3.utils.toWei(web3.utils.toBN(4000000), 'ether');
+        let maxSupplyBefore = await dgov.getMaxSupply();
+        let newMax = maxSupplyBefore.add(toAdd);
+        let _class3 = 0;
+        let title3 = "Propsal-1: Update the DGOV max";
+        let callData3 = await gov.contract.methods.updateDGOVMaxSupply(
+            _class3,
+            newMax
+        ).encodeABI();
+        
+        let res3 = await gov.createProposal(
+            _class3,
+            gov.address,
+            0,
+            callData3,
+            title3,
+            web3.utils.soliditySha3(title3),
+            { from: operator }
+        );
+
+        let proposals = await storage.getAllProposals();
+
+        expect(proposals[0].proposer).to.equal(operator);
+        expect(proposals[0].calldatas).to.equal(callData1);
+        expect(proposals[0].descriptionHash).to.equal(web3.utils.soliditySha3(title1));
+        expect(proposals[0].title).to.equal("Propsal-1: Update the benchMark interest rate");
+
+        expect(proposals[1].proposer).to.equal(operator);
+        expect(proposals[1].calldatas).to.equal(callData2);
+        expect(proposals[1].descriptionHash).to.equal(web3.utils.soliditySha3(title2));
+        expect(proposals[1].title).to.equal("Propsal-1: Update the bank contract");
+
+        expect(proposals[2].proposer).to.equal(operator);
+        expect(proposals[2].calldatas).to.equal(callData3);
+        expect(proposals[2].descriptionHash).to.equal(web3.utils.soliditySha3(title3));
+        expect(proposals[2].title).to.equal("Propsal-1: Update the DGOV max");
+    });
+
     it("Cancel a proposal", async () => {
         let _class = 0;
 
@@ -1624,7 +1705,7 @@ contract("Governance", async (accounts) => {
 
         let _class = 0;
 
-        let title = "Propsal-1: Update the benchMark interest rate";
+        let title = "Propsal-1: Update the DGOV max";
         let callData = await gov.contract.methods.updateDGOVMaxSupply(
             _class,
             newMax

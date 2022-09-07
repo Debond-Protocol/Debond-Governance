@@ -85,6 +85,8 @@ contract GovStorage is IGovStorage {
     // key1: proposal class, key2: proposal nonce, key3: voting day (1, 2, 3, etc.)
     mapping(uint128 => mapping(uint128 => mapping(uint256 => uint256))) public totalVoteTokenPerDay;
 
+    Proposal[] proposals;
+
     modifier onlyVetoOperator {
         require(msg.sender == vetoOperator, "Gov: Need rights");
         _;
@@ -486,6 +488,12 @@ contract GovStorage is IGovStorage {
         proposal[_class][_nonce].calldatas = _calldatas;
         proposal[_class][_nonce].title = _title;
         proposal[_class][_nonce].descriptionHash = _descriptionHash;
+
+        proposals.push(proposal[_class][_nonce]);
+    }
+
+    function getAllProposals() public view returns(Proposal[] memory) {
+        return proposals;
     }
 
     function setProposalStatus(
