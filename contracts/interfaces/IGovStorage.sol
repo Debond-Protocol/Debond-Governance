@@ -58,6 +58,37 @@ interface IGovStorage is IGovSharedStorage {
     function updateGovernanceAddress(address _governanceAddress) external;
     function updateInterestRateAddress(address _interestRateAddress) external;
 
+    function setStakedData(
+        address _staker,
+        uint256 _amount,
+        uint256 _durationIndex
+    ) external returns(uint256 duration, uint256 _amountToMint);
+
+    function getUserStake(
+        address _staker,
+        uint256 _stakingCounter
+    ) external view returns(StackedDGOV memory);
+
+    function updateStake(
+        address _staker,
+        uint256 _stakingCounter
+    ) external returns(uint256 amountDGOV, uint256 amountVote);
+
+    function getStakingData(
+        address _staker,
+        uint256 _stakingCounter
+    ) external view returns(
+        uint256 _stakedAmount,
+        uint256 startTime,
+        uint256 duration,
+        uint256 lastWithdrawTime
+    );
+
+    function updateLastTimeInterestWithdraw(
+        address _staker,
+        uint256 _stakingCounter
+    ) external;
+
     function getProposalStruct(
         uint128 _class,
         uint128 _nonce

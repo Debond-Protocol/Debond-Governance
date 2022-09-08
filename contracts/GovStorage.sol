@@ -75,6 +75,19 @@ contract GovStorage is IGovStorage {
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
     mapping(uint128 =>  uint256) private _proposalQuorum;
     mapping(address => AllocatedToken) allocatedToken;
+    
+
+    //====== FOR STAKING ===========
+    mapping(address => mapping(uint256 => StackedDGOV)) internal stackedDGOV;
+    mapping(address => uint256) public stakingCounter;
+    mapping(uint256 => VoteTokenAllocation) private voteTokenAllocation;
+
+    mapping(address => StackedDGOV[]) _totalStackedDGOV;
+    VoteTokenAllocation[] private _voteTokenAllocation;
+
+    //==============================
+
+
 
     uint256 _lockGroup1;
     uint256 _lockGroup2;
@@ -96,6 +109,14 @@ contract GovStorage is IGovStorage {
         require(
             msg.sender == getGovernanceAddress(),
             "Gov: Only Gouvernance"
+        );
+        _;
+    }
+
+    modifier onlyStaking {
+        require(
+            msg.sender == getStakingContract(),
+            "Gov: only staking contract"
         );
         _;
     }
@@ -151,6 +172,35 @@ contract GovStorage is IGovStorage {
         numberOfVotingDays[1] = 1;
         numberOfVotingDays[2] = 1;
         minimumStakingDuration = 10;
+
+        // Staking
+        // for tests only
+        voteTokenAllocation[0].duration = 4;
+        voteTokenAllocation[0].allocation = 3000000000000000;
+
+        //voteTokenAllocation[0].duration = 4 weeks;
+        //voteTokenAllocation[0].allocation = 3000000000000000;
+        _voteTokenAllocation.push(voteTokenAllocation[0]);
+
+        voteTokenAllocation[1].duration = 12 weeks;
+        voteTokenAllocation[1].allocation = 3653793637913968;
+        _voteTokenAllocation.push(voteTokenAllocation[1]);
+
+        voteTokenAllocation[2].duration = 24 weeks;
+        voteTokenAllocation[2].allocation = 4578397467645146;
+        _voteTokenAllocation.push(voteTokenAllocation[2]);
+
+        voteTokenAllocation[3].duration = 48 weeks;
+        voteTokenAllocation[3].allocation = 5885984743473081;
+        _voteTokenAllocation.push(voteTokenAllocation[3]);
+
+        voteTokenAllocation[4].duration = 96 weeks;
+        voteTokenAllocation[4].allocation = 7735192402935436;
+        _voteTokenAllocation.push(voteTokenAllocation[4]);
+
+        voteTokenAllocation[5].duration = 144 weeks;
+        voteTokenAllocation[5].allocation = 10000000000000000;
+        _voteTokenAllocation.push(voteTokenAllocation[5]);
     }
 
     function setUpGoup1(
@@ -383,11 +433,6 @@ contract GovStorage is IGovStorage {
         return proposal[_class][_nonce];
     }
 
-    /**
-    * @dev return proposal proposer
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    */
     function getProposalProposer(
         uint128 _class,
         uint128 _nonce
@@ -399,11 +444,6 @@ contract GovStorage is IGovStorage {
         return _proposalQuorum[_class];
     }
 
-    /**
-    * @dev return the proposal status
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    */
     function getProposalStatus(
         uint128 _class,
         uint128 _nonce
@@ -517,18 +557,98 @@ contract GovStorage is IGovStorage {
         proposalNonce[_class] = _nonce;
     }
 
-    /**
-    * return the CDP of DGOV to DBIT
-    */
     function cdpDGOVToDBIT() public view returns(uint256) {
         uint256 dgovTotalSupply = IDebondToken(getDGOVAddress()).getTotalCollateralisedSupply();
 
         return 100 ether + ((dgovTotalSupply / 33333)**2 / 1 ether);
     }
 
-    /**
-    * @notice the benchmark must be in 10^16 basis/ Ex: 5 * 10**16 = 5%
-    */
+    //======= staking
+    function getUserStake(address _staker, uint256 _stakingCounter) public view returns(StackedDGOV memory) {
+        return stackedDGOV[_staker][_stakingCounter];
+    }
+
+    function updateStake(
+        address _staker,
+        uint256 _stakingCounter
+    ) public onlyStaking returns(uint256 amountDGOV, uint256 amountVote) {
+        StackedDGOV storage _staked = stackedDGOV[_staker][_stakingCounter];
+
+        amountDGOV = _staked.amountDGOV;
+        amountVote = _staked.amountVote;
+        _staked.amountDGOV = 0;
+        _staked.amountVote = 0;
+    }
+
+    function getStakedDOVOf(address _account) public view returns(StackedDGOV[] memory) {
+        return _totalStackedDGOV[_account];
+    }
+
+    function getVoteTokenAllocation() public view returns(VoteTokenAllocation[] memory) {
+        return _voteTokenAllocation;
+    }
+
+    function getAvailableVoteTokens(
+        address _staker,
+        uint256 _stakingCounter
+    ) external view returns(uint256 _voteTokens) {
+        _voteTokens = stackedDGOV[_staker][_stakingCounter].amountVote;
+    }
+
+    function updateLastTimeInterestWithdraw(
+        address _staker,
+        uint256 _stakingCounter
+    ) external onlyGov {
+        StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
+        require(_staked.amountDGOV > 0, "Staking: no DGOV staked");
+
+        require(
+            block.timestamp >= _staked.lastInterestWithdrawTime &&
+            block.timestamp < _staked.startTime + _staked.duration,
+            "Staking: Unstake DGOV to withdraw interest"
+        );
+
+        stackedDGOV[_staker][_stakingCounter].lastInterestWithdrawTime = block.timestamp;
+    }
+
+    function getStakingData(
+        address _staker,
+        uint256 _stakingCounter
+    ) public view returns(
+        uint256 _stakedAmount,
+        uint256 startTime,
+        uint256 duration,
+        uint256 lastWithdrawTime
+    ) {
+        return (
+            stackedDGOV[_staker][_stakingCounter].amountDGOV,
+            stackedDGOV[_staker][_stakingCounter].startTime,
+            stackedDGOV[_staker][_stakingCounter].duration,
+            stackedDGOV[_staker][_stakingCounter].lastInterestWithdrawTime
+        );
+    }
+
+    function setStakedData(
+        address _staker,
+        uint256 _amount,
+        uint256 _durationIndex
+    ) external onlyStaking returns(uint256 duration, uint256 _amountToMint) {
+        uint256 counter = stakingCounter[_staker]; 
+
+        stackedDGOV[_staker][counter + 1].startTime = block.timestamp;
+        stackedDGOV[_staker][counter + 1].lastInterestWithdrawTime = block.timestamp;
+        stackedDGOV[_staker][counter + 1].duration = voteTokenAllocation[_durationIndex].duration;
+        stackedDGOV[_staker][counter + 1].amountDGOV += _amount;
+        stackedDGOV[_staker][counter + 1].amountVote += _amount * voteTokenAllocation[_durationIndex].allocation / 10**16;
+        stakingCounter[_staker] = counter + 1;
+
+        _totalStackedDGOV[_staker].push(stackedDGOV[_staker][counter + 1]);
+
+        _amountToMint = _amount * voteTokenAllocation[_durationIndex].allocation / 10**16;
+        duration = voteTokenAllocation[_durationIndex].duration;
+    }
+
+    //============= For executable
     function setBenchmarkIR(uint256 _newBenchmarkInterestRate) external onlyExec {
         benchmarkInterestRate = _newBenchmarkInterestRate;
     }

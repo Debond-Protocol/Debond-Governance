@@ -86,6 +86,30 @@ interface IGovSharedStorage {
         ProposalApproval approval
     );
 
+
+
+
+    //======= FOR Staking ========
+    struct StackedDGOV {
+        uint256 amountDGOV;
+        uint256 amountVote;
+        uint256 startTime;
+        uint256 lastInterestWithdrawTime;
+        uint256 duration;
+    }
+
+    struct VoteTokenAllocation {
+        uint256 duration;
+        uint256 allocation;
+    }
+    //============================
+
+
+
+
+
+
+
     /**
     * @dev Emitted when a proposal is executed
     */

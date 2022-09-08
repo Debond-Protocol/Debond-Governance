@@ -35,6 +35,13 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         _;
     }
 
+    modifier onlyStaking {
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getStakingContract()
+        );
+        _;
+    }
+
     constructor(
         string memory _name,
         string memory _symbol,
@@ -180,7 +187,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     function mintVoteToken(
         address _account,
         uint256 _amount
-    ) external override onlyGov nonReentrant {
+    ) external override onlyStaking nonReentrant {
         _mint(_account, _amount);
         _availableBalance[_account] = balanceOf(_account) - _totalLockedBalance[_account];
     }

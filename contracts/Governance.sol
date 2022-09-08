@@ -26,13 +26,14 @@ import "./interfaces/IVoteToken.sol";
 import "./interfaces/IExecutable.sol";
 import "./interfaces/IProposalLogic.sol";
 import "./interfaces/IGovSharedStorage.sol";
+import "./interfaces/ITransferDBIT.sol";
 import "./utils/GovernanceMigrator.sol";
 import "./Pausable.sol";
 
 /**
 * @author Samuel Gwlanold Edoumou (Debond Organization)
 */
-contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovSharedStorage {
+contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovSharedStorage, ITransferDBIT {
     using SafeERC20 for IERC20;
 
     address govStorageAddress;
@@ -58,6 +59,14 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         require(
             msg.sender == IGovStorage(govStorageAddress).getExecutableContract(),
             "Gov: Only veto operator"
+        );
+        _;
+    }
+
+    modifier onlyStaking {
+        require(
+            msg.sender == IGovStorage(govStorageAddress).getStakingContract(),
+            "Gov: Only staking contract"
         );
         _;
     }
@@ -289,76 +298,21 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
     }
 
     /**
-    * @dev stake DGOV tokens
-    * @param _amount amount of DGOV to stake
-    * @param _durationIndex index of the staking duration -defined in the staking contract-
+    * @dev transfer DBIT interests from APM to a user account
+    * @param _account user account address
+    * @param _interest amount of DBIT to transfer
     */
-    function stakeDGOV(uint256 _amount, uint256 _durationIndex) public nonReentrant {
-        address staker = msg.sender;
-        require(staker != address(0), "StakingDGOV: zero address");
-
-        uint256 stakerBalance = IERC20(
-            IGovStorage(govStorageAddress).getDGOVAddress()
-        ).balanceOf(staker);
-        require(_amount <= stakerBalance, "Debond: not enough dGov");
-
-        // update the user staking data
-        (uint256 duration, uint256 _amountToMint) = IStaking(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).stakeDgovToken(staker, _amount, _durationIndex);
-
-        // mint vote tokens into the staker account
-        IVoteToken(
-            IGovStorage(govStorageAddress).getVoteTokenContract()
-        ).mintVoteToken(staker, _amountToMint);
-        
-        // transfer DGOV to the staking contract
-        IERC20(
-            IGovStorage(govStorageAddress).getDGOVAddress()
-        ).transferFrom(staker, IGovStorage(govStorageAddress).getStakingContract(), _amount);
-
-        emit dgovStaked(staker, _amount, duration);
-    }
-
-    /**
-    * @dev unstake DGOV tokens
-    * @param _stakingCounter counter that returns the rank of staking dGoV
-    */
-    function unstakeDGOV(
-        uint256 _stakingCounter
-    ) public {
-        address staker = msg.sender;
-        require(staker != address(0), "Gov: zero address");
-
-        // update the user staking data and stransfer DGOV to the staker
-        (uint256 amountDGOV, uint256 amountVote) = IStaking(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).transferDgov(staker, _stakingCounter);
-
-        // burn the staker vote tokens
-        IVoteToken(
-            IGovStorage(govStorageAddress).getVoteTokenContract()
-        ).burnVoteToken(staker, amountVote);
-
-        // calculate the interest earned by staking DGOV
-        (uint256 interest, uint256 duration) = IStaking(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).calculateInterestEarned(
-            staker,
-            amountDGOV,
-            _stakingCounter
-        );
-
-        // transfer DBIT interest from APM to the staker account
+    function transferDBITInterests(
+        address _account,
+        uint256 _interest
+    ) external onlyStaking {
         IAPM(
             IGovStorage(govStorageAddress).getAPMAddress()
         ).removeLiquidity(
-            staker,
+            _account,
             IGovStorage(govStorageAddress).getDBITAddress(),
-            interest
+            _interest
         );
-
-        emit dgovUnstaked(staker, duration, interest);
     }
 
     /**
