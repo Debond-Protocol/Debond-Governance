@@ -75,17 +75,19 @@ contract GovStorage is IGovStorage {
     mapping(uint128 => mapping(uint128 => Proposal)) proposal;
     mapping(uint128 =>  uint256) private _proposalQuorum;
     mapping(address => AllocatedToken) allocatedToken;
-    
-
-    //====== FOR STAKING ===========
     mapping(address => mapping(uint256 => StackedDGOV)) internal stackedDGOV;
     mapping(address => uint256) public stakingCounter;
     mapping(uint256 => VoteTokenAllocation) private voteTokenAllocation;
-
     mapping(address => StackedDGOV[]) _totalStackedDGOV;
     VoteTokenAllocation[] private _voteTokenAllocation;
 
-    //==============================
+
+
+    //====== Voting Process ==========
+    mapping(uint128 => uint256) private _votingPeriod;
+    mapping(uint128 => mapping(uint128 => ProposalVote)) internal _proposalVotes;
+    mapping(uint128 => mapping(uint128 => UserVoteData[])) public userVoteData;
+    //================================
 
 
 
@@ -166,6 +168,11 @@ contract GovStorage is IGovStorage {
         _proposalQuorum[0] = 70;
         _proposalQuorum[1] = 60;
         _proposalQuorum[2] = 50;
+
+        // to define during deployment
+        _votingPeriod[0] = 2;
+        _votingPeriod[1] = 2;
+        _votingPeriod[2] = 2;
 
         // voting rewards by class
         numberOfVotingDays[0] = 1;
@@ -298,6 +305,15 @@ contract GovStorage is IGovStorage {
         
         initialized = true;
         return true;
+    }
+
+    function _generateNewNonce(uint128 _class) private returns(uint128 nonce) {
+        nonce = proposalNonce[_class] + 1;
+        proposalNonce[_class] = nonce;
+    }
+
+    function getProposaLastNonce(uint128 _class) public view returns(uint128) {
+        return proposalNonce[_class];
     }
 
     function getProposalThreshold() public view returns(uint256) {
@@ -444,6 +460,8 @@ contract GovStorage is IGovStorage {
         return _proposalQuorum[_class];
     }
 
+
+
     function getProposalStatus(
         uint128 _class,
         uint128 _nonce
@@ -503,33 +521,38 @@ contract GovStorage is IGovStorage {
     ) public onlyProposalLogic {
         totalVoteTokenPerDay[_class][_nonce][_votingDay] += _amountVoteTokens;
     }
+
+    function getVotingPeriod(uint128 _class) public view returns(uint256) {
+        return _votingPeriod[_class];
+    }
  
     function setProposal(
         uint128 _class,
-        uint128 _nonce,
-        uint256 _startTime,
-        uint256 _endTime,
         address _proposer,
-        ProposalApproval _approvalMode,
         address _targets,
         uint256 _values,
         bytes memory _calldatas,
         string memory _title,
         bytes32 _descriptionHash
-    ) public onlyProposalLogic {
+    ) public onlyGov returns(uint128 nonce) {
         require(_proposer != address(0), "GovStorage: zero address");
 
-        proposal[_class][_nonce].startTime = _startTime;
-        proposal[_class][_nonce].endTime = _endTime;
-        proposal[_class][_nonce].proposer = _proposer;
-        proposal[_class][_nonce].approvalMode = _approvalMode;
-        proposal[_class][_nonce].targets = _targets;
-        proposal[_class][_nonce].values = _values;
-        proposal[_class][_nonce].calldatas = _calldatas;
-        proposal[_class][_nonce].title = _title;
-        proposal[_class][_nonce].descriptionHash = _descriptionHash;
+        nonce = _generateNewNonce(_class);
+        ProposalApproval approval = getApprovalMode(_class);
+        uint256 start = block.timestamp;
+        uint256 end = start + getVotingPeriod(_class);
 
-        proposals.push(proposal[_class][_nonce]);
+        proposal[_class][nonce].startTime = start;
+        proposal[_class][nonce].endTime = end;
+        proposal[_class][nonce].proposer = _proposer;
+        proposal[_class][nonce].approvalMode = approval;
+        proposal[_class][nonce].targets = _targets;
+        proposal[_class][nonce].ethValue = _values;
+        proposal[_class][nonce].calldatas = _calldatas;
+        proposal[_class][nonce].title = _title;
+        proposal[_class][nonce].descriptionHash = _descriptionHash;
+
+        proposals.push(proposal[_class][nonce]);
     }
 
     function getAllProposals() public view returns(Proposal[] memory) {
@@ -540,21 +563,25 @@ contract GovStorage is IGovStorage {
         uint128 _class,
         uint128 _nonce,
         ProposalStatus _status
-    ) public onlyGov {
+    ) public onlyGov returns(Proposal memory) {
         proposal[_class][_nonce].status = _status;
+
+        return proposal[_class][_nonce];
     }
 
-    function getProposalNonce(
-        uint128 _class
-    ) public view returns(uint128) {
-        return proposalNonce[_class];
-    }
-
-    function setProposalNonce(
+    function cancel(
         uint128 _class,
-        uint128 _nonce
+        uint128 _nonce,
+        address _proposer
     ) public onlyGov {
-        proposalNonce[_class] = _nonce;
+        ProposalStatus status = getProposalStatus(_class, _nonce);
+        require(
+            status != ProposalStatus.Canceled &&
+            status != ProposalStatus.Executed
+        );
+        require(_proposer == proposal[_class][_nonce].proposer, "Gov: permission denied");
+
+        proposal[_class][_nonce].status = ProposalStatus.Canceled;
     }
 
     function cdpDGOVToDBIT() public view returns(uint256) {
@@ -609,6 +636,102 @@ contract GovStorage is IGovStorage {
         );
 
         stackedDGOV[_staker][_stakingCounter].lastInterestWithdrawTime = block.timestamp;
+    }
+
+    function setVote(
+        uint128 _class,
+        uint128 _nonce,
+        address _voter,
+        uint8 _userVote,
+        uint256 _amountVoteTokens
+    ) public onlyGov {
+        uint256 day = _getVotingDay(_class, _nonce);     
+        increaseTotalVoteTokenPerDay(_class, _nonce, day, _amountVoteTokens);
+        _setVotingDay(_class, _nonce, _voter, day);
+        _countVote(_class, _nonce, _voter, _userVote, _amountVoteTokens);
+    }
+
+    function setVeto(
+        uint128 _class,
+        uint128 _nonce,
+        bool _vetoed
+    ) public onlyGov {        
+        _proposalVotes[_class][_nonce].vetoed = _vetoed;
+    }
+
+    function _getVotingDay(uint128 _class, uint128 _nonce) internal view returns(uint256 day) {
+        Proposal memory _proposal = proposal[_class][_nonce];
+        uint256 duration = _proposal.startTime > block.timestamp ?
+            0: block.timestamp - _proposal.startTime;
+        
+        day = (duration / NUMBER_OF_SECONDS_IN_YEAR) + 1;
+    }
+
+    function _setVotingDay(
+        uint128 _class,
+        uint128 _nonce,
+        address _voter,
+        uint256 _day
+    ) private {
+        require(_voter != address(0), "VoteCounting: zero address");
+        _proposalVotes[_class][_nonce].user[_voter].votingDay = _day;
+    }
+
+    function _countVote(
+        uint128 _class,
+        uint128 _nonce,
+        address _account,
+        uint8 _vote,
+        uint256 _weight
+    ) private {
+        require(_account != address(0), "VoteCounting: zero address");
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+        require(
+            !proposalVote.user[_account].hasVoted,
+            "VoteCounting: already voted"
+        );
+
+        proposalVote.user[_account].hasVoted = true;
+        proposalVote.user[_account].weight = _weight;
+
+        if (_vote == uint8(VoteType.For)) {
+            proposalVote.forVotes += _weight;
+        } else if (_vote == uint8(VoteType.Against)) {
+            proposalVote.againstVotes += _weight;
+        } else if (_vote == uint8(VoteType.Abstain)) {
+            proposalVote.abstainVotes += _weight;
+        } else {
+            revert("VoteCounting: invalid vote");
+        }
+
+        userVoteData[_class][_nonce].push(
+            UserVoteData(
+                {
+                    voter: _account,
+                    weight: _weight,
+                    vote: _vote
+                }
+            )
+        );
+    }
+
+
+
+
+
+
+
+
+    function getApprovalMode(
+        uint128 _class
+    ) public pure returns(ProposalApproval unsassigned) {
+        if (_class == 0 || _class == 1) {
+            return ProposalApproval.Approve;
+        }
+
+        if (_class == 2) {
+            return ProposalApproval.NoVote;
+        }
     }
 
     function getStakingData(

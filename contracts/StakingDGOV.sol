@@ -30,25 +30,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
     uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
     address public govStorageAddress;
 
-    modifier onlyGov() {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getGovernanceAddress(),
-            "StakingDGOV: only governance"
-        );
-        _;
-    }
-
-    modifier onlyProposalLogic {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getProposalLogicContract(),
-            "StakingDGOV: permission denied"
-        );
-        _;
-    }
-
-    constructor (
-        address _govStorageAddress
-    ) {
+    constructor (address _govStorageAddress) {
         govStorageAddress = _govStorageAddress;
     }
     
@@ -82,7 +64,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         // transfer staker DGOV to staking contract
         IERC20(
             IGovStorage(govStorageAddress).getDGOVAddress()
-        ).safeTransfer(address(this), _amount);
+        ).safeTransferFrom(staker, address(this), _amount);
 
         emit dgovStaked(staker, _amount, duration);
     }
@@ -144,13 +126,11 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
             "Gov: Unstake DGOV to get interests"
         );
 
+        uint256 currentDuration = block.timestamp - lastWithdrawTime;
+        uint256 interestEarned = estimateInterestEarned(amount, currentDuration);
+
         // update the last withdraw time
         IGovStorage(govStorageAddress).updateLastTimeInterestWithdraw(staker, _stakingCounter);
-
-        uint256 currentDuration = block.timestamp - lastWithdrawTime;
-
-        // calculate the interest earned since last winthdraw
-        uint256 interestEarned = estimateInterestEarned(amount, currentDuration);
 
         // transfer DBIT interests to the staker
         ITransferDBIT(

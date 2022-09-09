@@ -215,7 +215,7 @@ contract("Governance", async (accounts) => {
 */
 
     it("Check DGOV have been staked", async () => {
-        
+
     });
 
     it("Unstake DGOV tokens", async () => {
@@ -359,8 +359,6 @@ contract("Governance", async (accounts) => {
         // fetch data from structure Proposal
         let nonce = res.logs[0].args.nonce;
         let proposal = await storage.getProposalStruct(_class, nonce);
-
-        let approvalMode = await logic.getApprovalMode(_class);
         
         expect(event.class.toString()).to.equal(_class.toString());
         expect(event.nonce.toString()).to.equal(nonce.toString());
@@ -375,9 +373,6 @@ contract("Governance", async (accounts) => {
             .to.equal(proposal.endTime.toString());
 
         expect(event.proposer).to.equal(operator);
-
-        expect(proposal.approvalMode.toString())
-            .to.equal(approvalMode.toString());
 
         expect(event.title).to.equal(title);
         expect(event.descriptionHash).to.equal(web3.utils.soliditySha3(title));

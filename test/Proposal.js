@@ -201,134 +201,174 @@ contract("Governance", async (accounts) => {
         await stak.stakeDgovToken(opStake, 0, { from: operator });
     });
 
-    it.only("Check DGOV have been staked", async () => {
-        // A -> After staking
-        let user1A = await dgov.balanceOf(user1);
-        let user2A = await dgov.balanceOf(user2);
-        let user3A = await dgov.balanceOf(user3);
-        let user4A = await dgov.balanceOf(user4);
-        let user5A = await dgov.balanceOf(user5);
-        let userOA = await dgov.balanceOf(operator);
-        let contrA = await dgov.balanceOf(stak.address);
-
-        expect(user1A.toString()).to.equal(user1B.sub(toStake1).toString());
-        expect(user2A.toString()).to.equal(user2B.sub(toStake2).toString());
-        expect(user3A.toString()).to.equal(user3B.sub(toStake3).toString());
-        expect(user4A.toString()).to.equal(user4B.sub(toStake4).toString());
-        expect(user5A.toString()).to.equal(user5B.sub(toStake5).toString());
-        expect(userOA.toString()).to.equal(userOB.sub(opStake).toString());
-        expect(contrA.toString()).to.equal(
-            contrB.add(user1B.add(user2B.add(user3B.add(user4B.add(user5B.add(userOB)))))
-        ).toString());
-    });
-
-    it.only("Unstake DGOV tokens", async () => {
-        let balContractBefore = await dgov.balanceOf(stak.address);
-
-        await wait(5000);
-        await nextTime.increment();
-
-        let unstake = await stak.unstakeDgovToken(1, { from: user1 });
-        let event = unstake.logs[0].args;
-        let duration = event.duration.toString();
-
-        let estimate = await stak.estimateInterestEarned(toStake1, duration);
-        let balanceAfter = await dbit.balanceOf(user1);
-        let balContractAfter = await dgov.balanceOf(stak.address);
-
-        expect(
-            (Number(balanceAfter.toString()) / 100).toFixed(0)
-        ).to.equal(
-            (Number(estimate.toString()) / 100).toFixed(0)
+    it("create a proposal", async () => {
+        let _class = 0;
+        let title = "Propsal-1: Update the benchMark interest rate";
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
+            _class,
+            '100000000000000000'
+        ).encodeABI();
+        
+        let res = await gov.createProposal(
+            _class,
+            exec.address,
+            0,
+            callData,
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
         );
 
-        expect(balContractAfter.toString())
-        .to.equal(
-            balContractBefore.sub(toStake1).toString()
+        let event = res.logs[0].args;
+        let proposal = await storage.getProposalStruct(event.class, event.nonce);
+        let nonce = await storage.getProposaLastNonce(_class);
+
+        expect(event.class.toString()).to.equal(_class.toString());
+        expect(event.nonce.toString()).to.equal(nonce.toString());
+        expect(proposal.targets).to.equal(exec.address);
+        expect(proposal.ethValue.toString()).to.equal('0');
+        expect(proposal.calldatas.toString()).to.equal(callData.toString())
+        expect(proposal.startTime.toString()).not.to.equal('0');
+        expect(proposal.endTime.toString()).not.to.equal('0');
+        expect(proposal.proposer).to.equal(operator);
+        expect(proposal.title).to.equal(title);
+        expect(proposal.descriptionHash).to.equal(web3.utils.soliditySha3(title));
+    });
+
+    it("create sevarl proposals", async () => {
+        // first proposal
+        let _class1 = 0;
+        let title1 = "Propsal-1: Update the benchMark interest rate";
+        let callData1 = await exec.contract.methods.updateBenchmarkInterestRate(
+            _class1,
+            '100000000000000000'
+        ).encodeABI();
+
+        let res1 = await gov.createProposal(
+            _class1,
+            exec.address,
+            0,
+            callData1,
+            title1,
+            web3.utils.soliditySha3(title1),
+            { from: operator }
         );
-    });
 
-    it("Withdraw staking DGOV interest before end of staking", async () => {
-        amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
-
-        await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToStake, { from: operator });
-        await dgov.transfer(user6, amountToStake, { from: debondTeam });
-        await dgov.approve(gov.address, amountToStake, { from: user6 });
-        await dgov.approve(user6, amountToStake, { from: user6 });
-
-        await gov.stakeDGOV(amountToStake, 0, { from: user6 });
-
-        await wait(2000);
-        await nextTime.increment();
-        await gov.withdrawInterest(1, { from: user6 });
-
-        await wait(3000);
-        await nextTime.increment();
-
-        let unstake = await gov.unstakeDGOV(1, { from: user6 });
-        let event = unstake.logs[0].args;
-        let duration = event.duration.toString();
-
-        let estimate = await stak.estimateInterestEarned(amountToStake, duration);
-
-        let userBalanceFinal = await dbit.balanceOf(user6);
-
-        expect(
-            (Number(userBalanceFinal.toString()) / 1000).toFixed(0)
-        ).to.equal(
-            (Number(estimate.toString()) / 1000).toFixed(0)
+        // second proposal
+        let _class2 = 1;
+        let title2 = "Propsal-1: Update the bank contract";
+        let callData2 = await exec.contract.methods.updateBankAddress(
+            _class2,
+            user6
+        ).encodeABI();
+        
+        let res2 = await gov.createProposal(
+            _class2,
+            exec.address,
+            0,
+            callData2,
+            title2,
+            web3.utils.soliditySha3(title2),
+            { from: operator }
         );
-    });
 
-    it("Several inetrest withdraw before end of staking", async () => {
-        amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
-
-        await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToStake, { from: operator });
-        await dgov.transfer(user6, amountToStake, { from: debondTeam });
-        await dgov.approve(gov.address, amountToStake, { from: user6 });
-        await dgov.approve(user6, amountToStake, { from: user6 });
-
-        await gov.stakeDGOV(amountToStake, 0, { from: user6 });
-
-        await wait(1000);
-        await nextTime.increment();
-        await gov.withdrawInterest(1, { from: user6 });
-        await gov.withdrawInterest(1, { from: user6 });
-
-        await wait(4000);
-        await nextTime.increment();
-
-        let unstake = await gov.unstakeDGOV(1, { from: user6 });
-        let event = unstake.logs[0].args;
-        let duration = event.duration.toString();
-
-        let userBalanceFinal = await dbit.balanceOf(user6);
-        let estimate = await stak.estimateInterestEarned(amountToStake, duration);
-
-        expect(
-            (Number(userBalanceFinal.toString()) / 1000).toFixed(0)
-        ).to.equal(
-            (Number(estimate.toString()) / 1000).toFixed(0)
+        // third proposal
+        let toAdd = await web3.utils.toWei(web3.utils.toBN(4000000), 'ether');
+        let maxSupplyBefore = await dgov.getMaxSupply();
+        let newMax = maxSupplyBefore.add(toAdd);
+        let _class3 = 0;
+        let title3 = "Propsal-1: Update the DGOV max";
+        let callData3 = await gov.contract.methods.updateDGOVMaxSupply(
+            _class3,
+            newMax
+        ).encodeABI();
+        
+        let res3 = await gov.createProposal(
+            _class3,
+            gov.address,
+            0,
+            callData3,
+            title3,
+            web3.utils.soliditySha3(title3),
+            { from: operator }
         );
+
+        let proposals = await storage.getAllProposals();
+
+        expect(proposals).to.not.be.empty;
+        expect(proposals).to.have.lengthOf(3);
+
+        expect(proposals[0].proposer).to.equal(operator);
+        expect(proposals[0].calldatas).to.equal(callData1);
+        expect(proposals[0].descriptionHash).to.equal(web3.utils.soliditySha3(title1));
+        expect(proposals[0].title).to.equal("Propsal-1: Update the benchMark interest rate");
+
+        expect(proposals[1].proposer).to.equal(operator);
+        expect(proposals[1].calldatas).to.equal(callData2);
+        expect(proposals[1].descriptionHash).to.equal(web3.utils.soliditySha3(title2));
+        expect(proposals[1].title).to.equal("Propsal-1: Update the bank contract");
+
+        expect(proposals[2].proposer).to.equal(operator);
+        expect(proposals[2].calldatas).to.equal(callData3);
+        expect(proposals[2].descriptionHash).to.equal(web3.utils.soliditySha3(title3));
+        expect(proposals[2].title).to.equal("Propsal-1: Update the DGOV max");
     });
 
-    it('Cannot unstake DGOV before staking ends', async () => {
-        amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
+    it("Cancel a proposal", async () => {
+        let _class = 0;
+        let title = "Propsal-1: Update the benchMark interest rate";
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
+            _class,
+            '100000000000000000'
+        ).encodeABI();
+        
+        let res = await gov.createProposal(
+            _class,
+            exec.address,
+            0,
+            callData,
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
+        );
 
-        await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToStake, { from: operator });
-        await dgov.transfer(user7, amountToStake, { from: debondTeam });
-        await dgov.approve(gov.address, amountToStake, { from: user7 });
-        await dgov.approve(user7, amountToStake, { from: user7 });
+        let event = res.logs[0].args;
+        let proposal = await storage.getProposalStruct(event.class, event.nonce);
+        let statusBef = proposal.status;
+        
+        await gov.cancelProposal(event.class, event.nonce);
+        proposal = await storage.getProposalStruct(event.class, event.nonce);
+        let statusAft = proposal.status;
 
-        await gov.stakeDGOV(amountToStake, 0, { from: user7 });
-
-        expect(gov.unstakeDGOV(1, { from: user7 }))
-            .to.rejectedWith(
-                Error,
-                "VM Exception while processing transaction: revert Staking: still staking -- Reason given: Staking: still staking"
-            );
+        expect(statusBef.toString()).to.equal(ProposalStatus.Active);
+        expect(statusAft.toString()).to.equal(ProposalStatus.Canceled);
     });
-   
+
+    it("cannot execute an active proposal", async () => {
+        let _class = 0;
+        let title = "Propsal-1: Update the benchMark interest rate";
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
+            _class,
+            '100000000000000000'
+        ).encodeABI();
+        
+        let res = await gov.createProposal(
+            _class,
+            exec.address,
+            0,
+            callData,
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
+        );
+
+        let event = res.logs[0].args;
+
+        expect(gov.executeProposal(event.class, event.nonce)).to.rejectedWith(
+            Error,
+            "VM Exception while processing transaction: revert Gov: only succeded proposals -- Reason given: Gov: only succeded proposals"
+        );
+    }); 
 })
 
 

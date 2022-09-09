@@ -200,7 +200,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     function burnVoteToken(
         address _account,
         uint256 _amount
-    ) external override onlyGov nonReentrant {
+    ) external override onlyStaking nonReentrant {
         require(_amount <= balanceOf(_account) - _totalLockedBalance[_account], "VoteToken: not enough tokens available");
         _burn(_account, _amount);
         _availableBalance[_account] = balanceOf(_account) - _totalLockedBalance[_account];

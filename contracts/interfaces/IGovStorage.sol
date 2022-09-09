@@ -125,33 +125,44 @@ interface IGovStorage is IGovSharedStorage {
         uint256 _amountVoteTokens
     ) external;
 
+    function getVotingPeriod(
+        uint128 _class
+    ) external view returns(uint256);
+
     function setProposal(
         uint128 _class,
-        uint128 _nonce,
-        uint256 _startTime,
-        uint256 _endTime,
         address _proposer,
-        ProposalApproval _approvalMode,
         address _targets,
         uint256 _values,
         bytes memory _calldatas,
         string memory _title,
         bytes32 _descriptionHash
-    ) external;
+    ) external returns(uint128 nonce);
 
     function setProposalStatus(
         uint128 _class,
         uint128 _nonce,
         ProposalStatus _status
+    ) external returns(Proposal memory);
+
+    function cancel(
+        uint128 _class,
+        uint128 _nonce,
+        address _proposer
     ) external;
 
-    function getProposalNonce(
-        uint128 _class
-    ) external view returns(uint128);
-
-    function setProposalNonce(
+    function setVote(
         uint128 _class,
-        uint128 _nonce
+        uint128 _nonce,
+        address _voter,
+        uint8 _userVote,
+        uint256 _amountVoteTokens
+    ) external;
+
+    function setVeto(
+        uint128 _class,
+        uint128 _nonce,
+        bool _vetoed
     ) external;
 
     function updateExecutableAddress(

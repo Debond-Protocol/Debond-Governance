@@ -23,32 +23,6 @@ interface IProposalLogic is IGovSharedStorage {
         address _tokenOwner
     ) external returns(uint256 reward);
 
-    function setVote(
-        uint128 _class,
-        uint128 _nonce,
-        address _voter,
-        uint8 _userVote,
-        uint256 _amountVoteTokens
-    ) external;
-
-    function setProposal(
-        uint128 _class,
-        uint128 _nonce,
-        address _proposer,
-        address _targets,
-        uint256 _values,
-        bytes memory _calldatas,
-        string memory _title,
-        bytes32 _descriptionHash
-    ) external returns(
-        uint256 start,
-        uint256 end,
-        ProposalApproval approval
-    );
-
-    
-
-
     function hasVoted(
         uint128 _class,
         uint128 _nonce,
@@ -113,11 +87,4 @@ interface IProposalLogic is IGovSharedStorage {
         uint128 _class,
         uint128 _nonce
     ) external view returns(bool);
-
-    function setVetoApproval(
-        uint128 _class,
-        uint128 _nonce,
-        bool _vetoed,
-        address _vetoOperator
-    ) external;
 }
