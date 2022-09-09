@@ -185,18 +185,13 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint256 _stakingCounter
     ) public {
         address voter = msg.sender;
-        require(voter != address(0), "Governance: zero address");
-        require(
-            _voreRequirement(_class, _nonce, _tokenOwner, _amountVoteTokens, voter),
-            "Gov: proposal not active or not enough allowance or vote tokens"
-        );
+        require(voter != address(0), "Gov: zero address");
+        require(_tokenOwner != address(0), "Gov: zero address");
 
-        // lock vote tokens
         IVoteToken(
             IGovStorage(govStorageAddress).getVoteTokenContract()
         ).lockTokens(_tokenOwner, voter, _amountVoteTokens, _class, _nonce);     
 
-        // update vote data
         IGovStorage(govStorageAddress).setVote(_class, _nonce, voter, _userVote, _amountVoteTokens);
 
         emit voted(_class, _nonce, voter, _stakingCounter, _amountVoteTokens);
@@ -248,54 +243,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         );
     }
 
-    /**
-    * @dev redeem vote tokens and get DBIT rewards
-    * @param _class proposal class
-    * @param _nonce proposal nonce
-    */
-    function unlockVoteTokens(
-        uint128 _class,
-        uint128 _nonce
-    ) external {
-        address tokenOwner = msg.sender;
-        require(tokenOwner != address(0), "Gov: zero address");
-
-        ProposalStatus status = IGovStorage(
-            govStorageAddress
-        ).getProposalStatus(_class, _nonce);
-
-        address proposer = IGovStorage(
-            govStorageAddress
-        ).getProposalProposer(_class, _nonce);
-
-        require(
-            status == ProposalStatus.Canceled ||
-            status == ProposalStatus.Succeeded ||
-            status == ProposalStatus.Defeated ||
-            status == ProposalStatus.Executed,
-            "ProposalLogic: still voting"
-        );
-
-        // proposer locks vote tokens by submiting the proposal, and may not have voted
-        if(tokenOwner != proposer) {
-            require(
-                IProposalLogic(
-                    IGovStorage(govStorageAddress).getProposalLogicContract()
-                ).hasVoted(_class, _nonce, tokenOwner),
-                "Gov: you haven't voted"
-            );      
-        }
-
-        // update user locked and available vote tokens balances
-        IVoteToken(
-            IGovStorage(govStorageAddress).getVoteTokenContract()
-        ).unlockVoteTokens(_class, _nonce, tokenOwner);
-
-        _transferDBITInterest(_class, _nonce, tokenOwner);
-
-        emit voteTokenUnlocked(_class, _nonce, tokenOwner);
-    }
-
     function _execute(
         address _targets,
         uint256 _values,
@@ -309,57 +256,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         ) = _targets.call{value: _values}(_calldatas);
 
         Address.verifyCallResult(success, data, errorMessage);
-    }
-
-    function _transferDBITInterest(
-        uint128 _class,
-        uint128 _nonce,
-        address _tokenOwner
-    ) private {
-        uint256 reward = IProposalLogic(
-            IGovStorage(govStorageAddress).getProposalLogicContract()
-        ).calculateReward(_class, _nonce, _tokenOwner);
-
-        IAPM(
-            IGovStorage(govStorageAddress).getAPMAddress()
-        ).removeLiquidity(
-            _tokenOwner,
-            IGovStorage(govStorageAddress).getDBITAddress(),
-            reward
-        );
-    }
-
-    function _voreRequirement(
-        uint128 _class,
-        uint128 _nonce,
-        address _tokenOwner,
-        uint256 _amountVoteTokens,
-        address _voter
-    ) private view returns(bool) {
-        require(
-            IGovStorage(
-                govStorageAddress
-            ).getProposalStatus(_class, _nonce) == ProposalStatus.Active,
-            "Gov: vote not active"
-        );
-        require(
-            _amountVoteTokens <= IERC20(
-            IGovStorage(govStorageAddress).getDGOVAddress()
-        ).allowance(_tokenOwner, _voter),
-            "ProposalLogic: not enough allowance"
-        );
-        require(
-            _amountVoteTokens <= 
-            IERC20(
-                IGovStorage(govStorageAddress).getVoteTokenContract()
-            ).balanceOf(_tokenOwner) - 
-            IVoteToken(
-                IGovStorage(govStorageAddress).getVoteTokenContract()
-            ).totalLockedBalanceOf(_tokenOwner),
-            "ProposalLogic: not enough vote tokens"
-        );
-
-        return true;
     }
 
     /**

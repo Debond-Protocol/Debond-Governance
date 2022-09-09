@@ -452,7 +452,7 @@ contract GovStorage is IGovStorage {
     function getProposalProposer(
         uint128 _class,
         uint128 _nonce
-    ) external view returns(address) {
+    ) public view returns(address) {
         return proposal[_class][_nonce].proposer;
     }
 
@@ -659,6 +659,14 @@ contract GovStorage is IGovStorage {
         _proposalVotes[_class][_nonce].vetoed = _vetoed;
     }
 
+    function hasVoted(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(bool voted) {
+        voted = _proposalVotes[_class][_nonce].user[_account].hasVoted;
+    }
+
     function _getVotingDay(uint128 _class, uint128 _nonce) internal view returns(uint256 day) {
         Proposal memory _proposal = proposal[_class][_nonce];
         uint256 duration = _proposal.startTime > block.timestamp ?
@@ -713,6 +721,30 @@ contract GovStorage is IGovStorage {
                 }
             )
         );
+    }
+
+    function hasBeenRewarded(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(bool) {
+        return _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded;
+    }
+
+    function setUserHasBeenRewarded(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public onlyStaking {
+        _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded = true;
+    }
+
+    function getVoteWeight(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(uint256) {
+        return _proposalVotes[_class][_nonce].user[_account].weight;
     }
 
 

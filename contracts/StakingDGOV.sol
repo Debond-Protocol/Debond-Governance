@@ -123,7 +123,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         require(amount > 0, "Gov: no DGOV staked");
         require(
             block.timestamp >= startTime && block.timestamp <= startTime + duration,
-            "Gov: Unstake DGOV to get interests"
+            "Staking: Unstake DGOV to get interests"
         );
 
         uint256 currentDuration = block.timestamp - lastWithdrawTime;
@@ -139,6 +139,55 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
 
         emit interestWithdrawn(_stakingCounter, interestEarned);
     }
+
+
+    function unlockVotes(uint128 _class, uint128 _nonce) public {
+        address tokenOwner = msg.sender;
+        require(tokenOwner != address(0), "Gov: zero address");
+
+        Proposal memory proposal = IGovStorage(govStorageAddress).getProposalStruct(_class, _nonce);
+        ProposalStatus status = IGovStorage(govStorageAddress).getProposalStatus(_class, _nonce);
+        require(
+            status == ProposalStatus.Canceled ||
+            status == ProposalStatus.Succeeded ||
+            status == ProposalStatus.Defeated ||
+            status == ProposalStatus.Executed,
+            "ProposalLogic: still voting"
+        );
+
+        // proposer locks vote tokens by submiting the proposal, and may not have voted
+        if(tokenOwner != proposal.proposer) {
+            require(
+                IGovStorage(govStorageAddress).hasVoted(_class, _nonce, tokenOwner),
+                "Staking: you haven't voted"
+            );     
+        }
+
+        require(
+            !IGovStorage(govStorageAddress).hasBeenRewarded(_class, _nonce, tokenOwner),
+            "Staking: already rewarded"
+        );
+
+        IGovStorage(govStorageAddress).setUserHasBeenRewarded(_class, _nonce, tokenOwner);
+
+        uint256 reward = calculateVotingReward(_class, _nonce, tokenOwner);
+
+        // unlock vote tokens
+        IVoteToken(
+            IGovStorage(govStorageAddress).getVoteTokenContract()
+        ).unlockVoteTokens(_class, _nonce, tokenOwner);
+
+        // transfer DBIT reward to the voter
+        ITransferDBIT(
+            IGovStorage(govStorageAddress).getGovernanceAddress()
+        ).transferDBITInterests(tokenOwner, reward);
+
+        emit voteTokenUnlocked(_class, _nonce, tokenOwner);
+    }
+
+
+
+
 
     /**
     * @dev calculate the interest earned by DGOV staker
@@ -180,6 +229,29 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
 
         interest = (_amount * interestRate * _duration / 1 ether) / NUMBER_OF_SECONDS_IN_YEAR;
     }
+
+
+
+    function calculateVotingReward(
+        uint128 _class,
+        uint128 _nonce,
+        address _tokenOwner
+    ) public view returns(uint256 reward) {
+        uint256 benchmarkIR = IGovStorage(govStorageAddress).getBenchmarkIR();
+        uint256 cdp = IGovStorage(govStorageAddress).cdpDGOVToDBIT();
+        uint256 rewardRate = votingInterestRate(benchmarkIR, cdp);
+        uint256 voteWeight = IGovStorage(govStorageAddress).getVoteWeight(_class, _nonce, _tokenOwner);
+
+        uint256 _reward;
+        
+        for(uint256 i = 1; i <= IGovStorage(govStorageAddress).getNumberOfVotingDays(_class); i++) {
+            _reward += (1 ether * 1 ether) / IGovStorage(govStorageAddress).getTotalVoteTokenPerDay(_class, _nonce, i);
+        }
+
+        reward = voteWeight * rewardRate * _reward / (36500 * 1 ether * 1 ether);
+    }
+
+
 
     /**
     * @dev interest rate calculation for staking DGOV

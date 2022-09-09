@@ -94,10 +94,14 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         uint128 _class,
         uint128 _nonce
     ) public onlyGov {
-        require(_owner != address(0), "VoteToken: zero address");
-        require(_spender != address(0), "VoteToken: zero address");
         require(
-            _amount <= balanceOf(_owner),
+            IGovStorage(
+                govStorageAddress
+            ).getProposalStatus(_class, _nonce) == ProposalStatus.Active,
+            "Gov: vote not active"
+        );
+        require(
+            _amount <= balanceOf(_owner) - totalLockedBalanceOf(_owner),
             "VoteToken: not enough tokens"
         );
         require(
@@ -122,8 +126,8 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         address _tokenOwner
     ) external onlyGov {
         uint256 amount = lockedBalanceOf(_tokenOwner, _class, _nonce);
-        require(amount > 0, "VoteToken: no vote tokens locked");
-
+        require(amount > 0, "VoteToken: no vote tokens locked for this proposal");       
+        
         _lockedBalance[_tokenOwner][_class][_nonce] -= amount;
         _totalLockedBalance[_tokenOwner] -= amount;
         _availableBalance[_tokenOwner] = balanceOf(_tokenOwner) - _totalLockedBalance[_tokenOwner];

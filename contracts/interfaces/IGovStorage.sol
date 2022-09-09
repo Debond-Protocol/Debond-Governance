@@ -165,6 +165,30 @@ interface IGovStorage is IGovSharedStorage {
         bool _vetoed
     ) external;
 
+    function hasVoted(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external view returns(bool voted);
+
+    function hasBeenRewarded(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external view returns(bool);
+
+    function setUserHasBeenRewarded(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external;
+
+    function getVoteWeight(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external view returns(uint256);
+
     function updateExecutableAddress(
         address _executableAddress
     ) external;
