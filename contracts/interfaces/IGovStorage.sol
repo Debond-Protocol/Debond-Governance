@@ -22,11 +22,9 @@ interface IGovStorage is IGovSharedStorage {
     function getVetoOperator() external view returns(address);
     function getExecutableContract() external view returns(address);
     function getStakingContract() external view returns(address);
-    function getProposalLogicContract() external view returns(address);
     function getVoteTokenContract() external view returns(address);
     function getAirdropContract() external view returns(address);
     function getNumberOfSecondInYear() external pure returns(uint256);
-
     function getGovernanceAddress() external view returns(address);
     function getExchangeAddress() external view returns(address);
     function getExchangeStorageAddress() external view returns(address);
@@ -117,13 +115,6 @@ interface IGovStorage is IGovSharedStorage {
         uint128 _nonce,
         uint256 _votingDay
     ) external view returns(uint256);
-
-    function increaseTotalVoteTokenPerDay(
-        uint128 _class,
-        uint128 _nonce,
-        uint256 _votingDay,
-        uint256 _amountVoteTokens
-    ) external;
 
     function getVotingPeriod(
         uint128 _class

@@ -16,7 +16,6 @@ const StakingDGOV = artifacts.require("StakingDGOV");
 const Governance = artifacts.require("Governance");
 const Executable = artifacts.require("Executable");
 const GovStorage = artifacts.require("GovStorage");
-const ProposalLogic = artifacts.require("ProposalLogic");
 const GovernanceMigrator = artifacts.require("GovernanceMigrator");
 const Exchange = artifacts.require("ExchangeTest");
 const ExchangeStorage = artifacts.require("ExchangeStorageTest");
@@ -35,7 +34,6 @@ contract("Governance", async (accounts) => {
     let stak;
     let vote;
     let exec;
-    let logic;
     let erc3475;
     let storage;
     let amountToMint;
@@ -100,7 +98,6 @@ contract("Governance", async (accounts) => {
         bankData = await BankData.new(gov.address, bank.address, exec.address);
         dbit = await DBIT.new(gov.address, bank.address, operator, exchange.address, exec.address);
         dgov = await DGOV.new(gov.address, bank.address, operator, exchange.address, exec.address);
-        logic = await ProposalLogic.new(storage.address);
         stak = await StakingDGOV.new(storage.address);
         rates = await InterestRates.new();
 
@@ -121,7 +118,6 @@ contract("Governance", async (accounts) => {
         );
 
         await storage.setUpGoup2(
-            logic.address,
             exec.address,
             bank.address,
             bankData.address,

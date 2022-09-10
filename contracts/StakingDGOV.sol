@@ -152,7 +152,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
             status == ProposalStatus.Succeeded ||
             status == ProposalStatus.Defeated ||
             status == ProposalStatus.Executed,
-            "ProposalLogic: still voting"
+            "Staking: still voting"
         );
 
         // proposer locks vote tokens by submiting the proposal, and may not have voted

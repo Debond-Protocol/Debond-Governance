@@ -19,7 +19,6 @@ import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
 import "@debond-protocol/debond-exchange-contracts/interfaces/IExchangeStorage.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IGovStorage.sol";
-import "./interfaces/IProposalLogic.sol";
 
 contract GovStorage is IGovStorage {
     struct AllocatedToken {
@@ -50,7 +49,6 @@ contract GovStorage is IGovStorage {
     address public bankBondManagerContract;
     address public stakingContract;
     address public voteTokenContract;
-    address public proposalLogicContract;
     address public executable;
     address public airdropContract;
     address public governanceOwnableContract;
@@ -127,13 +125,6 @@ contract GovStorage is IGovStorage {
         require(
             msg.sender == getExecutableContract(),
             "GovStorage: Only Exec"
-        );
-        _;
-    }
-
-    modifier onlyProposalLogic {
-        require(
-            msg.sender == getProposalLogicContract()
         );
         _;
     }
@@ -237,7 +228,6 @@ contract GovStorage is IGovStorage {
     }
 
     function setUpGoup2(
-        address _proposalLogicContract,
         address _executable,
         address _bankContract,
         address _bankDataContract,
@@ -249,7 +239,6 @@ contract GovStorage is IGovStorage {
     ) external onlyVetoOperator {
         require(_lockGroup2 == 0, "GovStorage: Group2 already set");
 
-        proposalLogicContract = _proposalLogicContract;
         executable = _executable;
         bankContract = _bankContract;
         bankDataContract = _bankDataContract;
@@ -342,10 +331,6 @@ contract GovStorage is IGovStorage {
 
     function getVoteTokenContract() public view returns(address) {
         return voteTokenContract;
-    }
-
-    function getProposalLogicContract() public view returns(address) {
-        return proposalLogicContract;
     }
 
     function getAirdropContract() public view returns(address) {
@@ -480,19 +465,59 @@ contract GovStorage is IGovStorage {
             return ProposalStatus.Active;
         }
 
-        if(!IProposalLogic(proposalLogicContract).voteSucceeded(_class, _nonce)) {
+        if(!voteSucceeded(_class, _nonce)) {
             return ProposalStatus.Defeated;
         } else {
-            if(!IProposalLogic(proposalLogicContract).quorumReached(_class, _nonce)) {
+            if(!quorumReached(_class, _nonce)) {
                 return ProposalStatus.Defeated;
             } else {
-                if(IProposalLogic(proposalLogicContract).vetoed(_class, _nonce)) {
+                if(vetoed(_class, _nonce)) {
                     return ProposalStatus.Defeated;
                 } else {
                     return ProposalStatus.Succeeded;
                 }
             }
         }
+    }
+
+    function quorumReached(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(bool reached) {
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+
+        reached =  proposalVote.forVotes + proposalVote.abstainVotes >= _quorum(_class, _nonce);
+    }
+
+    function voteSucceeded(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(bool succeeded) {
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+
+        succeeded = proposalVote.forVotes > proposalVote.againstVotes;
+    }
+
+    function _quorum(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(uint256 proposalQuorum) {
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+
+        uint256 minApproval = _proposalQuorum[_class];
+
+        proposalQuorum =  minApproval * (
+            proposalVote.forVotes +
+            proposalVote.againstVotes +
+            proposalVote.abstainVotes
+        ) / 100;
+    }
+
+    function vetoed(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(bool) {
+        return _proposalVotes[_class][_nonce].vetoed;
     }
 
     function getNumberOfVotingDays(
@@ -513,12 +538,12 @@ contract GovStorage is IGovStorage {
         return total;
     }
 
-    function increaseTotalVoteTokenPerDay(
+    function _increaseTotalVoteTokenPerDay(
         uint128 _class,
         uint128 _nonce,
         uint256 _votingDay,
         uint256 _amountVoteTokens
-    ) public onlyProposalLogic {
+    ) private {
         totalVoteTokenPerDay[_class][_nonce][_votingDay] += _amountVoteTokens;
     }
 
@@ -590,7 +615,6 @@ contract GovStorage is IGovStorage {
         return 100 ether + ((dgovTotalSupply / 33333)**2 / 1 ether);
     }
 
-    //======= staking
     function getUserStake(address _staker, uint256 _stakingCounter) public view returns(StackedDGOV memory) {
         return stackedDGOV[_staker][_stakingCounter];
     }
@@ -645,8 +669,8 @@ contract GovStorage is IGovStorage {
         uint8 _userVote,
         uint256 _amountVoteTokens
     ) public onlyGov {
-        uint256 day = _getVotingDay(_class, _nonce);     
-        increaseTotalVoteTokenPerDay(_class, _nonce, day, _amountVoteTokens);
+        uint256 day = _getVotingDay(_class, _nonce);    
+        _increaseTotalVoteTokenPerDay(_class, _nonce, day, _amountVoteTokens);
         _setVotingDay(_class, _nonce, _voter, day);
         _countVote(_class, _nonce, _voter, _userVote, _amountVoteTokens);
     }
@@ -665,6 +689,53 @@ contract GovStorage is IGovStorage {
         address _account
     ) public view returns(bool voted) {
         voted = _proposalVotes[_class][_nonce].user[_account].hasVoted;
+    }
+
+    function getUsersVoteData(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(UserVoteData[] memory) {
+        return userVoteData[_class][_nonce];
+    }
+
+    function numberOfVoteTokens(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(uint256 amountTokens) {
+        amountTokens = _proposalVotes[_class][_nonce].user[_account].weight;
+    }
+
+    function getUserVoteData(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) public view returns(
+        bool,
+        bool,
+        uint256,
+        uint256
+    ) {
+        return (
+            _proposalVotes[_class][_nonce].user[_account].hasVoted,
+            _proposalVotes[_class][_nonce].user[_account].hasBeenRewarded,
+            _proposalVotes[_class][_nonce].user[_account].weight,
+            _proposalVotes[_class][_nonce].user[_account].votingDay
+        );
+    }
+
+    function getProposalVotes(
+        uint128 _class,
+        uint128 _nonce
+    ) public view returns(uint256 forVotes, uint256 againstVotes, uint256 abstainVotes) {
+        ProposalVote storage proposalVote = _proposalVotes[_class][_nonce];
+
+        (forVotes, againstVotes, abstainVotes) = 
+        (
+            proposalVote.forVotes,
+            proposalVote.againstVotes,
+            proposalVote.abstainVotes
+        );
     }
 
     function _getVotingDay(uint128 _class, uint128 _nonce) internal view returns(uint256 day) {
@@ -746,13 +817,6 @@ contract GovStorage is IGovStorage {
     ) public view returns(uint256) {
         return _proposalVotes[_class][_nonce].user[_account].weight;
     }
-
-
-
-
-
-
-
 
     function getApprovalMode(
         uint128 _class
@@ -959,12 +1023,6 @@ contract GovStorage is IGovStorage {
         return true;
     }
 
-    /**
-    * @dev internal function to check DBIT and DGOV supply
-    * @param _to the recipient in mintAllocatedToken and changeTeamAllocation
-    * @param _amountDBIT amount of DBIT to mint or new DBIT allocation percentage
-    * @param _amountDGOV amount of DGOV to mint or new DGOV allocation percentage
-    */
     function checkSupply(
         address _to,
         uint256 _amountDBIT,

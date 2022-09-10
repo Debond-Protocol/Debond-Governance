@@ -16,7 +16,6 @@ const StakingDGOV = artifacts.require("StakingDGOV");
 const Governance = artifacts.require("Governance");
 const Executable = artifacts.require("Executable");
 const GovStorage = artifacts.require("GovStorage");
-const ProposalLogic = artifacts.require("ProposalLogic");
 const GovernanceMigrator = artifacts.require("GovernanceMigrator");
 const Exchange = artifacts.require("ExchangeTest");
 const ExchangeStorage = artifacts.require("ExchangeStorageTest");
@@ -35,7 +34,6 @@ contract("Governance", async (accounts) => {
     let stak;
     let vote;
     let exec;
-    let logic;
     let erc3475;
     let storage;
     let amountToMint;
@@ -87,7 +85,6 @@ contract("Governance", async (accounts) => {
         bankData = await BankData.new(gov.address, bank.address, exec.address);
         dbit = await DBIT.new(gov.address, bank.address, operator, exchange.address, exec.address);
         dgov = await DGOV.new(gov.address, bank.address, operator, exchange.address, exec.address);
-        logic = await ProposalLogic.new(storage.address);
         stak = await StakingDGOV.new(storage.address);
         rates = await InterestRates.new();
 
@@ -108,7 +105,6 @@ contract("Governance", async (accounts) => {
         );
 
         await storage.setUpGoup2(
-            logic.address,
             exec.address,
             bank.address,
             bankData.address,
@@ -1580,11 +1576,11 @@ contract("Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user3, 0, amountVoteToken, 1, { from: user3 });
         await gov.vote(event.class, event.nonce, user4, 0, amountVoteToken, 1, { from: user4 });
 
-        let v1 = await logic.hasVoted(event.class, event.nonce, user1);
-        let v6 = await logic.hasVoted(event.class, event.nonce, user6);
-        let v4 = await logic.hasVoted(event.class, event.nonce, user4);
-        let v2 = await logic.hasVoted(event.class, event.nonce, user2);
-        let v3 = await logic.hasVoted(event.class, event.nonce, user3);
+        let v1 = await storage.hasVoted(event.class, event.nonce, user1);
+        let v6 = await storage.hasVoted(event.class, event.nonce, user6);
+        let v4 = await storage.hasVoted(event.class, event.nonce, user4);
+        let v2 = await storage.hasVoted(event.class, event.nonce, user2);
+        let v3 = await storage.hasVoted(event.class, event.nonce, user3);
 
         expect(v1).to.be.false;
         expect(v6).to.be.true;
