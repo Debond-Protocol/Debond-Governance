@@ -95,12 +95,6 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         uint128 _nonce
     ) public onlyGov {
         require(
-            IGovStorage(
-                govStorageAddress
-            ).getProposalStatus(_class, _nonce) == ProposalStatus.Active,
-            "Gov: vote not active"
-        );
-        require(
             _amount <= balanceOf(_owner) - totalLockedBalanceOf(_owner),
             "VoteToken: not enough tokens"
         );

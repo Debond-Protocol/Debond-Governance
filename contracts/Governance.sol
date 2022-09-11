@@ -186,6 +186,12 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         address voter = msg.sender;
         require(voter != address(0), "Gov: zero address");
         require(_tokenOwner != address(0), "Gov: zero address");
+        require(
+            IGovStorage(
+                govStorageAddress
+            ).getProposalStatus(_class, _nonce) == ProposalStatus.Active,
+            "Gov: vote not active"
+        ); 
 
         IVoteToken(
             IGovStorage(govStorageAddress).getVoteTokenContract()
