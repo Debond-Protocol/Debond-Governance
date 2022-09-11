@@ -374,7 +374,7 @@ contract("Governance", async (accounts) => {
         expect(event.descriptionHash).to.equal(web3.utils.soliditySha3(title));
     });
 
-    it("Create sevral proposals", async () => {
+    it("Create several proposals", async () => {
         let toMint = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
         await bank.mintCollateralisedSupply(dgov.address, operator, toMint, { from: operator  });
         await dgov.approve(gov.address, toMint, { from: operator });

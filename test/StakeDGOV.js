@@ -197,7 +197,7 @@ contract("Governance", async (accounts) => {
         await stak.stakeDgovToken(opStake, 0, { from: operator });
     });
 
-    it.only("Check DGOV have been staked", async () => {
+    it("Check DGOV have been staked", async () => {
         // A -> After staking
         let user1A = await dgov.balanceOf(user1);
         let user2A = await dgov.balanceOf(user2);
@@ -218,7 +218,7 @@ contract("Governance", async (accounts) => {
         ).toString());
     });
 
-    it.only("Unstake DGOV tokens", async () => {
+    it("Unstake DGOV tokens", async () => {
         let balContractBefore = await dgov.balanceOf(stak.address);
 
         await wait(5000);
@@ -245,86 +245,98 @@ contract("Governance", async (accounts) => {
     });
 
     it("Withdraw staking DGOV interest before end of staking", async () => {
-        amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
-
-        await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToStake, { from: operator });
-        await dgov.transfer(user6, amountToStake, { from: debondTeam });
-        await dgov.approve(gov.address, amountToStake, { from: user6 });
-        await dgov.approve(user6, amountToStake, { from: user6 });
-
-        await gov.stakeDGOV(amountToStake, 0, { from: user6 });
-
         await wait(2000);
         await nextTime.increment();
-        await gov.withdrawInterest(1, { from: user6 });
+        let balAPMBef = await dbit.balanceOf(apm.address);
+        let balUserBef = await dbit.balanceOf(user1);
 
-        await wait(3000);
-        await nextTime.increment();
+        await stak.withdrawDbitInterest(1, { from: user1 });
 
-        let unstake = await gov.unstakeDGOV(1, { from: user6 });
-        let event = unstake.logs[0].args;
-        let duration = event.duration.toString();
+        let balAPMAft = await dbit.balanceOf(apm.address);
+        let balUserAft = await dbit.balanceOf(user1);
 
-        let estimate = await stak.estimateInterestEarned(amountToStake, duration);
+        let diff = balAPMBef.sub(balAPMAft);
 
-        let userBalanceFinal = await dbit.balanceOf(user6);
-
-        expect(
-            (Number(userBalanceFinal.toString()) / 1000).toFixed(0)
-        ).to.equal(
-            (Number(estimate.toString()) / 1000).toFixed(0)
-        );
+        expect(balUserAft.toString()).to.equal(balUserBef.add(diff).toString());
     });
 
     it("Several inetrest withdraw before end of staking", async () => {
-        amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
-
-        await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToStake, { from: operator });
-        await dgov.transfer(user6, amountToStake, { from: debondTeam });
-        await dgov.approve(gov.address, amountToStake, { from: user6 });
-        await dgov.approve(user6, amountToStake, { from: user6 });
-
-        await gov.stakeDGOV(amountToStake, 0, { from: user6 });
-
-        await wait(1000);
+        await wait(2000);
         await nextTime.increment();
-        await gov.withdrawInterest(1, { from: user6 });
-        await gov.withdrawInterest(1, { from: user6 });
+        let balAPMBef = await dbit.balanceOf(apm.address);
+        let balUserBef = await dbit.balanceOf(user1);
 
-        await wait(4000);
-        await nextTime.increment();
+        // first withdraw
+        await stak.withdrawDbitInterest(1, { from: user1 });
+        let bal1 = await dbit.balanceOf(apm.address);
+        let dif1 = balAPMBef.sub(bal1);
 
-        let unstake = await gov.unstakeDGOV(1, { from: user6 });
-        let event = unstake.logs[0].args;
-        let duration = event.duration.toString();
+        // second withdraw
+        await stak.withdrawDbitInterest(1, { from: user1 });
+        let bal2 = await dbit.balanceOf(apm.address);
+        let dif2 = bal1.sub(bal2);
 
-        let userBalanceFinal = await dbit.balanceOf(user6);
-        let estimate = await stak.estimateInterestEarned(amountToStake, duration);
+        // third withdraw
+        await stak.withdrawDbitInterest(1, { from: user1 });
+        let bal3 = await dbit.balanceOf(apm.address);
+        let dif3 = bal2.sub(bal3);
 
-        expect(
-            (Number(userBalanceFinal.toString()) / 1000).toFixed(0)
-        ).to.equal(
-            (Number(estimate.toString()) / 1000).toFixed(0)
+        let balAPMAft = await dbit.balanceOf(apm.address);
+        let balUserAft = await dbit.balanceOf(user1);
+
+        let dif = balAPMBef.sub(balAPMAft);
+        let del = dif1.add(dif2.add(dif3));
+
+        expect(dif.toString()).to.equal(del.toString());
+        expect(balUserAft.toString()).to.equal(balUserBef.add(dif).toString());
+    });
+
+    it("Cannot unstake DGOV before staking ends", async () => {
+        expect(stak.unstakeDgovToken(1, { from: user1 }))
+        .to.rejectedWith(
+            Error,
+            "VM Exception while processing transaction: revert Staking: still staking -- Reason given: Staking: still staking"
         );
     });
 
-    it('Cannot unstake DGOV before staking ends', async () => {
-        amountToStake = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
+    it.only("stakes DGOV several times", async () => {
+        amount1 = await web3.utils.toWei(web3.utils.toBN(30), 'ether');
+        amount2 = await web3.utils.toWei(web3.utils.toBN(20), 'ether');
+        amount3 = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
+        amountToMint = await web3.utils.toWei(web3.utils.toBN(150), 'ether');
 
-        await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToStake, { from: operator });
-        await dgov.transfer(user7, amountToStake, { from: debondTeam });
-        await dgov.approve(gov.address, amountToStake, { from: user7 });
-        await dgov.approve(user7, amountToStake, { from: user7 });
+        await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToMint, { from: operator });
+        await dgov.transfer(user7, amountToMint, { from: debondTeam });
+        await dgov.approve(stak.address, amountToMint, { from: user7 });
+        await dgov.approve(user7, amountToMint, { from: user7 });
 
-        await gov.stakeDGOV(amountToStake, 0, { from: user7 });
+        // first staking
+        await stak.stakeDgovToken(amount1, 0, { from: user7 });
+        await wait(1000);
+        await nextTime.increment();
 
-        expect(gov.unstakeDGOV(1, { from: user7 }))
-            .to.rejectedWith(
-                Error,
-                "VM Exception while processing transaction: revert Staking: still staking -- Reason given: Staking: still staking"
-            );
-    });
-   
+        // second staking
+        await stak.stakeDgovToken(amount2, 0, { from: user7 });
+        await wait(1000);
+        await nextTime.increment();
+
+        // third staking
+        await stak.stakeDgovToken(amount3, 0, { from: user7 });
+
+        let stake = await storage.getStakedDOVOf(user7);
+    
+        expect(stake[0].amountDGOV.toString()).ordered.equal(amount1.toString());
+        expect(stake[1].amountDGOV.toString()).ordered.equal(amount2.toString());
+        expect(stake[2].amountDGOV.toString()).ordered.equal(amount3.toString());
+
+        expect(
+            Number(stake[1].startTime.toString()) - Number(stake[0].startTime.toString())
+        ).to.equal(1);
+
+        expect(
+            Number(stake[2].startTime.toString()) - Number(stake[1].startTime.toString())
+        ).to.equal(1);
+    });  
 })
 
 

@@ -21,84 +21,58 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IGovStorage.sol";
 
 contract GovStorage is IGovStorage {
-    struct AllocatedToken {
-        uint256 allocatedDBITMinted;
-        uint256 allocatedDGOVMinted;
-        uint256 dbitAllocationPPM;
-        uint256 dgovAllocationPPM;
-    }
-
-    struct ProposalNonce {
-        uint128 nonce;
-    }
-
     mapping(uint128 => uint256) numberOfVotingDays;
+    mapping(uint128 => uint128) public proposalNonce;
+    mapping(address => uint256) public stakingCounter;
+    mapping(address => AllocatedToken) allocatedToken;
+    mapping(uint128 => uint256) private _votingPeriod;
+    mapping(address => StackedDGOV[]) _totalStackedDGOV;
+    mapping(uint128 =>  uint256) private _proposalQuorum;
+    mapping(uint128 => mapping(uint128 => Proposal)) proposal;
+    mapping(uint256 => VoteTokenAllocation) private voteTokenAllocation;
+    mapping(address => mapping(uint256 => StackedDGOV)) internal stackedDGOV;
+    mapping(uint128 => mapping(uint128 => UserVoteData[])) public userVoteData;
+    mapping(uint128 => mapping(uint128 => ProposalVote)) internal _proposalVotes;
+    mapping(uint128 => mapping(uint128 => mapping(uint256 => uint256))) public totalVoteTokenPerDay;
 
     bool public initialized;
 
     address public debondTeam;
     address public governance;
-    address public exchangeContract;
-    address public exchangeStorageContract;
-    address public erc3475Contract;
-    address public bankContract;
-    address public bankDataContract;
+    address public executable;
+    address public apmContract;
     address public dgovContract;
     address public dbitContract;
-    address public apmContract;
-    address public bankBondManagerContract;
-    address public stakingContract;
-    address public voteTokenContract;
-    address public executable;
-    address public airdropContract;
-    address public governanceOwnableContract;
+    address public bankContract;
+    address public vetoOperator;
     address public oracleContract;
+    address public stakingContract;
+    address public airdropContract;
+    address public erc3475Contract;
+    address public exchangeContract;
+    address public bankDataContract;
+    address public voteTokenContract;
     address public governanceMigrator;
     address public interestRatesContract;
+    address public exchangeStorageContract;
+    address public bankBondManagerContract;
+    address public governanceOwnableContract;
 
-    address public vetoOperator;
-
+    uint256 _lockGroup1;
+    uint256 _lockGroup2;
     uint256 public dbitBudgetPPM;
     uint256 public dgovBudgetPPM;
+    uint256 private _proposalThreshold;
+    uint256 public benchmarkInterestRate;
+    uint256 public minimumStakingDuration;
     uint256 public dbitAllocationDistibutedPPM;
     uint256 public dgovAllocationDistibutedPPM;
     uint256 public dbitTotalAllocationDistributed;
     uint256 public dgovTotalAllocationDistributed;
-
-    uint256 public benchmarkInterestRate;
-    uint256 private _proposalThreshold;
-    uint256 public minimumStakingDuration;
     uint256 constant private NUMBER_OF_SECONDS_IN_YEAR = 31536000;
 
-    mapping(uint128 => mapping(uint128 => Proposal)) proposal;
-    mapping(uint128 =>  uint256) private _proposalQuorum;
-    mapping(address => AllocatedToken) allocatedToken;
-    mapping(address => mapping(uint256 => StackedDGOV)) internal stackedDGOV;
-    mapping(address => uint256) public stakingCounter;
-    mapping(uint256 => VoteTokenAllocation) private voteTokenAllocation;
-    mapping(address => StackedDGOV[]) _totalStackedDGOV;
-    VoteTokenAllocation[] private _voteTokenAllocation;
-
-
-
-    //====== Voting Process ==========
-    mapping(uint128 => uint256) private _votingPeriod;
-    mapping(uint128 => mapping(uint128 => ProposalVote)) internal _proposalVotes;
-    mapping(uint128 => mapping(uint128 => UserVoteData[])) public userVoteData;
-    //================================
-
-
-
-    uint256 _lockGroup1;
-    uint256 _lockGroup2;
-
-    // links proposal class to proposal nonce
-    mapping(uint128 => uint128) public proposalNonce;
-    // total vote tokens collected per day for a given proposal
-    // key1: proposal class, key2: proposal nonce, key3: voting day (1, 2, 3, etc.)
-    mapping(uint128 => mapping(uint128 => mapping(uint256 => uint256))) public totalVoteTokenPerDay;
-
     Proposal[] proposals;
+    VoteTokenAllocation[] private _voteTokenAllocation;
 
     modifier onlyVetoOperator {
         require(msg.sender == vetoOperator, "Gov: Need rights");
@@ -445,8 +419,6 @@ contract GovStorage is IGovStorage {
         return _proposalQuorum[_class];
     }
 
-
-
     function getProposalStatus(
         uint128 _class,
         uint128 _nonce
@@ -649,7 +621,7 @@ contract GovStorage is IGovStorage {
     function updateLastTimeInterestWithdraw(
         address _staker,
         uint256 _stakingCounter
-    ) external onlyGov {
+    ) external onlyStaking {
         StackedDGOV memory _staked = stackedDGOV[_staker][_stakingCounter];
         require(_staked.amountDGOV > 0, "Staking: no DGOV staked");
 

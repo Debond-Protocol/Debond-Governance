@@ -110,7 +110,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         emit dgovUnstaked(staker, duration, interest);
     }
 
-    function withDrawDbitInterest(uint256 _stakingCounter) external override {
+    function withdrawDbitInterest(uint256 _stakingCounter) external override {
         address staker = msg.sender;
 
         (
@@ -138,8 +138,8 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         ).transferDBITInterests(staker, interestEarned);
 
         emit interestWithdrawn(_stakingCounter, interestEarned);
-    }
 
+    }
 
     function unlockVotes(uint128 _class, uint128 _nonce) public {
         address tokenOwner = msg.sender;
@@ -185,10 +185,6 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         emit voteTokenUnlocked(_class, _nonce, tokenOwner);
     }
 
-
-
-
-
     /**
     * @dev calculate the interest earned by DGOV staker
     * @param _staker DGOV staker
@@ -230,8 +226,6 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         interest = (_amount * interestRate * _duration / 1 ether) / NUMBER_OF_SECONDS_IN_YEAR;
     }
 
-
-
     function calculateVotingReward(
         uint128 _class,
         uint128 _nonce,
@@ -250,8 +244,6 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
 
         reward = voteWeight * rewardRate * _reward / (36500 * 1 ether * 1 ether);
     }
-
-
 
     /**
     * @dev interest rate calculation for staking DGOV

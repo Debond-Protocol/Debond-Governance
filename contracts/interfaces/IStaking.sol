@@ -24,7 +24,7 @@ interface IStaking {
         uint256 _stakingCounter
     ) external;
 
-    function withDrawDbitInterest(
+    function withdrawDbitInterest(
         uint256 _stakingCounter
     ) external;
 

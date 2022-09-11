@@ -43,6 +43,17 @@ interface IGovSharedStorage {
         mapping(address => User) user;
     }
 
+    struct AllocatedToken {
+        uint256 allocatedDBITMinted;
+        uint256 allocatedDGOVMinted;
+        uint256 dbitAllocationPPM;
+        uint256 dgovAllocationPPM;
+    }
+
+    struct ProposalNonce {
+        uint128 nonce;
+    }
+
     enum ProposalStatus {
         Active,
         Canceled,
