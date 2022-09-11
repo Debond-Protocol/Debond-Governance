@@ -2,6 +2,7 @@ const chai = require("chai");
 const chaiAsPromised = require('chai-as-promised');
 const { Console } = require("console");
 const readline = require('readline');
+const { isTypedArray } = require("util/types");
 
 chai.use(chaiAsPromised);
 const expect = chai.expect;
@@ -196,110 +197,51 @@ contract("Governance", async (accounts) => {
         await stak.stakeDgovToken(toStake5, 0, { from: user5 });
         await stak.stakeDgovToken(opStake, 0, { from: operator });
     });
-
-    it("Check DGOV have been staked", async () => {
-        // A -> After staking
-        let user1A = await dgov.balanceOf(user1);
-        let user2A = await dgov.balanceOf(user2);
-        let user3A = await dgov.balanceOf(user3);
-        let user4A = await dgov.balanceOf(user4);
-        let user5A = await dgov.balanceOf(user5);
-        let userOA = await dgov.balanceOf(operator);
-        let contrA = await dgov.balanceOf(stak.address);
-
-        expect(user1A.toString()).to.equal(user1B.sub(toStake1).toString());
-        expect(user2A.toString()).to.equal(user2B.sub(toStake2).toString());
-        expect(user3A.toString()).to.equal(user3B.sub(toStake3).toString());
-        expect(user4A.toString()).to.equal(user4B.sub(toStake4).toString());
-        expect(user5A.toString()).to.equal(user5B.sub(toStake5).toString());
-        expect(userOA.toString()).to.equal(userOB.sub(opStake).toString());
-        expect(contrA.toString()).to.equal(
-            contrB.add(user1B.add(user2B.add(user3B.add(user4B.add(user5B.add(userOB)))))
-        ).toString());
-    });
-
-    it("Unstake DGOV tokens", async () => {
-        let balContractBefore = await dgov.balanceOf(stak.address);
-
-        await wait(5000);
-        await nextTime.increment();
-
-        let unstake = await stak.unstakeDgovToken(1, { from: user1 });
-        let event = unstake.logs[0].args;
-        let duration = event.duration.toString();
-
-        let estimate = await stak.estimateInterestEarned(toStake1, duration);
-        let balanceAfter = await dbit.balanceOf(user1);
-        let balContractAfter = await dgov.balanceOf(stak.address);
-
-        expect(
-            (Number(balanceAfter.toString()) / 100).toFixed(0)
-        ).to.equal(
-            (Number(estimate.toString()) / 100).toFixed(0)
+    
+    it("check users can vote", async () => {
+        let _class = 0;
+        let title = "Propsal-1: Update the benchMark interest rate";
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
+            _class,
+            '100000000000000000'
+        ).encodeABI();
+        
+        let res = await gov.createProposal(
+            _class,
+            exec.address,
+            0,
+            callData,
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
         );
 
-        expect(balContractAfter.toString())
-        .to.equal(
-            balContractBefore.sub(toStake1).toString()
-        );
+        let event = res.logs[0].args;
+
+        let amountVote1 = await storage.getAvailableVoteTokens(user1, 1);
+        let amountVote2 = await storage.getAvailableVoteTokens(user2, 1);
+        let amountVote3 = await storage.getAvailableVoteTokens(user3, 1);
+        let amountVote4 = await storage.getAvailableVoteTokens(user4, 1);
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountVote1, 1, { from: user1 });
+        await gov.vote(event.class, event.nonce, user2, 1, amountVote2, 1, { from: user2 });
+        await gov.vote(event.class, event.nonce, user3, 0, amountVote3, 1, { from: user3 });
+        await gov.vote(event.class, event.nonce, user4, 0, amountVote4, 1, { from: user4 });
+
+        let hasVoted1 = await storage.hasVoted(event.class, event.nonce, user1);
+        let hasVoted2 = await storage.hasVoted(event.class, event.nonce, user2);
+        let hasVoted3 = await storage.hasVoted(event.class, event.nonce, user3);
+        let hasVoted4 = await storage.hasVoted(event.class, event.nonce, user4);
+        let hasVoted5 = await storage.hasVoted(event.class, event.nonce, user5);
+
+        expect(hasVoted1).to.be.true;
+        expect(hasVoted2).to.be.true;
+        expect(hasVoted3).to.be.true;
+        expect(hasVoted4).to.be.true;
+        expect(hasVoted5).to.be.false;
     });
 
-    it("Withdraw staking DGOV interest before end of staking", async () => {
-        await wait(2000);
-        await nextTime.increment();
-        let balAPMBef = await dbit.balanceOf(apm.address);
-        let balUserBef = await dbit.balanceOf(user1);
-
-        await stak.withdrawDbitInterest(1, { from: user1 });
-
-        let balAPMAft = await dbit.balanceOf(apm.address);
-        let balUserAft = await dbit.balanceOf(user1);
-
-        let diff = balAPMBef.sub(balAPMAft);
-
-        expect(balUserAft.toString()).to.equal(balUserBef.add(diff).toString());
-    });
-
-    it("Several inetrest withdraw before end of staking", async () => {
-        await wait(2000);
-        await nextTime.increment();
-        let balAPMBef = await dbit.balanceOf(apm.address);
-        let balUserBef = await dbit.balanceOf(user1);
-
-        // first withdraw
-        await stak.withdrawDbitInterest(1, { from: user1 });
-        let bal1 = await dbit.balanceOf(apm.address);
-        let dif1 = balAPMBef.sub(bal1);
-
-        // second withdraw
-        await stak.withdrawDbitInterest(1, { from: user1 });
-        let bal2 = await dbit.balanceOf(apm.address);
-        let dif2 = bal1.sub(bal2);
-
-        // third withdraw
-        await stak.withdrawDbitInterest(1, { from: user1 });
-        let bal3 = await dbit.balanceOf(apm.address);
-        let dif3 = bal2.sub(bal3);
-
-        let balAPMAft = await dbit.balanceOf(apm.address);
-        let balUserAft = await dbit.balanceOf(user1);
-
-        let dif = balAPMBef.sub(balAPMAft);
-        let del = dif1.add(dif2.add(dif3));
-
-        expect(dif.toString()).to.equal(del.toString());
-        expect(balUserAft.toString()).to.equal(balUserBef.add(dif).toString());
-    });
-
-    it("Cannot unstake DGOV before staking ends", async () => {
-        expect(stak.unstakeDgovToken(1, { from: user1 }))
-        .to.rejectedWith(
-            Error,
-            "VM Exception while processing transaction: revert Staking: still staking -- Reason given: Staking: still staking"
-        );
-    });
-
-    it("stakes DGOV several times", async () => {
+    it("check users cannot vote more than once for a proposal", async () => {
         amount1 = await web3.utils.toWei(web3.utils.toBN(30), 'ether');
         amount2 = await web3.utils.toWei(web3.utils.toBN(20), 'ether');
         amount3 = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
@@ -310,33 +252,179 @@ contract("Governance", async (accounts) => {
         await dgov.approve(stak.address, amountToMint, { from: user7 });
         await dgov.approve(user7, amountToMint, { from: user7 });
 
-        // first staking
+        // stake DGOV
         await stak.stakeDgovToken(amount1, 0, { from: user7 });
-        await wait(1000);
-        await nextTime.increment();
+        await stak.stakeDgovToken(amount2, 1, { from: user7 });
 
-        // second staking
-        await stak.stakeDgovToken(amount2, 0, { from: user7 });
-        await wait(1000);
-        await nextTime.increment();
+        // get the amount of vote tokens for the two staking objects
+        let amountVote1 = await storage.getAvailableVoteTokens(user7, 1);
+        let amountVote2 = await storage.getAvailableVoteTokens(user7, 2);
 
-        // third staking
-        await stak.stakeDgovToken(amount3, 0, { from: user7 });
+        // create a proposal
+        let _class = 0;
+        let title = "Propsal-1: Update the benchMark interest rate";
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
+            _class,
+            '100000000000000000'
+        ).encodeABI();
+        
+        let res = await gov.createProposal(
+            _class,
+            exec.address,
+            0,
+            callData,
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
+        );
 
-        let stake = await storage.getStakedDOVOf(user7);
-    
-        expect(stake[0].amountDGOV.toString()).ordered.equal(amount1.toString());
-        expect(stake[1].amountDGOV.toString()).ordered.equal(amount2.toString());
-        expect(stake[2].amountDGOV.toString()).ordered.equal(amount3.toString());
+        let event = res.logs[0].args;
 
-        expect(
-            Number(stake[1].startTime.toString()) - Number(stake[0].startTime.toString())
-        ).to.equal(1);
+        // try to vote two times
+        await gov.vote(event.class, event.nonce, user7, 0, amountVote1, 1, { from: user7 });
 
-        expect(
-            Number(stake[2].startTime.toString()) - Number(stake[1].startTime.toString())
-        ).to.equal(1);
-    });  
+        expect(gov.vote(event.class, event.nonce, user7, 0, amountVote2, 1, { from: user7 }))
+        .to.rejectedWith(
+            Error,
+            "VM Exception while processing transaction: revert VoteCounting: already voted -- Reason given: VoteCounting: already voted"
+        );
+    });
+
+    it("check users cannot vote for a canceled proposal", async () => {
+        let amountVote1 = await storage.getAvailableVoteTokens(user1, 1);
+
+        let _class = 0;
+        let title = "Propsal-1: Update the benchMark interest rate";
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
+            _class,
+            '100000000000000000'
+        ).encodeABI();
+        
+        let res = await gov.createProposal(
+            _class,
+            exec.address,
+            0,
+            callData,
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
+        );
+
+        let event = res.logs[0].args;
+        
+        await gov.cancelProposal(event.class, event.nonce);
+
+        expect(gov.vote(event.class, event.nonce, user1, 0, amountVote1, 1, { from: user1 }))
+        .to.rejectedWith(
+            Error,
+            "VM Exception while processing transaction: revert Gov: vote not active -- Reason given: Gov: vote not active"
+        );
+    });
+
+    it("check a user can vote for multiple proposals", async () => {
+        amount1 = await web3.utils.toWei(web3.utils.toBN(30), 'ether');
+        amount2 = await web3.utils.toWei(web3.utils.toBN(20), 'ether');
+        amount3 = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
+        amountToMint = await web3.utils.toWei(web3.utils.toBN(150), 'ether');
+
+        await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToMint, { from: operator });
+        await dgov.transfer(user7, amountToMint, { from: debondTeam });
+        await dgov.approve(stak.address, amountToMint, { from: user7 });
+        await dgov.approve(user7, amountToMint, { from: user7 });
+
+        // staking
+        await stak.stakeDgovToken(amount1, 0, { from: user7 });
+        await stak.stakeDgovToken(amount2, 1, { from: user7 });
+        await stak.stakeDgovToken(amount3, 2, { from: user7 });
+
+        let amountVote1 = await storage.getAvailableVoteTokens(user7, 1);
+        let amountVote2 = await storage.getAvailableVoteTokens(user7, 2);
+        let amountVote3 = await storage.getAvailableVoteTokens(user7, 3);
+        let totalVote = await vote.availableBalance(user7);
+
+        // first proposal
+        let _class1 = 0;
+        let title1 = "Propsal-1: Update the benchMark interest rate";
+        let callData1 = await exec.contract.methods.updateBenchmarkInterestRate(
+            _class1,
+            '100000000000000000'
+        ).encodeABI();
+
+        let res1 = await gov.createProposal(
+            _class1,
+            exec.address,
+            0,
+            callData1,
+            title1,
+            web3.utils.soliditySha3(title1),
+            { from: operator }
+        );
+
+        let e1 = res1.logs[0].args;
+
+        // second proposal
+        let _class2 = 1;
+        let title2 = "Propsal-1: Update the bank contract";
+        let callData2 = await exec.contract.methods.updateBankAddress(
+            _class2,
+            user6
+        ).encodeABI();
+        
+        let res2 = await gov.createProposal(
+            _class2,
+            exec.address,
+            0,
+            callData2,
+            title2,
+            web3.utils.soliditySha3(title2),
+            { from: operator }
+        );
+
+        let e2 = res2.logs[0].args;
+
+        // third proposal
+        let toAdd = await web3.utils.toWei(web3.utils.toBN(4000000), 'ether');
+        let maxSupplyBefore = await dgov.getMaxSupply();
+        let newMax = maxSupplyBefore.add(toAdd);
+        let _class3 = 0;
+        let title3 = "Propsal-1: Update the DGOV max";
+        let callData3 = await gov.contract.methods.updateDGOVMaxSupply(
+            _class3,
+            newMax
+        ).encodeABI();
+        
+        let res3 = await gov.createProposal(
+            _class3,
+            gov.address,
+            0,
+            callData3,
+            title3,
+            web3.utils.soliditySha3(title3),
+            { from: operator }
+        );
+        
+        let e3 = res3.logs[0].args;
+
+        await gov.vote(e1.class, e1.nonce, user7, 0, amountVote1, 1, { from: user7 });
+        await gov.vote(e2.class, e2.nonce, user7, 0, amountVote2, 2, { from: user7 });
+        await gov.vote(e3.class, e3.nonce, user7, 0, amountVote3, 3, { from: user7 });
+        
+        let hasVoted1 = await storage.hasVoted(e1.class, e1.nonce, user7);
+        let hasVoted2 = await storage.hasVoted(e2.class, e2.nonce, user7);
+        let hasVoted3 = await storage.hasVoted(e2.class, e2.nonce, user7);
+
+        let hasVoted4 = await storage.hasVoted(e1.class, e1.nonce, user1);
+        let hasVoted5 = await storage.hasVoted(e2.class, e2.nonce, user1);
+        let hasVoted6 = await storage.hasVoted(e2.class, e2.nonce, user1);
+
+        expect(totalVote.toString()).to.equal(amountVote1.add(amountVote2.add(amountVote3)).toString());
+        expect(hasVoted1).to.be.true;
+        expect(hasVoted2).to.be.true;
+        expect(hasVoted3).to.be.true;
+        expect(hasVoted4).to.be.false;
+        expect(hasVoted5).to.be.false;
+        expect(hasVoted6).to.be.false;
+    });
 })
 
 

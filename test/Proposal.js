@@ -231,7 +231,7 @@ contract("Governance", async (accounts) => {
         expect(proposal.descriptionHash).to.equal(web3.utils.soliditySha3(title));
     });
 
-    it("create sevaral proposals", async () => {
+    it("create several proposals", async () => {
         // first proposal
         let _class1 = 0;
         let title1 = "Propsal-1: Update the benchMark interest rate";
