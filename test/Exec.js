@@ -24,7 +24,7 @@ const BankBondManager = artifacts.require("BankBondManager");
 const Oracle = artifacts.require("Oracle");
 const AdvanceBlockTimeStamp = artifacts.require("AdvanceBlockTimeStamp");
 
-contract("Staking: Governance", async (accounts) => {
+contract("Executable: Governance", async (accounts) => {
     let gov;
     let apm;
     let bank;
@@ -193,146 +193,74 @@ contract("Staking: Governance", async (accounts) => {
         await stak.stakeDgovToken(opStake, 0, { from: operator });
     });
 
-    it("Check DGOV have been staked", async () => {
-        // A -> After staking
-        let user1A = await dgov.balanceOf(user1);
-        let user2A = await dgov.balanceOf(user2);
-        let user3A = await dgov.balanceOf(user3);
-        let user4A = await dgov.balanceOf(user4);
-        let user5A = await dgov.balanceOf(user5);
-        let userOA = await dgov.balanceOf(operator);
-        let contrA = await dgov.balanceOf(stak.address);
+    it("update the benchmark interest rate", async () => {
+        // first proposal
+        let _class = 0;
+        let title = "Propsal-1: Update the benchMark interest rate";
+        let callData = await exec.contract.methods.updateBenchmarkInterestRate(
+            _class,
+            '100000000000000000'
+        ).encodeABI();
 
-        expect(user1A.toString()).to.equal(user1B.sub(toStake1).toString());
-        expect(user2A.toString()).to.equal(user2B.sub(toStake2).toString());
-        expect(user3A.toString()).to.equal(user3B.sub(toStake3).toString());
-        expect(user4A.toString()).to.equal(user4B.sub(toStake4).toString());
-        expect(user5A.toString()).to.equal(user5B.sub(toStake5).toString());
-        expect(userOA.toString()).to.equal(userOB.sub(opStake).toString());
-        expect(contrA.toString()).to.equal(
-            contrB.add(user1B.add(user2B.add(user3B.add(user4B.add(user5B.add(userOB)))))
-        ).toString());
-    });
+        let res = await gov.createProposal(
+            _class,
+            exec.address,
+            0,
+            callData,
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
+        );
 
-    it("Unstake DGOV tokens", async () => {
-        let balContractBefore = await dgov.balanceOf(stak.address);
+        let event = res.logs[0].args;
 
-        await wait(5000);
+        let amountVote1 = await storage.getAvailableVoteTokens(user1, 1);
+        let amountVote2 = await storage.getAvailableVoteTokens(user2, 1);
+        let amountVote3 = await storage.getAvailableVoteTokens(user3, 1);
+        let amountVote4 = await storage.getAvailableVoteTokens(user4, 1);
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountVote1, 1, { from: user1 });
+        await gov.vote(event.class, event.nonce, user2, 1, amountVote2, 1, { from: user2 });
+        await gov.vote(event.class, event.nonce, user3, 0, amountVote3, 1, { from: user3 });
+        await gov.vote(event.class, event.nonce, user4, 0, amountVote4, 1, { from: user4 });
+
+        let benchmarkBefore = await storage.getBenchmarkIR();
+        let benchmarkBankBefore = await bank.getBenchmarkIR();
+        let status = await storage.getProposalStatus(event.class, event.nonce);
+
+        await wait(17000);
         await nextTime.increment();
 
-        let unstake = await stak.unstakeDgovToken(1, { from: user1 });
-        let event = unstake.logs[0].args;
-        let duration = event.duration.toString();
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            { from: operator }
+        );
 
-        let estimate = await stak.estimateInterestEarned(toStake1, duration);
-        let balanceAfter = await dbit.balanceOf(user1);
-        let balContractAfter = await dgov.balanceOf(stak.address);
+        let benchmarkAfter = await storage.getBenchmarkIR();
+        let benchmarkBankAfter = await bank.getBenchmarkIR();
+        await nextTime.increment();
+        let status1 = await storage.getProposalStatus(event.class, event.nonce);
+
+        expect(status.toString()).to.equal(ProposalStatus.Active);
+        expect(status1.toString()).to.equal(ProposalStatus.Executed);
 
         expect(
-            (Number(balanceAfter.toString()) / 100).toFixed(0)
+            benchmarkBefore.toString()
         ).to.equal(
-            (Number(estimate.toString()) / 100).toFixed(0)
+            benchmarkBankBefore.toString()
+        ).to.equal(
+            "50000000000000000"
         );
-
-        expect(balContractAfter.toString())
-        .to.equal(
-            balContractBefore.sub(toStake1).toString()
-        );
-    });
-
-    it("Withdraw staking DGOV interest before end of staking", async () => {
-        await wait(2000);
-        await nextTime.increment();
-        let balAPMBef = await dbit.balanceOf(apm.address);
-        let balUserBef = await dbit.balanceOf(user1);
-
-        await stak.withdrawDbitInterest(1, { from: user1 });
-
-        let balAPMAft = await dbit.balanceOf(apm.address);
-        let balUserAft = await dbit.balanceOf(user1);
-
-        let diff = balAPMBef.sub(balAPMAft);
-
-        expect(balUserAft.toString()).to.equal(balUserBef.add(diff).toString());
-    });
-
-    it("Several inetrest withdraw before end of staking", async () => {
-        await wait(2000);
-        await nextTime.increment();
-        let balAPMBef = await dbit.balanceOf(apm.address);
-        let balUserBef = await dbit.balanceOf(user1);
-
-        // first withdraw
-        await stak.withdrawDbitInterest(1, { from: user1 });
-        let bal1 = await dbit.balanceOf(apm.address);
-        let dif1 = balAPMBef.sub(bal1);
-
-        // second withdraw
-        await stak.withdrawDbitInterest(1, { from: user1 });
-        let bal2 = await dbit.balanceOf(apm.address);
-        let dif2 = bal1.sub(bal2);
-
-        // third withdraw
-        await stak.withdrawDbitInterest(1, { from: user1 });
-        let bal3 = await dbit.balanceOf(apm.address);
-        let dif3 = bal2.sub(bal3);
-
-        let balAPMAft = await dbit.balanceOf(apm.address);
-        let balUserAft = await dbit.balanceOf(user1);
-
-        let dif = balAPMBef.sub(balAPMAft);
-        let del = dif1.add(dif2.add(dif3));
-
-        expect(dif.toString()).to.equal(del.toString());
-        expect(balUserAft.toString()).to.equal(balUserBef.add(dif).toString());
-    });
-
-    it("Cannot unstake DGOV before staking ends", async () => {
-        expect(stak.unstakeDgovToken(1, { from: user1 }))
-        .to.rejectedWith(
-            Error,
-            "VM Exception while processing transaction: revert Staking: still staking -- Reason given: Staking: still staking"
-        );
-    });
-
-    it("stakes DGOV several times", async () => {
-        amount1 = await web3.utils.toWei(web3.utils.toBN(30), 'ether');
-        amount2 = await web3.utils.toWei(web3.utils.toBN(20), 'ether');
-        amount3 = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
-        amountToMint = await web3.utils.toWei(web3.utils.toBN(150), 'ether');
-
-        await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToMint, { from: operator });
-        await dgov.transfer(user7, amountToMint, { from: debondTeam });
-        await dgov.approve(stak.address, amountToMint, { from: user7 });
-        await dgov.approve(user7, amountToMint, { from: user7 });
-
-        // first staking
-        await stak.stakeDgovToken(amount1, 0, { from: user7 });
-        await wait(1000);
-        await nextTime.increment();
-
-        // second staking
-        await stak.stakeDgovToken(amount2, 0, { from: user7 });
-        await wait(1000);
-        await nextTime.increment();
-
-        // third staking
-        await stak.stakeDgovToken(amount3, 0, { from: user7 });
-
-        let stake = await storage.getStakedDOVOf(user7);
-    
-        expect(stake[0].amountDGOV.toString()).ordered.equal(amount1.toString());
-        expect(stake[1].amountDGOV.toString()).ordered.equal(amount2.toString());
-        expect(stake[2].amountDGOV.toString()).ordered.equal(amount3.toString());
 
         expect(
-            Number(stake[1].startTime.toString()) - Number(stake[0].startTime.toString())
-        ).to.equal(1);
-
-        expect(
-            Number(stake[2].startTime.toString()) - Number(stake[1].startTime.toString())
-        ).to.equal(1);
-    });  
+            benchmarkAfter.toString()
+        ).to.equal(
+            benchmarkBankAfter.toString()
+        ).to.equal(
+            "100000000000000000"
+        );
+    });
 })
 
 

@@ -24,7 +24,7 @@ const BankBondManager = artifacts.require("BankBondManager");
 const Oracle = artifacts.require("Oracle");
 const AdvanceBlockTimeStamp = artifacts.require("AdvanceBlockTimeStamp");
 
-contract("Governance", async (accounts) => {
+contract("Proposal: Governance", async (accounts) => {
     let gov;
     let apm;
     let bank;
