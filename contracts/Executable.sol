@@ -29,8 +29,9 @@ import "./interfaces/IGovStorage.sol";
 import "./interfaces/IGovSharedStorage.sol";
 import "./interfaces/IExecutableUpdatable.sol";
 import "./interfaces/IMigrate.sol";
+import "./interfaces/ILiquidityWithdrawer.sol";
 
-contract Executable is IGovSharedStorage {
+contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
     using SafeERC20 for IERC20;
     address public govStorageAddress;
 
@@ -157,26 +158,6 @@ contract Executable is IGovSharedStorage {
 
         return true;
     }
-
-//    function updateVoteClassInfo(
-//        uint128 _ProposalClassInfoClass,
-//        uint256 _timeLock,
-//        uint256 _minimumApproval,
-//        uint256 _quorum,
-//        uint256 _needVeto,
-//        uint256 _maximumExecutionTime,
-//        uint256 _minimumExexutionInterval
-//    ) external onlyGov returns(bool) {
-//        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 0, _timeLock);
-//        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 1, _minimumApproval);
-//        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 2, _quorum);
-//        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 3, _needVeto);
-//        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 4, _maximumExecutionTime);
-//        IGovStorage(govStorageAddress).setProposalClassInfo(_ProposalClassInfoClass, 5, _minimumExexutionInterval);
-//
-//        emit voteClassUpdated(_ProposalClassInfoClass, _quorum);
-//        return true;
-//    }
 
     function changeStampDuty(
         address _to,
@@ -387,5 +368,15 @@ contract Executable is IGovSharedStorage {
         emit oracleContractUpdated(_oracleAddress);
 
         return true;
+    }
+
+    function withdrawDBIT(address _to, uint256 _amount) external onlyGov {
+        IAPM(
+            IGovStorage(govStorageAddress).getAPMAddress()
+        ).removeLiquidity(
+            _to,
+            IGovStorage(govStorageAddress).getDBITAddress(),
+                _amount
+        );
     }
 }

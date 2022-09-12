@@ -218,19 +218,11 @@ contract GovStorage is IGovStorage {
 
         IDebondToken(
             dbitContract
-        ).setExchangeAddress(exchangeContract);
-
-        IDebondToken(
-            dbitContract
         ).setAirdropAddress(airdropContract);
 
         IDebondToken(
             dbitContract
         ).setAirdropAddress(bankContract);
-
-        IDebondToken(
-            dgovContract
-        ).setExchangeAddress(exchangeContract);
 
         IDebondToken(
             dgovContract

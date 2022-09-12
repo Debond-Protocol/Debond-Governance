@@ -26,6 +26,8 @@ import "./interfaces/IVoteToken.sol";
 import "./interfaces/IProposalLogic.sol";
 import "./interfaces/IGovSharedStorage.sol";
 import "./utils/GovernanceMigrator.sol";
+import "./interfaces/ILiquidityWithdrawer.sol";
+
 
 /**
 * @author Samuel Gwlanold Edoumou (Debond Organization)
@@ -103,9 +105,9 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
         uint128 nonce = _generateNewNonce(_class);
 
         (
-            uint256 start,
-            uint256 end,
-            ProposalApproval approval
+        uint256 start,
+        uint256 end,
+        ProposalApproval approval
         ) =
         IProposalLogic(
             IGovStorage(govStorageAddress).getProposalLogicContract()
@@ -154,7 +156,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
     function executeProposal(
         uint128 _class,
         uint128 _nonce
-    ) external onlySucceededProposals(_class, _nonce){
+    ) external onlySucceededProposals(_class, _nonce) {
 
         Proposal memory proposal = IGovStorage(
             govStorageAddress
@@ -177,9 +179,9 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
         string memory errorMessage = "Executable: execute proposal reverted";
 
         (
-            bool success,
-            bytes memory data
-        ) = _targets.call{value: _values}(_calldatas);
+        bool success,
+        bytes memory data
+        ) = _targets.call{value : _values}(_calldatas);
 
         Address.verifyCallResult(success, data, errorMessage);
     }
@@ -286,7 +288,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
         require(
             IGovStorage(
                 govStorageAddress
-            ).getProposalStatus(_class, _nonce)  == ProposalStatus.Active,
+            ).getProposalStatus(_class, _nonce) == ProposalStatus.Active,
             "Gov: vote not active"
         );
 
@@ -378,9 +380,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
         uint256 _stakingCounter
     ) public {
         address staker = msg.sender;
-        uint256 StackedDGOV = IStaking(
-            IGovStorage(govStorageAddress).getStakingContract()
-        ).getStakedDGOVAmount(staker, _stakingCounter);
 
         (
             uint256 amount,
@@ -410,11 +409,10 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
         ).updateLastTimeInterestWithdraw(staker, _stakingCounter);
 
         // transfer DBIT interests from APM to the staker account
-        IAPM(
-            IGovStorage(govStorageAddress).getAPMAddress()
-        ).removeLiquidity(
+        ILiquidityWithdrawer(
+            IGovStorage(govStorageAddress).getExecutableContract()
+        ).withdrawDBIT(
             staker,
-            IGovStorage(govStorageAddress).getDBITAddress(),
             interestEarned
         );
 
@@ -450,7 +448,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
         );
 
         // proposer locks vote tokens by submiting the proposal, and may not have voted
-        if(tokenOwner != proposer) {
+        if (tokenOwner != proposer) {
             require(
                 IProposalLogic(
                     IGovStorage(govStorageAddress).getProposalLogicContract()
@@ -474,7 +472,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
     * @param _class proposal class
     * @param _nonce proposal nonce
     * @param _tokenOwner owner of stacked dgov
-    */ 
+    */
     function _transferDBITInterest(
         uint128 _class,
         uint128 _nonce,
@@ -484,11 +482,10 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
             IGovStorage(govStorageAddress).getProposalLogicContract()
         ).calculateReward(_class, _nonce, _tokenOwner);
 
-        IAPM(
-            IGovStorage(govStorageAddress).getAPMAddress()
-        ).removeLiquidity(
+        ILiquidityWithdrawer(
+            IGovStorage(govStorageAddress).getExecutableContract()
+        ).withdrawDBIT(
             _tokenOwner,
-            IGovStorage(govStorageAddress).getDBITAddress(),
             reward
         );
     }
@@ -498,7 +495,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
     * @param _class proposal class
     * @param nonce newly generated nonce for the given class
     */
-    function _generateNewNonce(uint128 _class) private returns(uint128 nonce) {
+    function _generateNewNonce(uint128 _class) private returns (uint128 nonce) {
         nonce = IGovStorage(govStorageAddress).getProposalNonce(_class) + 1;
         IGovStorage(govStorageAddress).setProposalNonce(_class, nonce);
     }
