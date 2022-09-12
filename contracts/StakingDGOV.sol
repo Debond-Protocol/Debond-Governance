@@ -94,7 +94,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         ).burnVoteToken(staker, amountVote);
 
         // calculate the interest earned by staking DGOV
-        (uint256 interest, uint256 duration) = calculateInterestEarned(staker, amountDGOV, _stakingCounter);
+        (uint256 interest, uint256 duration) = calculateInterestEarned(amountDGOV, _stakingCounter);
 
         // transfer DGOV to the staker
         IERC20(
@@ -186,18 +186,17 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
 
     /**
     * @dev calculate the interest earned by DGOV staker
-    * @param _staker DGOV staker
     * @param _stakingCounter the staking rank
     * @param totalDuration duration  between now and last time withdraw
     */
     function calculateInterestEarned(
-        address _staker,
         uint256 _amount,
         uint256 _stakingCounter
     ) public view returns(uint256 interest, uint256 totalDuration) {
+        address staker = msg.sender;
         StackedDGOV memory _staked = IGovStorage(
             govStorageAddress
-        ).getUserStake(_staker, _stakingCounter);
+        ).getUserStake(staker, _stakingCounter);
 
         uint256 duration = block.timestamp - _staked.lastInterestWithdrawTime;
         totalDuration = block.timestamp - _staked.startTime;

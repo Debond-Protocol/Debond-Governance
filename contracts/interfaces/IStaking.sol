@@ -29,7 +29,6 @@ interface IStaking {
     ) external;
 
     function calculateInterestEarned(
-        address _staker,
         uint256 _amount,
         uint256 _stakingCounter
     ) external view returns(uint256 interest, uint256 duration);
