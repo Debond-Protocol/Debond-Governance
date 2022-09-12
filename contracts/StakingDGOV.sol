@@ -94,7 +94,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         ).burnVoteToken(staker, amountVote);
 
         // calculate the interest earned by staking DGOV
-        (uint256 interest, uint256 duration) = calculateInterestEarned(amountDGOV, _stakingCounter);
+        (uint256 interest, uint256 duration) = _calculateInterestEarned(amountDGOV, _stakingCounter);
 
         // transfer DGOV to the staker
         IERC20(
@@ -169,7 +169,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
 
         IGovStorage(govStorageAddress).setUserHasBeenRewarded(_class, _nonce, tokenOwner);
 
-        uint256 reward = calculateVotingReward(_class, _nonce, tokenOwner);
+        uint256 reward = _calculateVotingReward(_class, _nonce, tokenOwner);
 
         // unlock vote tokens
         IVoteToken(
@@ -189,10 +189,10 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
     * @param _stakingCounter the staking rank
     * @param totalDuration duration  between now and last time withdraw
     */
-    function calculateInterestEarned(
+    function _calculateInterestEarned(
         uint256 _amount,
         uint256 _stakingCounter
-    ) public view returns(uint256 interest, uint256 totalDuration) {
+    ) private view returns(uint256 interest, uint256 totalDuration) {
         address staker = msg.sender;
         StackedDGOV memory _staked = IGovStorage(
             govStorageAddress
@@ -224,11 +224,11 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         interest = (_amount * interestRate * _duration / 1 ether) / NUMBER_OF_SECONDS_IN_YEAR;
     }
 
-    function calculateVotingReward(
+    function _calculateVotingReward(
         uint128 _class,
         uint128 _nonce,
         address _tokenOwner
-    ) public view returns(uint256 reward) {
+    ) private view returns(uint256 reward) {
         uint256 benchmarkIR = IGovStorage(govStorageAddress).getBenchmarkIR();
         uint256 cdp = IGovStorage(govStorageAddress).cdpDGOVToDBIT();
         uint256 rewardRate = votingInterestRate(benchmarkIR, cdp);
