@@ -20,7 +20,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IVoteToken.sol";
 import "./interfaces/IGovStorage.sol";
 import "./interfaces/IStaking.sol";
-import "./interfaces/IInterestRates.sol";
 import "./interfaces/IGovSharedStorage.sol";
 import "./interfaces/ITransferDBIT.sol";
 

@@ -161,16 +161,6 @@ contract Executable is IExecutable, IGovSharedStorage {
         return true;
     }
 
-    function updateInterestRateAddress(
-        uint128 _proposalClass,
-        address _interestRateAddress
-    ) external onlyGov returns(bool) {
-        require(_proposalClass <= 1, "Executable: invalid proposal class");
-        IGovStorage(govStorageAddress).updateInterestRateAddress(_interestRateAddress);
-
-        return true;
-    }
-
     function updateExecutableAddress(
         uint128 _proposalClass,
         address _executableAddress

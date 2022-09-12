@@ -22,7 +22,6 @@ const ExchangeStorage = artifacts.require("ExchangeStorageTest");
 const BankData = artifacts.require("BankData");
 const BankBondManager = artifacts.require("BankBondManager");
 const Oracle = artifacts.require("Oracle");
-const InterestRates = artifacts.require("InterestRates");
 const AdvanceBlockTimeStamp = artifacts.require("AdvanceBlockTimeStamp");
 
 contract("Governance", async (accounts) => {
@@ -45,7 +44,6 @@ contract("Governance", async (accounts) => {
     let bondManager;
     let oracle;
     let nextTime;
-    let rates;
 
     let user1B;
     let user2B;
@@ -99,7 +97,6 @@ contract("Governance", async (accounts) => {
         dbit = await DBIT.new(gov.address, bank.address, operator, exchange.address, exec.address);
         dgov = await DGOV.new(gov.address, bank.address, operator, exchange.address, exec.address);
         stak = await StakingDGOV.new(storage.address);
-        rates = await InterestRates.new();
 
         nextTime = await AdvanceBlockTimeStamp.new();
 
@@ -112,7 +109,6 @@ contract("Governance", async (accounts) => {
             bondManager.address,
             oracle.address,
             stak.address,
-            rates.address,
             vote.address,
             {from: operator}
         );

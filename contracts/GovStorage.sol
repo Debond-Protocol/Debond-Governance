@@ -53,7 +53,6 @@ contract GovStorage is IGovStorage {
     address public bankDataContract;
     address public voteTokenContract;
     address public governanceMigrator;
-    address public interestRatesContract;
     address public exchangeStorageContract;
     address public bankBondManagerContract;
     address public governanceOwnableContract;
@@ -183,7 +182,6 @@ contract GovStorage is IGovStorage {
         address _bankBondManagerContract,
         address _oracleContract,
         address _stakingContract,
-        address _interestRatesContract,
         address _voteContract
     ) external onlyVetoOperator {
         require(_lockGroup1 == 0, "GovStorage: Group1 already set");
@@ -196,7 +194,6 @@ contract GovStorage is IGovStorage {
         oracleContract = _oracleContract;
         stakingContract = _stakingContract;
         voteTokenContract = _voteContract;
-        interestRatesContract = _interestRatesContract;
 
         _lockGroup1 == 1;
     }
@@ -297,10 +294,6 @@ contract GovStorage is IGovStorage {
 
     function getStakingContract() public view returns(address) {
         return stakingContract;
-    }
-
-    function getInterestRatesContract() public view returns(address) {
-        return interestRatesContract;
     }
 
     function getVoteTokenContract() public view returns(address) {
@@ -846,11 +839,6 @@ contract GovStorage is IGovStorage {
 
     function setProposalThreshold(uint256 _newProposalThreshold) external onlyExec {
         _proposalThreshold = _newProposalThreshold;
-    }
-
-    function updateInterestRateAddress(address _interestRateAddress) external onlyExec {
-        require(_interestRateAddress != address(0), "GovStorage: zero address");
-        interestRatesContract = _interestRateAddress;
     }
 
     function updateExecutableAddress(address _executableAddress) external onlyExec {

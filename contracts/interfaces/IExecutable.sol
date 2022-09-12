@@ -98,9 +98,4 @@ interface IExecutable {
         uint128 _proposalClass,
         address _governanceAddress
     ) external returns(bool);
-
-    function updateInterestRateAddress(
-        uint128 _proposalClass,
-        address _interestRateAddress 
-    ) external returns(bool);
 }
