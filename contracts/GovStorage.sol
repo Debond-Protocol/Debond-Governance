@@ -380,18 +380,14 @@ contract GovStorage is IGovStorage {
         return (dbitTotalAllocationDistributed, dgovTotalAllocationDistributed);
     }
 
-    function getAllocatedToken(address _account) public view returns(uint256, uint256) {
-        return (
-            allocatedToken[_account].dbitAllocationPPM,
-            allocatedToken[_account].dgovAllocationPPM
-        );
+    function getAllocatedToken(address _account) public view returns(uint256 dbitAllocPPM, uint256 dgovAllocPPM) {
+        dbitAllocPPM = allocatedToken[_account].dbitAllocationPPM;
+        dgovAllocPPM = allocatedToken[_account].dgovAllocationPPM;
     }
 
-    function getAllocatedTokenMinted(address _account) public view returns(uint256, uint256) {
-        return (
-            allocatedToken[_account].allocatedDBITMinted,
-            allocatedToken[_account].allocatedDGOVMinted
-        );
+    function getAllocatedTokenMinted(address _account) public view returns(uint256 dbitAllocMinted, uint256 dgovAllocMinted) {
+        dbitAllocMinted = allocatedToken[_account].allocatedDBITMinted;
+        dgovAllocMinted = allocatedToken[_account].allocatedDGOVMinted;
     }
 
     function getProposalStruct(

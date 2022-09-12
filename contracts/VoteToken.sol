@@ -118,7 +118,7 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         uint128 _class,
         uint128 _nonce,
         address _tokenOwner
-    ) external onlyGov {
+    ) external onlyStaking {
         uint256 amount = lockedBalanceOf(_tokenOwner, _class, _nonce);
         require(amount > 0, "VoteToken: no vote tokens locked for this proposal");       
         

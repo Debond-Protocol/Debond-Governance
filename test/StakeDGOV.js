@@ -295,7 +295,7 @@ contract("Staking: Governance", async (accounts) => {
         );
     });
 
-    it("stakes DGOV several times", async () => {
+    it("stake DGOV several times", async () => {
         amount1 = await web3.utils.toWei(web3.utils.toBN(30), 'ether');
         amount2 = await web3.utils.toWei(web3.utils.toBN(20), 'ether');
         amount3 = await web3.utils.toWei(web3.utils.toBN(100), 'ether');

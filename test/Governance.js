@@ -121,7 +121,7 @@ contract("Governance", async (accounts) => {
         // set Bank in Bank Bond Manager
         await bondManager.setBank(bank.address);
 
-        // set echange address in exchange storage contract
+        // set exchange address in exchange storage contract
         await exStorage.setExchange(exchange.address);
 
         //let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');

@@ -157,8 +157,10 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         // proposer locks vote tokens by submiting the proposal, and may not have voted
         if(tokenOwner != proposal.proposer) {
             require(
-                IGovStorage(govStorageAddress).hasVoted(_class, _nonce, tokenOwner),
-                "Staking: you haven't voted"
+                IVoteToken(
+                    IGovStorage(govStorageAddress).getVoteTokenContract()
+                ).lockedBalanceOf(tokenOwner, _class, _nonce) > 0,
+                "Staking: no DGOV staked or haven't voted"
             );     
         }
 
