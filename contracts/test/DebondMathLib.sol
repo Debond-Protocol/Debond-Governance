@@ -14,13 +14,6 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-/**
-* @dev to be called in staking contract vin order to transfer DBIT interests from Governance
-*/
+import "@debond-protocol/debond-bank-contracts/libraries/DebondMath.sol";
 
-interface ITransferDBIT {
-    function transferDBITInterests(
-        address _account,
-        uint256 _interest
-    ) external;
-}
+library DebondMathLib is DebondMath {}

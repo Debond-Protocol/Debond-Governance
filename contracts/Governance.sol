@@ -23,10 +23,8 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IVoteToken.sol";
-import "./interfaces/IProposalLogic.sol";
 import "./interfaces/IGovSharedStorage.sol";
 import "./utils/GovernanceMigrator.sol";
-import "./interfaces/ILiquidityWithdrawer.sol";
 
 
 /**
@@ -228,24 +226,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
         IGovStorage(govStorageAddress).setVeto(_class, _nonce, _veto);
 
         emit vetoUsed(_class, _nonce);
-    }
-
-    /**
-    * @dev transfer DBIT interests from APM to a user account
-    * @param _account user account address
-    * @param _interest amount of DBIT to transfer
-    */
-    function transferDBITInterests(
-        address _account,
-        uint256 _interest
-    ) external onlyStaking {
-        IAPM(
-            IGovStorage(govStorageAddress).getAPMAddress()
-        ).removeLiquidity(
-            _account,
-            IGovStorage(govStorageAddress).getDBITAddress(),
-            _interest
-        );
     }
 
     function _execute(

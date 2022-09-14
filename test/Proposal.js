@@ -6,10 +6,10 @@ const readline = require('readline');
 chai.use(chaiAsPromised);
 const expect = chai.expect;
 
-const DBIT = artifacts.require("DBITToken");
-const DGOV = artifacts.require("DGOVToken");
-const ERC3475 = artifacts.require("ERC3475");
-const Bank = artifacts.require("Bank");
+const DBIT = artifacts.require("DBITTest");
+const DGOV = artifacts.require("DGOVTest");
+const ERC3475 = artifacts.require("DebondERC3475Test");
+const BankTest = artifacts.require("BankTest");
 const APMTest = artifacts.require("APMTest");
 const VoteToken = artifacts.require("VoteToken");
 const StakingDGOV = artifacts.require("StakingDGOV");
@@ -19,9 +19,8 @@ const GovStorage = artifacts.require("GovStorage");
 const GovernanceMigrator = artifacts.require("GovernanceMigrator");
 const Exchange = artifacts.require("ExchangeTest");
 const ExchangeStorage = artifacts.require("ExchangeStorageTest");
-const BankData = artifacts.require("BankData");
+const BankData = artifacts.require("BankStorageTest");
 const BankBondManager = artifacts.require("BankBondManager");
-const Oracle = artifacts.require("Oracle");
 const AdvanceBlockTimeStamp = artifacts.require("AdvanceBlockTimeStamp");
 
 contract("Proposal: Governance", async (accounts) => {
@@ -80,22 +79,40 @@ contract("Proposal: Governance", async (accounts) => {
         Executed: '5'
     }
 
-    beforeEach(async () => {
+    beforeEach(async (accounts) => {
         migrator = await GovernanceMigrator.new();
         storage = await GovStorage.new(debondTeam, operator);
         exec = await Executable.new(storage.address);
-        oracle = await Oracle.new(exec.address);
+        oracle = accounts[10];
         gov = await Governance.new(storage.address);
         vote = await VoteToken.new("Debond Vote Token", "DVT", storage.address);
-        exStorage = await ExchangeStorage.new(gov.address, exec.address);
-        exchange = await Exchange.new(exStorage.address, gov.address, exec.address);
-        bondManager = await BankBondManager.new(gov.address, exec.address, oracle.address);
-        bank = await Bank.new(gov.address, exec.address, bondManager.address, oracle.address);
-        erc3475 = await ERC3475.new(gov.address, exec.address, bank.address, bondManager.address);
-        apm = await APMTest.new(gov.address, bank.address, exec.address);
-        bankData = await BankData.new(gov.address, bank.address, exec.address);
-        dbit = await DBIT.new(gov.address, bank.address, operator, exchange.address, exec.address);
-        dgov = await DGOV.new(gov.address, bank.address, operator, exchange.address, exec.address);
+        exStorage = await ExchangeStorage.new(exec.address);
+        exchange = await Exchange.new(exStorage.address, exec.address);
+        bondManager = await BankBondManager.new(
+            exec.address,
+            "0x0000000000000000000000000000000000000000",
+            "0x0000000000000000000000000000000000000000",
+            "0x0000000000000000000000000000000000000000",
+            "0x0000000000000000000000000000000000000000",
+            "0x0000000000000000000000000000000000000000",
+        );
+        bank = await BankTest.new(
+            exec.address,
+            "0x0000000000000000000000000000000000000000",
+            "0x0000000000000000000000000000000000000000",
+            "0x0000000000000000000000000000000000000000",
+            "0x0000000000000000000000000000000000000000",
+            "0x0000000000000000000000000000000000000000",
+            "0x0000000000000000000000000000000000000000",
+            "0x0000000000000000000000000000000000000000",
+            "0x0000000000000000000000000000000000000000",
+            "0x0000000000000000000000000000000000000000"
+            );
+        erc3475 = await ERC3475.new(exec.address, bank.address, bondManager.address);
+        apm = await APMTest.new(bank.address, exec.address);
+        bankData = await BankData.new(exec.address, bank.address, 0);
+        dbit = await DBIT.new(exec.address, bank.address, operator);
+        dgov = await DGOV.new(exec.address, bank.address, operator);
         stak = await StakingDGOV.new(storage.address);
 
         nextTime = await AdvanceBlockTimeStamp.new();
@@ -125,8 +142,8 @@ contract("Proposal: Governance", async (accounts) => {
             {from: operator}
         );
 
-        // set the apm address in Bank
-        await bank.setAPMAddress(apm.address);
+        // set the apm address in BankTest
+        await bank.setApmAddress(apm.address);
 
         //let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
         let amount = await web3.utils.toWei(web3.utils.toBN(20000), 'ether');
