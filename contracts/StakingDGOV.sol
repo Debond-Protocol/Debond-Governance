@@ -41,7 +41,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
     function stakeDgovToken(
         uint256 _amount,
         uint256 _durationIndex
-    ) external override {
+    ) external override nonReentrant {
         address staker = msg.sender;
         require(staker != address(0), "StakingDGOV: zero address");
 
@@ -70,7 +70,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
 
     function unstakeDgovToken(
         uint256 _stakingCounter
-    ) external override {
+    ) external override nonReentrant {
         address staker = msg.sender;
         require(staker != address(0), "Gov: zero address");
 
@@ -109,7 +109,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         emit dgovUnstaked(staker, duration, interest);
     }
 
-    function withdrawDbitInterest(uint256 _stakingCounter) external override {
+    function withdrawDbitInterest(uint256 _stakingCounter) external override nonReentrant {
         address staker = msg.sender;
 
         (
@@ -140,7 +140,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
 
     }
 
-    function unlockVotes(uint128 _class, uint128 _nonce) public {
+    function unlockVotes(uint128 _class, uint128 _nonce) public nonReentrant {
         address tokenOwner = msg.sender;
         require(tokenOwner != address(0), "Gov: zero address");
 

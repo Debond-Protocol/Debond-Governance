@@ -212,7 +212,7 @@ contract("Executable: Governance", async (accounts) => {
     });
 
     it("Several inetrest withdraw before end of staking", async () => {
-        await wait(2000);
+        await wait(300);
         await nextTime.increment();
         let balAPMBef = await dbit.balanceOf(apm.address);
         let balUserBef = await dbit.balanceOf(user1);
@@ -222,10 +222,16 @@ contract("Executable: Governance", async (accounts) => {
         let bal1 = await dbit.balanceOf(apm.address);
         let dif1 = balAPMBef.sub(bal1);
 
+        await wait(300);
+        await nextTime.increment();
+
         // second withdraw
         await stak.withdrawDbitInterest(1, { from: user1 });
         let bal2 = await dbit.balanceOf(apm.address);
         let dif2 = bal1.sub(bal2);
+
+        await wait(300);
+        await nextTime.increment();
 
         // third withdraw
         await stak.withdrawDbitInterest(1, { from: user1 });
