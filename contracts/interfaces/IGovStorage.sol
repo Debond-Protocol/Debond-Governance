@@ -22,11 +22,9 @@ interface IGovStorage is IGovSharedStorage {
     function getVetoOperator() external view returns(address);
     function getExecutableContract() external view returns(address);
     function getStakingContract() external view returns(address);
-    function getProposalLogicContract() external view returns(address);
     function getVoteTokenContract() external view returns(address);
     function getAirdropContract() external view returns(address);
     function getNumberOfSecondInYear() external pure returns(uint256);
-
     function getGovernanceAddress() external view returns(address);
     function getExchangeAddress() external view returns(address);
     function getExchangeStorageAddress() external view returns(address);
@@ -41,7 +39,6 @@ interface IGovStorage is IGovSharedStorage {
     function getGovernanceOwnableAddress() external view returns(address);
     function getDebondTeamAddress() external view returns(address);
     function getBenchmarkIR() external view returns(uint256);
-    function getInterestRatesContract() external view returns(address);
     function getBudget() external view returns(uint256, uint256);
     function getAllocationDistributed() external view returns(uint256, uint256);
     function getTotalAllocationDistributed() external view returns(uint256, uint256);
@@ -56,6 +53,37 @@ interface IGovStorage is IGovSharedStorage {
     function updateOracleAddress(address _oracleAddress) external;
     function updateAirdropAddress(address _airdropAddress) external;
     function updateGovernanceAddress(address _governanceAddress) external;
+
+    function setStakedData(
+        address _staker,
+        uint256 _amount,
+        uint256 _durationIndex
+    ) external returns(uint256 duration, uint256 _amountToMint);
+
+    function getUserStake(
+        address _staker,
+        uint256 _stakingCounter
+    ) external view returns(StackedDGOV memory);
+
+    function updateStake(
+        address _staker,
+        uint256 _stakingCounter
+    ) external returns(uint256 amountDGOV, uint256 amountVote);
+
+    function getStakingData(
+        address _staker,
+        uint256 _stakingCounter
+    ) external view returns(
+        uint256 _stakedAmount,
+        uint256 startTime,
+        uint256 duration,
+        uint256 lastWithdrawTime
+    );
+
+    function updateLastTimeInterestWithdraw(
+        address _staker,
+        uint256 _stakingCounter
+    ) external;
 
     function getProposalStruct(
         uint128 _class,
@@ -86,41 +114,69 @@ interface IGovStorage is IGovSharedStorage {
         uint256 _votingDay
     ) external view returns(uint256);
 
-    function increaseTotalVoteTokenPerDay(
-        uint128 _class,
-        uint128 _nonce,
-        uint256 _votingDay,
-        uint256 _amountVoteTokens
-    ) external;
+    function getVotingPeriod(
+        uint128 _class
+    ) external view returns(uint256);
 
     function setProposal(
         uint128 _class,
-        uint128 _nonce,
-        uint256 _startTime,
-        uint256 _endTime,
         address _proposer,
-        ProposalApproval _approvalMode,
         address _targets,
         uint256 _values,
         bytes memory _calldatas,
         string memory _title,
         bytes32 _descriptionHash
-    ) external;
+    ) external returns(uint128 nonce);
 
     function setProposalStatus(
         uint128 _class,
         uint128 _nonce,
         ProposalStatus _status
-    ) external;
+    ) external returns(Proposal memory);
 
-    function getProposalNonce(
-        uint128 _class
-    ) external view returns(uint128);
-
-    function setProposalNonce(
+    function cancel(
         uint128 _class,
-        uint128 _nonce
+        uint128 _nonce,
+        address _proposer
     ) external;
+
+    function setVote(
+        uint128 _class,
+        uint128 _nonce,
+        address _voter,
+        uint8 _userVote,
+        uint256 _amountVoteTokens
+    ) external;
+
+    function setVeto(
+        uint128 _class,
+        uint128 _nonce,
+        bool _vetoed
+    ) external;
+
+    function hasVoted(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external view returns(bool voted);
+
+    function hasBeenRewarded(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external view returns(bool);
+
+    function setUserHasBeenRewarded(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external;
+
+    function getVoteWeight(
+        uint128 _class,
+        uint128 _nonce,
+        address _account
+    ) external view returns(uint256);
 
     function updateExecutableAddress(
         address _executableAddress

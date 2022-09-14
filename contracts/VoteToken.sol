@@ -20,9 +20,10 @@ import "./interfaces/IVoteToken.sol";
 import "./interfaces/IGovStorage.sol";
 
 contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
-    // key1: user address, key2: proposalId
+    // key1: user address, key2: proposal class, ky3: proposal nonce
     mapping(address => mapping(uint128 => mapping(uint128 => uint256))) private _lockedBalance;
     mapping(address => uint256) private _availableBalance;
+    mapping(address => uint256) private _totalLockedBalance;
 
     address govStorageAddress;
 
@@ -34,26 +35,9 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         _;
     }
 
-    modifier onlyVetoOperator {
+    modifier onlyStaking {
         require(
-            msg.sender == IGovStorage(govStorageAddress).getVetoOperator(),
-            "VoteToken: permission denied"
-        );
-        _;
-    }
-
-    modifier onlyStakingContract {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getStakingContract(),
-            "VoteToken: permission denied"
-        );
-        _;
-    }
-
-    modifier onlyProposalLogic {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getProposalLogicContract(),
-            "VoteToken: permission denied"
+            msg.sender == IGovStorage(govStorageAddress).getStakingContract()
         );
         _;
     }
@@ -67,7 +51,15 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     }
 
     /**
-    * @dev return the locked balance of an account
+    * @dev return the total amount of vote tokens locked for `_account`
+    * @param _account user account address
+    */
+    function totalLockedBalanceOf(address _account) public view returns(uint256) {
+        return _totalLockedBalance[_account];
+    }
+
+    /**
+    * @dev return the locked balance of an account for a given proposal
     * @param _account user account address
     * @param _class proposal class
     * @param _nonce proposal nonce
@@ -82,7 +74,6 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
 
     /**
     * @dev return the available vote token balance of an account:
-    *      available = balanOf(_account) - sum of lockedBalanceOf(_account, id)
     */
     function availableBalance(address _account) public view override returns(uint256) {
         return _availableBalance[_account];
@@ -103,10 +94,8 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         uint128 _class,
         uint128 _nonce
     ) public onlyGov {
-        require(_owner != address(0), "VoteToken: zero address");
-        require(_spender != address(0), "VoteToken: zero address");
         require(
-            _amount <= balanceOf(_owner),
+            _amount <= balanceOf(_owner) - totalLockedBalanceOf(_owner),
             "VoteToken: not enough tokens"
         );
         require(
@@ -115,19 +104,27 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         );
         
         _lockedBalance[_owner][_class][_nonce] += _amount;
-        _availableBalance[_owner] = balanceOf(_owner) - _lockedBalance[_owner][_class][_nonce];
+        _totalLockedBalance[_owner] += _amount;
+        _availableBalance[_owner] = balanceOf(_owner) - _totalLockedBalance[_owner];
     }
 
+    /**
+    * @dev update the voter balances when unlocking vote tokens
+    * @param _class proposal class
+    * @param _nonce proposal nonce
+    * @param _tokenOwner voter account address
+    */
     function unlockVoteTokens(
         uint128 _class,
         uint128 _nonce,
         address _tokenOwner
-    ) external onlyGov {
+    ) external onlyStaking {
         uint256 amount = lockedBalanceOf(_tokenOwner, _class, _nonce);
-        require(amount > 0, "VoteToken: no vote tokens locked");
-
+        require(amount > 0, "VoteToken: no vote tokens locked for this proposal");       
+        
         _lockedBalance[_tokenOwner][_class][_nonce] -= amount;
-        _availableBalance[_tokenOwner] = balanceOf(_tokenOwner) - _lockedBalance[_tokenOwner][_class][_nonce];
+        _totalLockedBalance[_tokenOwner] -= amount;
+        _availableBalance[_tokenOwner] = balanceOf(_tokenOwner) - _totalLockedBalance[_tokenOwner];
     }
 
     /**
@@ -139,16 +136,18 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         address _to,
         uint256 _amount
     ) public override(ERC20, IVoteToken) returns (bool) {
+        address owner = msg.sender;
+        require(_amount <= balanceOf(owner) - _totalLockedBalance[owner], "VoteToken: not enough tokens available");
         require(
             _to == IGovStorage(govStorageAddress).getGovernanceAddress() ||
             _to == IGovStorage(govStorageAddress).getStakingContract(),
             "VoteToken: can't transfer vote tokens"
         );
 
-        address owner = _msgSender();
         _transfer(owner, _to, _amount);
-        _availableBalance[owner] = balanceOf(owner);
-        _availableBalance[_to] = balanceOf(_to);
+        _availableBalance[owner] = balanceOf(owner) - _totalLockedBalance[owner];
+        _availableBalance[_to] = balanceOf(_to) - _totalLockedBalance[_to];
+
         return true;
     }
 
@@ -163,43 +162,45 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
         address _to,
         uint256 _amount
     ) public virtual override(ERC20, IVoteToken) returns (bool) {
+        require(_amount <= balanceOf(_from) - _totalLockedBalance[_from], "VoteToken: not enough tokens available");
         require(
             _to == IGovStorage(govStorageAddress).getGovernanceAddress() ||
             _to == IGovStorage(govStorageAddress).getStakingContract(),
             "VoteToken: can't transfer vote tokens"
         );
 
-        address spender = _msgSender();
+        address spender = msg.sender;
         _spendAllowance(_from, spender, _amount);
         _transfer(_from, _to, _amount);
-        _availableBalance[_from] = balanceOf(_from);
-        _availableBalance[_to] = balanceOf(_to);
+        _availableBalance[_from] = balanceOf(_from) - _totalLockedBalance[_from];
+        _availableBalance[_to] = balanceOf(_to) - _totalLockedBalance[_to];
         return true;
     }
 
     /**
     * @dev mints vote tokens
-    * @param _user the user address
+    * @param _account the user address
     * @param _amount the amount of tokens to mint
     */
     function mintVoteToken(
-        address _user,
+        address _account,
         uint256 _amount
-    ) external override onlyGov nonReentrant {
-        _mint(_user, _amount);
-        _availableBalance[_user] = balanceOf(_user);
+    ) external override onlyStaking nonReentrant {
+        _mint(_account, _amount);
+        _availableBalance[_account] = balanceOf(_account) - _totalLockedBalance[_account];
     }
 
     /**
     * @dev burns vote tokens
-    * @param _user the user address
+    * @param _account the user address
     * @param _amount the amount of tokens to burn
     */
     function burnVoteToken(
-        address _user,
+        address _account,
         uint256 _amount
-    ) external override onlyGov nonReentrant {
-        _burn(_user, _amount);
-        _availableBalance[_user] = balanceOf(_user);
+    ) external override onlyStaking nonReentrant {
+        require(_amount <= balanceOf(_account) - _totalLockedBalance[_account], "VoteToken: not enough tokens available");
+        _burn(_account, _amount);
+        _availableBalance[_account] = balanceOf(_account) - _totalLockedBalance[_account];
     }
 }

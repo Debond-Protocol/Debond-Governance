@@ -14,14 +14,13 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-interface IInterestRates {
-    function stakingInterestRate(
-        uint256 _benchmarkIR,
-        uint256 _cdp
-    ) external pure returns(uint256);
+/**
+* @dev to be called in staking contract vin order to transfer DBIT interests from Governance
+*/
 
-    function votingInterestRate(
-        uint256 _benchmarkIR,
-        uint256 _cdp
-    ) external pure returns(uint256);
+interface ITransferDBIT {
+    function transferDBITInterests(
+        address _account,
+        uint256 _interest
+    ) external;
 }

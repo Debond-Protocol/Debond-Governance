@@ -22,9 +22,9 @@ interface IGovSharedStorage {
         ProposalStatus status;
         ProposalApproval approvalMode;
         address targets;
-        uint256 values;
+        uint256 ethValue;
         bytes calldatas;
-        string title;
+        string title; 
         bytes32 descriptionHash;
     }
 
@@ -41,6 +41,17 @@ interface IGovSharedStorage {
         uint256 abstainVotes;
         bool vetoed;
         mapping(address => User) user;
+    }
+
+    struct AllocatedToken {
+        uint256 allocatedDBITMinted;
+        uint256 allocatedDGOVMinted;
+        uint256 dbitAllocationPPM;
+        uint256 dgovAllocationPPM;
+    }
+
+    struct ProposalNonce {
+        uint128 nonce;
     }
 
     enum ProposalStatus {
@@ -74,17 +85,31 @@ interface IGovSharedStorage {
      */
      event ProposalCreated(
         uint128 class,
-        uint128 nonce,
-        uint256 startVoteTime,
-        uint256 endVoteTime,
-        address proposer,
-        address targets,
-        uint256 values,
-        bytes calldatas,
-        string title,
-        bytes32 descriptionHash,
-        ProposalApproval approval
+        uint128 nonce
     );
+
+    struct StackedDGOV {
+        uint256 amountDGOV;
+        uint256 amountVote;
+        uint256 startTime;
+        uint256 lastInterestWithdrawTime;
+        uint256 duration;
+    }
+
+    struct VoteTokenAllocation {
+        uint256 duration;
+        uint256 allocation;
+    }
+
+    struct UserVoteData {
+        address voter;
+        uint256 weight;
+        uint8 vote;
+    }
+
+
+
+
 
     /**
     * @dev Emitted when a proposal is executed
