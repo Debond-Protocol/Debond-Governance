@@ -14,12 +14,16 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-bank-contracts/BankBondManager.sol";
+import "@debond-protocol/debond-bank-contracts/interfaces/IBankBondManager.sol";
+import "@debond-protocol/debond-bank-contracts/interfaces/Types.sol";
 
-contract BankBondManagerTest is BankBondManager {
+contract BankBondManagerTest is IBankBondManager {
+
+    address oracleAddress;
+    address bankAddress;
 
     constructor(
-        address _governanceAddress,
+        address _executableAddress,
         address _debondBondAddress,
         address _bankAddress,
         address _bankDataAddress,
@@ -33,4 +37,32 @@ contract BankBondManagerTest is BankBondManager {
             _oracleAddress,
             _USDCAddress
     ) {}
+
+    function updateOracleAddress(address _oracleAddress) external onlyExecutable {
+
+    }
+
+    function updateBankAddress(address _bankAddress) external onlyExecutable {
+
+    }
+
+    function createClass(uint256 classId, string memory symbol, address tokenAddress, Types.InterestRateType interestRateType, uint256 period) external {
+        return;
+    }
+
+    function issueBonds(address to, uint256[] memory classIds, uint256[] memory amounts) external {
+        return;
+    }
+    function getETA(uint256 classId, uint256 nonceId) external view returns (uint256) {
+        return 0;
+    }
+    function classValues(uint256 classId) external view returns (address _tokenAddress, Types.InterestRateType _interestRateType, uint256 _periodTimestamp) {
+        return (_tokenAddress, _interestRateType, _periodTimestamp);
+    }
+    function nonceValues(uint256 classId, uint256 nonceId) external view returns (uint256 _issuanceDate, uint256 _maturityDate) {
+        return (_issuanceDate, _maturityDate);
+    }
+    function getInterestRate(uint classId, uint amount) external view returns (uint rate) {
+        return rate;
+    }
 }
