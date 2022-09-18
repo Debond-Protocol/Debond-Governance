@@ -14,18 +14,23 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-bank-contracts/BankStorage.sol";
+import "../utils/ExecutableOwnable.sol";
 
 
-contract BankStorageTest is BankStorage {
+contract BankStorageTest is ExecutableOwnable {
+
+    address bankAddress;
 
     constructor(
-        address _governanceAddress,
-        address _bankAddress,
-        uint _baseTimestamp
-    ) BankStorage(
-        _governanceAddress,
-        _bankAddress,
-        _baseTimestamp
-    ) {}
+        address _executableAddress,
+        address _bankAddress
+    ) ExecutableOwnable(
+        _governanceAddress
+    ) {
+        bankAddress = _bankAddress;
+    }
+
+    function updateBankAddress(address _bankAddress) external onlyExecutable {
+        bankAddress = _bankAddress;
+    }
 }

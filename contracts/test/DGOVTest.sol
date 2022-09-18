@@ -17,9 +17,16 @@ pragma solidity ^0.8.0;
 import "@debond-protocol/debond-token-contracts/DGOV.sol";
 
 contract DGOVTest is DGOV {
+    address bankAddress;
+
     constructor(
-        address _governanceAddress,
-        address _bank,
-        address _airdrop
-    ) DGOV(_governanceAddress, _bank, _airdrop) {}
+        address _executableAddress,
+        address _bank
+    ) ERC20("DBIT", "DBIT") ExecutableOwnable(_executableAddress) {
+        bankAddress = _bank;
+    }
+
+    function updateBankAddress(address _bankAddress) external onlyExecutable {
+        bankAddress = _bankAddress;
+    }
 }

@@ -14,14 +14,20 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-erc3475-contracts/DebondERC3475.sol";
+import "../utils/ExecutableOwnable.sol";
 
 
-contract DebondERC3475Test is DebondERC3475 {
+contract DebondERC3475Test is ExecutableOwnable {
+    address bankAddress;
+    address bankBondManagerAddress;
+
     constructor(
         address _excutableAddress,
         address _bankAddress,
         address _bankBondManagerAddress
-    ) DebondERC3475(_excutableAddress, _bankAddress, _bankBondManagerAddress) {}
+    ) ExecutableOwnable(_excutableAddress) {
+        bankAddress = _bankAddress;
+        bankBondManagerAddress = _bankBondManagerAddress;
+    }
 
 }

@@ -14,30 +14,28 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-bank-contracts/Bank.sol";
+import "../utils/ExecutableOwnable.sol";
 
 
-contract BankTest is Bank {
+contract BankTest is ExecutableOwnable {
+
+    address bondManagerAddress;
+    address oracleAddress;
 
     constructor(
-        address _governanceAddress,
-        address _APMAddress,
-        address _bankBondManagerAddress,
-        address _bankDataAddress,
-        address _DBITAddress,
-        address _DGOVAddress,
-        address _USDCAddress,
-        address _WETHAddress,
-        address _oracleAddress,
-        address _debondBondAddress
-    ) Bank(_governanceAddress,
-        _APMAddress,
-        _bankBondManagerAddress,
-        _bankDataAddress,
-        _DBITAddress,
-        _DGOVAddress,
-        _USDCAddress,
-        _WETHAddress,
-        _oracleAddress,
-        _debondBondAddress) {}
+        address _executableAddress,
+        address _bondManagerAddress,
+        address _oracleAddress
+    ) ExecutableOwnable(_executableAddress) {
+        bondManagerAddress = _bondManagerAddress;
+        oracleAddress = _oracleAddress;
+    }
+
+    function updateBondManagerAddress(address _bondManagerAddress) external onlyExecutable {
+        bondManagerAddress = _bondManagerAddress;
+    }
+
+    function updateOracleAddress(address _oracleAddress) external onlyExecutable {
+        oracleAddress = _oracleAddress;
+    }
 }

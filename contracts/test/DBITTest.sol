@@ -14,12 +14,24 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-token-contracts/DBIT.sol";
+import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "../utils/ExecutableOwnable.sol";
 
-contract DBITTest is DBIT {
+
+contract DBITTest is ERC20, ExecutableOwnable {
+
+    address bankAddress;
+
     constructor(
         address _executableAddress,
-        address _bank,
-        address _airdrop
-    ) DBIT(_executableAddress, _bank, _airdrop) {}
+        address _bank
+    ) ERC20("DBIT", "DBIT") ExecutableOwnable(_executableAddress) {
+        bankAddress = _bank;
+    }
+
+    function updateBankAddress(address _bankAddress) external onlyExecutable {
+        bankAddress = _bankAddress;
+    }
+
 }
