@@ -14,7 +14,6 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../utils/ExecutableOwnable.sol";
 

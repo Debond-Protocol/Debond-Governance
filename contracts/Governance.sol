@@ -35,39 +35,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
 
     address govStorageAddress;
 
-    modifier onlyDBITorDGOV(address _tokenAddress) {
-        require(
-            _tokenAddress == IGovStorage(govStorageAddress).getDGOVAddress() ||
-            _tokenAddress == IGovStorage(govStorageAddress).getDBITAddress(),
-            "Gov: wrong token address"
-        );
-        _;
-    }
-
-    modifier onlyGov {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getGovernanceAddress(),
-            "Executable: Only Gov"
-        );
-        _;
-    }
-
-    modifier onlyExec {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getExecutableContract(),
-            "Gov: Only veto operator"
-        );
-        _;
-    }
-
-    modifier onlyStaking {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getStakingContract(),
-            "Gov: Only staking contract"
-        );
-        _;
-    }
-
     constructor(address _govStorageAddress) {
         govStorageAddress = _govStorageAddress;
     }

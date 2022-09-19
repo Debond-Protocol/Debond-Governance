@@ -14,11 +14,14 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-exchange-contracts/Exchange.sol";
+import "../utils/ExecutableOwnable.sol";
 
-contract ExchangeTest is Exchange {
+contract ExchangeTest is ExecutableOwnable {
+    address exchangeStorageAddress;
     constructor(
         address _exchangeStorageAddress,
         address _executableAddress
-    ) Exchange(_exchangeStorageAddress, _executableAddress) {}
+    ) Exchange(_exchangeStorageAddress, _executableAddress) {
+        exchangeStorageAddress = _exchangeStorageAddress;
+    }
 }

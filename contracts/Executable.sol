@@ -85,19 +85,6 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
         emit DgovmaxAllocationSet(_newPercentage);
     }
 
-    // TODO name explicitly functions for DBIT and DGOV is better
-    function updateDBITMaxAirdropSupply(
-        uint256 _newSupply
-    ) external onlyGov {
-        address _tokenAddress = IGovStorage(govStorageAddress).getDBITAddress();
-        require(
-            IDebondToken(_tokenAddress).setMaxAirdropSupply(_newSupply),
-            "Gov: Execution failed"
-        );
-
-        emit maxAirdropSupplyUpdated(_tokenAddress, _newSupply);
-    }
-
     function updateDGOVMaxAirdropSupply(
         uint256 _newSupply
     ) external onlyGov {
@@ -183,38 +170,6 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
         );
 
         emit communityFundChanged(_newDBITBudgetPPM, _newDGOVBudgetPPM);
-    }
-
-    function mintDBITAllocatedToken(
-        address _to,
-        uint256 _amount
-    ) external onlyGov returns (bool) {
-        address _token = IGovStorage(govStorageAddress).getDBITAddress();
-        IGovStorage(
-            govStorageAddress
-        ).setAllocatedToken(_token, _to, _amount);
-
-        IDebondToken(_token).mintAllocatedSupply(_to, _amount);
-
-        emit allocationTokenMinted(_token, _to, _amount);
-
-        return true;
-    }
-
-    function mintDGOVAllocatedToken(
-        address _to,
-        uint256 _amount
-    ) external onlyGov returns (bool) {
-        address _token = IGovStorage(govStorageAddress).getDGOVAddress();
-        IGovStorage(
-            govStorageAddress
-        ).setAllocatedToken(_token, _to, _amount);
-
-        IDebondToken(_token).mintAllocatedSupply(_to, _amount);
-
-        emit allocationTokenMinted(_token, _to, _amount);
-
-        return true;
     }
 
     function migrateToken(

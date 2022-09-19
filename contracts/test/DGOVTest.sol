@@ -14,15 +14,17 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-token-contracts/DGOV.sol";
+import "../utils/ExecutableOwnable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract DGOVTest is DGOV {
+
+contract DGOVTest is ERC20, ExecutableOwnable {
     address bankAddress;
 
     constructor(
         address _executableAddress,
         address _bank
-    ) ERC20("DBIT", "DBIT") ExecutableOwnable(_executableAddress) {
+    ) ERC20("DGOV", "DGOV") ExecutableOwnable(_executableAddress) {
         bankAddress = _bank;
     }
 
