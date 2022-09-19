@@ -23,11 +23,8 @@ contract DBITTest is ERC20, ExecutableOwnable {
     address bankAddress;
 
     constructor(
-        address _executableAddress,
-        address _bank
-    ) ERC20("DBIT", "DBIT") ExecutableOwnable(_executableAddress) {
-        bankAddress = _bank;
-    }
+        address _executableAddress
+    ) ERC20("DBIT", "DBIT") ExecutableOwnable(_executableAddress) {}
 
     function updateBankAddress(address _bankAddress) external onlyExecutable {
         bankAddress = _bankAddress;

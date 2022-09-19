@@ -18,9 +18,9 @@ import "../utils/ExecutableOwnable.sol";
 
 contract ExchangeStorageTest is ExecutableOwnable {
     address exchangeAddress;
-    constructor(address _executable) ExchangeStorage(_executable) {}
+    constructor(address _executable) ExecutableOwnable(_executable) {}
 
-    function setExchangeAddress(address _exchangeAddress) external onlyExecutable {
+    function updateExchangeAddress(address _exchangeAddress) external onlyExecutable {
         exchangeAddress = _exchangeAddress;
     }
 

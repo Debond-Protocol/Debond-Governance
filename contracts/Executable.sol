@@ -107,7 +107,7 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
         IGovStorage(govStorageAddress).setBenchmarkIR(_newBenchmarkInterestRate);
 
         IBankStorage(
-            IGovStorage(govStorageAddress).getBankAddress()
+            IGovStorage(govStorageAddress).getBankDataAddress()
         ).updateBenchmarkInterest(_newBenchmarkInterestRate);
 
         emit benchmarkUpdated(_newBenchmarkInterestRate);
@@ -146,7 +146,7 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
         return true;
     }
 
-    function changeStampDuty(
+    function changeTeamAllocation(
         address _to,
         uint256 _newDBITPPM,
         uint256 _newDGOVPPM
@@ -241,11 +241,11 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
         // in DBIT
         IDebondToken(
             IGovStorage(govStorageAddress).getDBITAddress()
-        ).setBankAddress(_bankAddress);
+        ).updateBankAddress(_bankAddress);
         // in DGOV
         IDebondToken(
             IGovStorage(govStorageAddress).getDGOVAddress()
-        ).setBankAddress(_bankAddress);
+        ).updateBankAddress(_bankAddress);
         // in APM
         IAPM(
             IGovStorage(govStorageAddress).getAPMAddress()
@@ -254,7 +254,7 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
         // in Debond Bond
         IDebondBond(
             IGovStorage(govStorageAddress).getERC3475Address()
-        ).updateBankAddress(_bankAddress);
+        ).updateRedeemableAddress(_bankAddress);
 
         // in Bank Data
         IBankStorage(
@@ -309,8 +309,6 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
     function updateOracleAddress(
         address _oracleAddress
     ) external onlyGov returns (bool) {
-        IGovStorage(govStorageAddress).updateOracleAddress(_oracleAddress);
-
         // in Bank
         IBank(
             IGovStorage(govStorageAddress).getBankAddress()
@@ -327,9 +325,8 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
 
     function withdrawDBIT(address _to, uint256 _amount) external {
         require(
-            msg.sender == IGovStorage(govStorageAddress).getGovernanceAddress() ||
             msg.sender == IGovStorage(govStorageAddress).getStakingContract(),
-            "Executable: Only Staking"
+            "Executable: Not Authorised"
         );
         IAPM(
             IGovStorage(govStorageAddress).getAPMAddress()
@@ -338,5 +335,20 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
             IGovStorage(govStorageAddress).getDBITAddress(),
             _amount
         );
+    }
+
+    function mintAllocatedToken(
+        address _token,
+        address _to,
+        uint256 _amount
+    ) external onlyGov returns(bool) {
+        IGovStorage(
+            govStorageAddress
+        ).setAllocatedToken(_token, _to, _amount);
+
+        IDebondToken(_token).mintAllocatedSupply(_to, _amount);
+
+
+    return true;
     }
 }

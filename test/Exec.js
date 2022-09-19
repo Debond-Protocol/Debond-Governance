@@ -1,13 +1,11 @@
 const chai = require("chai");
 const chaiAsPromised = require('chai-as-promised');
-const { Console } = require("console");
-const readline = require('readline');
 
 chai.use(chaiAsPromised);
 const expect = chai.expect;
 
 const DBIT = artifacts.require("DBITToken");
-const DGOV = artifacts.require("DGOVToken");
+const DGOV = artifacts.require("DGOVTest");
 const ERC3475 = artifacts.require("ERC3475");
 const Bank = artifacts.require("Bank");
 const APMTest = artifacts.require("APMTest");
@@ -19,59 +17,14 @@ const GovStorage = artifacts.require("GovStorage");
 const GovernanceMigrator = artifacts.require("GovernanceMigrator");
 const Exchange = artifacts.require("ExchangeTest");
 const ExchangeStorage = artifacts.require("ExchangeStorageTest");
-const BankData = artifacts.require("BankData");
+const BankStorageTest = artifacts.require("BankStorageTest");
 const BankBondManager = artifacts.require("BankBondManager");
 const Oracle = artifacts.require("Oracle");
 const AdvanceBlockTimeStamp = artifacts.require("AdvanceBlockTimeStamp");
 
 contract("Executable: Governance", async (accounts) => {
-    let gov;
-    let apm;
-    let bank;
-    let dbit;
-    let dgov;
-    let stak;
-    let vote;
-    let exec;
-    let erc3475;
-    let storage;
-    let amountToMint;
-    let amountToStake;
-    let migrator;
-    let exchange;
-    let exStorage;
-    let bankData;
-    let bondManager;
-    let oracle;
-    let nextTime;
 
-    let user1B;
-    let user2B;
-    let user3B;
-    let user4B;
-    let user5B;
-    let userOB;
-    let contrB;
-
-    let toStake1;
-    let toStake2;
-    let toStake3;
-    let toStake4;
-    let toStake5;
-    let toStake6;
-    let opStake;
-
-    let operator = accounts[0];
-    let debondTeam = accounts[1];
-    let user1 = accounts[2];
-    let user2 = accounts[3];
-    let user3 = accounts[4];
-    let user4 = accounts[5];
-    let user5 = accounts[6];
-    let user6 = accounts[7];
-    let user7 = accounts[8];
-
-    let ProposalStatus = {
+    const ProposalStatus = {
         Active: '0',
         Canceled: '1',
         Pending: '2',
@@ -80,124 +33,57 @@ contract("Executable: Governance", async (accounts) => {
         Executed: '5'
     }
 
-    beforeEach(async () => {
-        migrator = await GovernanceMigrator.new();
-        storage = await GovStorage.new(debondTeam, operator);
-        exec = await Executable.new(storage.address);
-        oracle = await Oracle.new(exec.address);
-        gov = await Governance.new(storage.address);
-        vote = await VoteToken.new("Debond Vote Token", "DVT", storage.address);
-        exStorage = await ExchangeStorage.new(gov.address, exec.address);
-        exchange = await Exchange.new(exStorage.address, gov.address, exec.address);
-        bondManager = await BankBondManager.new(gov.address, exec.address, oracle.address);
-        bank = await Bank.new(gov.address, exec.address, bondManager.address, oracle.address);
-        erc3475 = await ERC3475.new(gov.address, exec.address, bank.address, bondManager.address);
-        apm = await APMTest.new(gov.address, bank.address, exec.address);
-        bankData = await BankData.new(gov.address, bank.address, exec.address);
-        dbit = await DBIT.new(gov.address, bank.address, operator, exchange.address, exec.address);
-        dgov = await DGOV.new(gov.address, bank.address, operator, exchange.address, exec.address);
-        stak = await StakingDGOV.new(storage.address);
+    let gov;
+    let exec;
+    let storage;
+    let bankStorage;
+    let dgov;
+    let stakingContract;
+    let nextTime;
 
-        nextTime = await AdvanceBlockTimeStamp.new();
+    const [operator, debondTeam, user1, user2, user3, user4, user5] = accounts;
 
-        // initialize all contracts
-        await storage.setUpGoup1(
-            gov.address,
-            dgov.address,
-            dbit.address,
-            apm.address,
-            bondManager.address,
-            oracle.address,
-            stak.address,
-            vote.address,
-            {from: operator}
-        );
+    const toStake1 = web3.utils.toWei(web3.utils.toBN(50), 'ether');
+    const toStake2 = web3.utils.toWei(web3.utils.toBN(85), 'ether');
+    const toStake3 = web3.utils.toWei(web3.utils.toBN(300), 'ether');
+    const toStake4 = web3.utils.toWei(web3.utils.toBN(20), 'ether');
+    const toStake5 = web3.utils.toWei(web3.utils.toBN(100), 'ether');
 
-        await storage.setUpGoup2(
-            exec.address,
-            bank.address,
-            bankData.address,
-            erc3475.address,
-            exchange.address,
-            exStorage.address,
-            operator,
-            operator,
-            {from: operator}
-        );
+    before(async () => {
+        gov = await Governance.deployed();
+        exec = await Executable.deployed();
+        storage = await GovStorage.deployed();
+        bankStorage = await BankStorageTest.deployed();
+        dgov = await DGOV.deployed();
+        stakingContract = await StakingDGOV.deployed();
+        nextTime = await AdvanceBlockTimeStamp.deployed();
 
-        // set the apm address in Bank
-        await bank.setAPMAddress(apm.address);
+        const amountToMint = await web3.utils.toWei(web3.utils.toBN(2500), 'ether');
 
-        //let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
-        let amount = await web3.utils.toWei(web3.utils.toBN(20000), 'ether');
-        let amountToSend = await web3.utils.toWei(web3.utils.toBN(10000), 'ether');
-        await bank.mintCollateralisedSupply(dbit.address, debondTeam, amount, { from: operator });
-        await dbit.transfer(gov.address, amountToSend, { from: debondTeam });
-        await dbit.transfer(apm.address, amountToSend, { from: debondTeam });
+        await dgov.mint(user1, amountToMint);
+        await dgov.mint(user2, amountToMint);
+        await dgov.mint(user3, amountToMint);
+        await dgov.mint(user4, amountToMint);
+        await dgov.mint(user5, amountToMint);
 
-        await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToSend, { from: operator  });
-        await dgov.transfer(apm.address, amountToSend, { from: debondTeam });
- 
-        await bank.update(
-            amountToSend,
-            amountToSend,
-            dbit.address,
-            dgov.address,
-            { from: operator }
-        );
+        await dgov.approve(stakingContract.address, toStake1, { from: user1 });
+        await dgov.approve(stakingContract.address, toStake2, { from: user2 });
+        await dgov.approve(stakingContract.address, toStake3, { from: user3 });
+        await dgov.approve(stakingContract.address, toStake4, { from: user4});
+        await dgov.approve(stakingContract.address, toStake5, { from: user5});
 
-        //amountToMint = await web3.utils.toWei(web3.utils.toBN(200), 'ether');
-        amountToMint = await web3.utils.toWei(web3.utils.toBN(2500), 'ether');
+        await stakingContract.stakeDgovToken(toStake1, 0, { from: user1 });
+        await stakingContract.stakeDgovToken(toStake2, 0, { from: user2 });
+        await stakingContract.stakeDgovToken(toStake3, 0, { from: user3 });
+        await stakingContract.stakeDgovToken(toStake4, 0, { from: user4 });
+        await stakingContract.stakeDgovToken(toStake5, 0, { from: user5 });
 
-        toStake1 = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
-        toStake2 = await web3.utils.toWei(web3.utils.toBN(85), 'ether');
-        toStake3 = await web3.utils.toWei(web3.utils.toBN(300), 'ether');
-        toStake4 = await web3.utils.toWei(web3.utils.toBN(20), 'ether');
-        toStake5 = await web3.utils.toWei(web3.utils.toBN(750), 'ether');
-        toStake6 = await web3.utils.toWei(web3.utils.toBN(810), 'ether');
-        opStake = await web3.utils.toWei(web3.utils.toBN(430), 'ether');
-
-        await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToMint, { from: operator });
-        await dgov.transfer(user1, toStake1, { from: debondTeam });
-        await dgov.transfer(user2, toStake2, { from: debondTeam });
-        await dgov.transfer(user3, toStake3, { from: debondTeam });
-        await dgov.transfer(user4, toStake4, { from: debondTeam });
-        await dgov.transfer(user5, toStake5, { from: debondTeam });
-        await dgov.transfer(operator, opStake, { from: debondTeam });
-        await dgov.approve(stak.address, toStake1, { from: user1 });
-        await dgov.approve(stak.address, toStake2, { from: user2 });
-        await dgov.approve(stak.address, toStake3, { from: user3 });
-        await dgov.approve(stak.address, toStake4, { from: user4});
-        await dgov.approve(stak.address, toStake5, { from: user5 });
-        await dgov.approve(stak.address, opStake, { from: operator });
-        await dgov.approve(user1, toStake1, { from: user1 });
-        await dgov.approve(user2, toStake2, { from: user2 });
-        await dgov.approve(user3, toStake3, { from: user3 });
-        await dgov.approve(user4, toStake4, { from: user4 });
-        await dgov.approve(user5, toStake5, { from: user5 });
-        await dgov.approve(operator, opStake, { from: operator });
-
-        user1B = await dgov.balanceOf(user1);
-        user2B = await dgov.balanceOf(user2);
-        user3B = await dgov.balanceOf(user3);
-        user4B = await dgov.balanceOf(user4);
-        user5B = await dgov.balanceOf(user5);
-        userOB = await dgov.balanceOf(operator);
-        contrB = await dgov.balanceOf(stak.address);
-
-        await stak.stakeDgovToken(toStake1, 0, { from: user1 });
-        await stak.stakeDgovToken(toStake2, 0, { from: user2 });
-        await stak.stakeDgovToken(toStake3, 0, { from: user3 });
-        await stak.stakeDgovToken(toStake4, 0, { from: user4 });
-        await stak.stakeDgovToken(toStake5, 0, { from: user5 });
-        await stak.stakeDgovToken(opStake, 0, { from: operator });
-    });
+    })
 
     it("update the benchmark interest rate", async () => {
         let _class = 0;
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
-            _class,
             '100000000000000000'
         ).encodeABI();
 
@@ -208,7 +94,7 @@ contract("Executable: Governance", async (accounts) => {
             callData,
             title,
             web3.utils.soliditySha3(title),
-            { from: operator }
+            {from: user5}
         );
 
         let event = res.logs[0].args;
@@ -224,10 +110,10 @@ contract("Executable: Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user4, 0, amountVote4, 1, { from: user4 });
 
         let benchmarkBefore = await storage.getBenchmarkIR();
-        let benchmarkBankBefore = await bank.getBenchmarkIR();
+        let benchmarkBankBefore = await bankStorage.getBenchmarkIR();
         let status = await storage.getProposalStatus(event.class, event.nonce);
 
-        await wait(17000);
+        await wait(2000);
         await nextTime.increment();
 
         await gov.executeProposal(
@@ -237,24 +123,36 @@ contract("Executable: Governance", async (accounts) => {
         );
 
         let benchmarkAfter = await storage.getBenchmarkIR();
-        let benchmarkBankAfter = await bank.getBenchmarkIR();
+        let benchmarkBankAfter = await bankStorage.getBenchmarkIR();
         await nextTime.increment();
         let status1 = await storage.getProposalStatus(event.class, event.nonce);
 
         expect(status.toString()).to.equal(ProposalStatus.Active);
         expect(status1.toString()).to.equal(ProposalStatus.Executed);
 
-        expect(
-            benchmarkBefore.toString()
-        ).to.equal(
-            benchmarkBankBefore.toString()
-        ).to.equal(
-            "50000000000000000"
-        );
+        // expect(
+        //     benchmarkBefore.toString()
+        // ).to.equal(
+        //     benchmarkBankBefore.toString()
+        // ).to.equal(
+        //     "50000000000000000"
+        // );
+
+        // expect(
+        //     benchmarkAfter.toString()
+        // ).to.equal(
+        //     benchmarkBankAfter.toString()
+        // ).to.equal(
+        //     "100000000000000000"
+        // );
 
         expect(
             benchmarkAfter.toString()
         ).to.equal(
+            "100000000000000000"
+        );
+
+        expect(
             benchmarkBankAfter.toString()
         ).to.equal(
             "100000000000000000"
@@ -266,7 +164,6 @@ contract("Executable: Governance", async (accounts) => {
         let _class = 0;
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
-            _class,
             '100000000000000000'
         ).encodeABI();
 
@@ -311,7 +208,6 @@ contract("Executable: Governance", async (accounts) => {
         let title = "Propsal-1: Update the proposal threshold";
 
         let callData = await exec.contract.methods.updateProposalThreshold(
-            _class,
             newTherehold
         ).encodeABI();
         
@@ -360,7 +256,6 @@ contract("Executable: Governance", async (accounts) => {
         let _class = 0;
         let title = "Propsal-1: Update the budget part per million";
         let callData = await exec.contract.methods.changeCommunityFundSize(
-            _class,
             newDBITBudget,
             newDGOVBudget
         ).encodeABI();
@@ -413,7 +308,6 @@ contract("Executable: Governance", async (accounts) => {
         let _class = 0;
         let title = "Propsal-1: Mint the team allocation token";
         let callData = await gov.contract.methods.mintAllocatedToken(
-            _class,
             dbit.address,
             debondTeam,
             amountDBIT
@@ -465,7 +359,6 @@ contract("Executable: Governance", async (accounts) => {
         let _class = 0;
         let title = "Propsal-1: Mint the team allocation token";
         let callData = await gov.contract.methods.mintAllocatedToken(
-            _class,
             dgov.address,
             debondTeam,
             amountDGOV
@@ -516,8 +409,7 @@ contract("Executable: Governance", async (accounts) => {
         let amountDGOV = await web3.utils.toWei(web3.utils.toBN(1), 'ether');
         let _class = 0;
         let title = "Propsal-1: Mint the team allocation token";
-        let callData = await gov.contract.methods.mintAllocatedToken(
-            _class,
+        let callData = await exec.contract.methods.mintAllocatedToken(
             dgov.address,
             debondTeam,
             amountDGOV
@@ -525,7 +417,7 @@ contract("Executable: Governance", async (accounts) => {
         
         let res = await gov.createProposal(
             _class,
-            gov.address,
+            exec.address,
             0,
             callData,
             title,
@@ -567,7 +459,6 @@ contract("Executable: Governance", async (accounts) => {
         let _class = 0;
         let title = "Propsal-1: Change the team allocation token amount";
         callData = await exec.contract.methods.changeTeamAllocation(
-            _class,
             debondTeam,
             newDBITAmount,
             newDGOVAmount
@@ -616,14 +507,13 @@ contract("Executable: Governance", async (accounts) => {
         let newMax = maxSupplyBefore.add(toAdd);
         let _class = 0;
         let title = "Propsal-1: Update the DGOV max";
-        let callData = await gov.contract.methods.updateDGOVMaxSupply(
-            _class,
+        let callData = await exec.contract.methods.updateDGOVMaxSupply(
             newMax
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            gov.address,
+            exec.address,
             0,
             callData,
             title,
@@ -660,15 +550,14 @@ contract("Executable: Governance", async (accounts) => {
     it("update DGOV max allocation percentage", async () => {
         let _class = 0;
         let title = "Propsal-1: Update the benchMark interest rate";
-        let callData = await gov.contract.methods.setMaxAllocationPercentage(
-            _class,
+        let callData = await exec.contract.methods.setMaxAllocationPercentage(
             "800",
             dgov.address
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            gov.address,
+            exec.address,
             0,
             callData,
             title,

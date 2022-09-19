@@ -20,17 +20,23 @@ import "../utils/ExecutableOwnable.sol";
 contract BankStorageTest is ExecutableOwnable {
 
     address bankAddress;
+    uint256 benchmarkIR;
 
     constructor(
-        address _executableAddress,
-        address _bankAddress
+        address _executableAddress
     ) ExecutableOwnable(
-        _governanceAddress
-    ) {
-        bankAddress = _bankAddress;
-    }
+        _executableAddress
+    ) {}
 
     function updateBankAddress(address _bankAddress) external onlyExecutable {
         bankAddress = _bankAddress;
+    }
+
+    function updateBenchmarkInterest(uint256 _benchmarkIR) external onlyExecutable {
+        benchmarkIR = _benchmarkIR;
+    }
+
+    function getBenchmarkIR() external view returns (uint256) {
+        return benchmarkIR;
     }
 }

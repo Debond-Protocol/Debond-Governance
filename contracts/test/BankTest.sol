@@ -23,13 +23,8 @@ contract BankTest is ExecutableOwnable {
     address oracleAddress;
 
     constructor(
-        address _executableAddress,
-        address _bondManagerAddress,
-        address _oracleAddress
-    ) ExecutableOwnable(_executableAddress) {
-        bondManagerAddress = _bondManagerAddress;
-        oracleAddress = _oracleAddress;
-    }
+        address _executableAddress
+    ) ExecutableOwnable(_executableAddress) {}
 
     function updateBondManagerAddress(address _bondManagerAddress) external onlyExecutable {
         bondManagerAddress = _bondManagerAddress;

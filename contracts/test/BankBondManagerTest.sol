@@ -22,15 +22,10 @@ contract BankBondManagerTest is ExecutableOwnable {
     address bankAddress;
 
     constructor(
-        address _executableAddress,
-        address _bankAddress,
-        address _oracleAddress
+        address _executableAddress
     ) ExecutableOwnable(
         _executableAddress
-    ) {
-        oracleAddress = _oracleAddress;
-        bankAddress = _bankAddress;
-    }
+    ) {}
 
     function updateOracleAddress(address _oracleAddress) external onlyExecutable {
         oracleAddress = _oracleAddress;

@@ -22,13 +22,14 @@ contract DGOVTest is ERC20, ExecutableOwnable {
     address bankAddress;
 
     constructor(
-        address _executableAddress,
-        address _bank
-    ) ERC20("DGOV", "DGOV") ExecutableOwnable(_executableAddress) {
-        bankAddress = _bank;
-    }
+        address _executableAddress
+    ) ERC20("DGOV", "DGOV") ExecutableOwnable(_executableAddress) {}
 
     function updateBankAddress(address _bankAddress) external onlyExecutable {
         bankAddress = _bankAddress;
+    }
+
+    function mint(address _to, uint256 amount) external {
+        _mint(_to, amount);
     }
 }

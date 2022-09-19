@@ -22,11 +22,14 @@ contract DebondERC3475Test is ExecutableOwnable {
     address bankBondManagerAddress;
 
     constructor(
-        address _excutableAddress,
-        address _bankAddress,
-        address _bankBondManagerAddress
-    ) ExecutableOwnable(_excutableAddress) {
+        address _excutableAddress
+    ) ExecutableOwnable(_excutableAddress) {}
+
+    function updateBankAddress(address _bankAddress) external onlyExecutable {
         bankAddress = _bankAddress;
+    }
+
+    function updateBankBondManagerAddress(address _bankBondManagerAddress) external onlyExecutable {
         bankBondManagerAddress = _bankBondManagerAddress;
     }
 

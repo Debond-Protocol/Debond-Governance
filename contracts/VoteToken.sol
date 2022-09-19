@@ -43,10 +43,8 @@ contract VoteToken is ERC20, ReentrancyGuard, IVoteToken {
     }
 
     constructor(
-        string memory _name,
-        string memory _symbol,
         address _govStorageAddress
-    ) ERC20(_name, _symbol) {
+    ) ERC20("Debond Vote Token", "DVT") {
         govStorageAddress = _govStorageAddress;
     }
 
