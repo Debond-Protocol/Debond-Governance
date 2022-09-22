@@ -61,28 +61,17 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
         emit dgovMaxSupplyUpdated(_maxSupply);
     }
 
-    function updateDBITMaxAllocationPercentage(
-        uint256 _newPercentage
+    function setMaxAllocationPercentage(
+        uint256 _newPercentage,
+        address _token
     ) external onlyGov {
 
         require(
-            IDebondToken(IGovStorage(govStorageAddress).getDBITAddress()).setMaxAllocationPercentage(_newPercentage),
+            IDebondToken(_token).setMaxAllocationPercentage(_newPercentage),
             "Gov: Execution failed"
         );
 
-        emit DbitmaxAllocationSet(_newPercentage);
-    }
-
-    function updateDGOVMaxAllocationPercentage(
-        uint256 _newPercentage
-    ) external onlyGov {
-
-        require(
-            IDebondToken(IGovStorage(govStorageAddress).getDGOVAddress()).setMaxAllocationPercentage(_newPercentage),
-            "Gov: Execution failed"
-        );
-
-        emit DgovmaxAllocationSet(_newPercentage);
+        emit maxAllocationSet(_token, _newPercentage);
     }
 
     function updateDGOVMaxAirdropSupply(

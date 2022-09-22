@@ -21,6 +21,8 @@ import "../utils/ExecutableOwnable.sol";
 contract DBITTest is ERC20, ExecutableOwnable {
 
     address bankAddress;
+    mapping(address => uint256) allocatedBalance;
+    uint256 maxAllocationPercentage;
 
     constructor(
         address _executableAddress
@@ -28,6 +30,32 @@ contract DBITTest is ERC20, ExecutableOwnable {
 
     function updateBankAddress(address _bankAddress) external onlyExecutable {
         bankAddress = _bankAddress;
+    }
+
+    function mintAllocatedSupply(address _to, uint256 _amount) external onlyExecutable {
+        _mint(_to, _amount);
+        allocatedBalance[_to] += _amount;
+    }
+
+    function mintCollateralisedSupply(address _to, uint256 _amount) external {
+        _mint(_to, _amount);
+    }
+
+    function getAllocatedBalance(address _account) external view returns(uint256) {
+        return allocatedBalance[_account];
+    }
+
+    function getTotalCollateralisedSupply() external view returns(uint256) {
+        return totalSupply();
+    }
+
+    function setMaxAllocationPercentage(uint256 newPercentage) external returns (bool) {
+        maxAllocationPercentage = newPercentage;
+        return true;
+    }
+
+    function getMaxAllocatedPercentage() external view returns(uint256) {
+        return maxAllocationPercentage;
     }
 
 }

@@ -132,9 +132,7 @@ interface IGovSharedStorage {
 
     event dgovMaxSupplyUpdated(uint256 newMaxSupply);
 
-    event DbitmaxAllocationSet(uint256 newAllocation);
-
-    event DgovmaxAllocationSet(uint256 newAllocation);
+    event maxAllocationSet(address token, uint256 newAllocation);
 
     event maxAirdropSupplyUpdated(address token, uint256 newSupply);
 

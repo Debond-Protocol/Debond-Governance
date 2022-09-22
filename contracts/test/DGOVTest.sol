@@ -14,12 +14,17 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "../utils/ExecutableOwnable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "../utils/ExecutableOwnable.sol";
 
 
 contract DGOVTest is ERC20, ExecutableOwnable {
+
     address bankAddress;
+    mapping(address => uint256) allocatedBalance;
+    uint maxSupply = 1000000 ether;
+    uint256 maxAllocationPercentage;
+
 
     constructor(
         address _executableAddress
@@ -29,7 +34,40 @@ contract DGOVTest is ERC20, ExecutableOwnable {
         bankAddress = _bankAddress;
     }
 
-    function mint(address _to, uint256 amount) external {
-        _mint(_to, amount);
+    function mintAllocatedSupply(address _to, uint256 _amount) external {
+        _mint(_to, _amount);
+        allocatedBalance[_to] += _amount;
     }
+
+    function mint(address _to, uint256 _amount) external {
+        _mint(_to, _amount);
+    }
+
+    function getAllocatedBalance(address _account) external view returns(uint256) {
+        return allocatedBalance[_account];
+    }
+
+    function getTotalCollateralisedSupply() external view returns(uint256) {
+        return totalSupply();
+    }
+
+    function setMaxSupply(uint256 max_supply) external returns (bool) {
+        maxSupply = max_supply;
+        return true;
+    }
+
+    function getMaxSupply() external view returns(uint256) {
+        return maxSupply;
+    }
+
+    function setMaxAllocationPercentage(uint256 newPercentage) external returns (bool) {
+        maxAllocationPercentage = newPercentage;
+        return true;
+    }
+
+    function getMaxAllocatedPercentage() external view returns(uint256) {
+        return maxAllocationPercentage;
+    }
+
+
 }
