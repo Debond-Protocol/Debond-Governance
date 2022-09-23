@@ -1,5 +1,7 @@
 pragma solidity ^0.8.0;
 
+import "../interfaces/IExecutableUpdatable.sol";
+
 // SPDX-License-Identifier: apache 2.0
 /*
     Copyright 2022 Debond Protocol <info@debond.org>
@@ -14,31 +16,23 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "../interfaces/IActivable.sol";
-import "../interfaces/IGovStorage.sol";
+interface IActivable {
 
-abstract contract GovernanceOwnable is IActivable {
-    address govStorageAddress;
+    function setIsActive(bool _isActive) external;
+    function contractIsActive() external view returns(bool);
+}
+
+abstract contract ExecutableOwnable is IActivable, IExecutableUpdatable {
+    address executableAddress;
     bool private isActive;
 
-    constructor(address _govStorageAddress) {
-        govStorageAddress = _govStorageAddress;
+    constructor(address _executableAddress) {
+        executableAddress = _executableAddress;
         isActive = true;
     }
 
-    modifier onlyGovernance() {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getGovernanceAddress(),
-            "GovernanceOwnable Restriction: Not authorised"
-        );
-        _;
-    }
-
     modifier onlyExecutable() {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getExecutableContract(),
-            "GovernanceOwnable Restriction: Not authorised"
-        );
+        require(msg.sender == executableAddress, "GovernanceOwnable Restriction: Not authorised");
         _;
     }
 
@@ -47,11 +41,19 @@ abstract contract GovernanceOwnable is IActivable {
         _;
     }
 
-    function setIsActive(bool _isActive) external onlyGovernance {
+    function setIsActive(bool _isActive) external onlyExecutable {
         isActive = _isActive;
     }
 
     function contractIsActive() public view returns(bool) {
         return isActive;
+    }
+
+    function updateExecutableAddress(address _newExecutableAddress) external onlyExecutable {
+        executableAddress = _newExecutableAddress;
+    }
+
+    function getExecutableAddress() external view returns(address) {
+        return executableAddress;
     }
 }

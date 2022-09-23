@@ -14,8 +14,29 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-interface IActivable {
+import "../utils/ExecutableOwnable.sol";
 
-    function setIsActive(bool _isActive) external;
-    function contractIsActive() external view returns(bool);
+
+contract BankStorageTest is ExecutableOwnable {
+
+    address bankAddress;
+    uint256 benchmarkIR;
+
+    constructor(
+        address _executableAddress
+    ) ExecutableOwnable(
+        _executableAddress
+    ) {}
+
+    function updateBankAddress(address _bankAddress) external onlyExecutable {
+        bankAddress = _bankAddress;
+    }
+
+    function updateBenchmarkInterest(uint256 _benchmarkIR) external onlyExecutable {
+        benchmarkIR = _benchmarkIR;
+    }
+
+    function getBenchmarkIR() external view returns (uint256) {
+        return benchmarkIR;
+    }
 }

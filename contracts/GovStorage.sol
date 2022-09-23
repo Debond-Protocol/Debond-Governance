@@ -45,9 +45,7 @@ contract GovStorage is IGovStorage {
     address public dbitContract;
     address public bankContract;
     address public vetoOperator;
-    address public oracleContract;
     address public stakingContract;
-    address public airdropContract;
     address public erc3475Contract;
     address public exchangeContract;
     address public bankDataContract;
@@ -55,7 +53,6 @@ contract GovStorage is IGovStorage {
     address public governanceMigrator;
     address public exchangeStorageContract;
     address public bankBondManagerContract;
-    address public governanceOwnableContract;
 
     uint256 _lockGroup1;
     uint256 _lockGroup2;
@@ -134,7 +131,7 @@ contract GovStorage is IGovStorage {
         _proposalQuorum[2] = 50;
 
         // to define during deployment
-        _votingPeriod[0] = 2;
+        _votingPeriod[0] = 4;
         _votingPeriod[1] = 2;
         _votingPeriod[2] = 2;
 
@@ -147,7 +144,7 @@ contract GovStorage is IGovStorage {
         // Staking
         // for tests only
         voteTokenAllocation[0].duration = 4;
-        voteTokenAllocation[0].allocation = 3000000000000000;
+        voteTokenAllocation[0].allocation = 10000000000000000;
 
         //voteTokenAllocation[0].duration = 4 weeks;
         //voteTokenAllocation[0].allocation = 3000000000000000;
@@ -174,13 +171,12 @@ contract GovStorage is IGovStorage {
         _voteTokenAllocation.push(voteTokenAllocation[5]);
     }
 
-    function setUpGoup1(
+    function setUpGroup1(
         address _governance,
         address _dgovContract,
         address _dbitContract,
         address _apmContract,
         address _bankBondManagerContract,
-        address _oracleContract,
         address _stakingContract,
         address _voteContract
     ) external onlyVetoOperator {
@@ -191,22 +187,19 @@ contract GovStorage is IGovStorage {
         dbitContract = _dbitContract;
         apmContract = _apmContract;
         bankBondManagerContract = _bankBondManagerContract;
-        oracleContract = _oracleContract;
         stakingContract = _stakingContract;
         voteTokenContract = _voteContract;
 
         _lockGroup1 == 1;
     }
 
-    function setUpGoup2(
+    function setUpGroup2(
         address _executable,
         address _bankContract,
         address _bankDataContract,
         address _erc3475Contract,
         address _exchangeContract,
-        address _exchangeStorageContract,
-        address _airdropContract,
-        address _governanceOwnableContract
+        address _exchangeStorageContract
     ) external onlyVetoOperator {
         require(_lockGroup2 == 0, "GovStorage: Group2 already set");
 
@@ -216,55 +209,12 @@ contract GovStorage is IGovStorage {
         erc3475Contract = _erc3475Contract;
         exchangeContract = _exchangeContract;
         exchangeStorageContract = _exchangeStorageContract;
-        airdropContract = _airdropContract;
-        governanceOwnableContract = _governanceOwnableContract;
 
         _lockGroup2 == 1;
     }
 
     function isInitialized() public view returns(bool) {
         return initialized;
-    }
-
-    function initializeDebond() public onlyVetoOperator returns(bool) {
-        require(initialized == false, "Gov: Debond alraedy initialized");
-        require(dbitContract != address(0), "GovStorage: check DBIT address");
-        require(dgovContract != address(0), "GovStorage: check DGOV address");
-        require(bankContract != address(0), "GovStorage: check Bank address");
-        require(exchangeContract != address(0), "GovStorage: check Exchange address");
-        require(airdropContract != address(0), "GovStorage: check Airdrop address");
-        require(exchangeStorageContract != address(0), "GovStorage: check exchange storage address");
-
-        IDebondToken(
-            dbitContract
-        ).setExchangeAddress(exchangeContract);
-
-        IDebondToken(
-            dbitContract
-        ).setAirdropAddress(airdropContract);
-
-        IDebondToken(
-            dbitContract
-        ).setAirdropAddress(bankContract);
-
-        IDebondToken(
-            dgovContract
-        ).setExchangeAddress(exchangeContract);
-
-        IDebondToken(
-            dgovContract
-        ).setAirdropAddress(airdropContract);
-
-        IDebondToken(
-            dgovContract
-        ).setAirdropAddress(bankContract);
-
-        IExchangeStorage(
-            exchangeStorageContract
-        ).setExchangeAddress(exchangeContract);
-        
-        initialized = true;
-        return true;
     }
 
     function _generateNewNonce(uint128 _class) private returns(uint128 nonce) {
@@ -298,10 +248,6 @@ contract GovStorage is IGovStorage {
 
     function getVoteTokenContract() public view returns(address) {
         return voteTokenContract;
-    }
-
-    function getAirdropContract() public view returns(address) {
-        return airdropContract;
     }
 
     function getGovernanceAddress() public view returns(address) {
@@ -342,14 +288,6 @@ contract GovStorage is IGovStorage {
 
     function getBankDataAddress() public view returns(address) {
         return bankDataContract;
-    }
-
-    function getOracleAddress() public view returns(address) {
-        return oracleContract;
-    }
-
-    function getGovernanceOwnableAddress() public view returns(address) {
-        return governanceOwnableContract;
     }
 
     function getDebondTeamAddress() public view returns(address) {
@@ -855,16 +793,6 @@ contract GovStorage is IGovStorage {
     function updateBankBondManagerAddress(address _bankBondManagerAddress) external onlyExec {
         require(_bankBondManagerAddress != address(0), "GovStorage: zero address");
         bankBondManagerContract = _bankBondManagerAddress;
-    }
-
-    function updateOracleAddress(address _oracleAddress) external onlyExec {
-        require(_oracleAddress != address(0), "GovStorage: zero address");
-        oracleContract = _oracleAddress;
-    }
-
-    function updateAirdropAddress(address _airdropAddress) external onlyExec {
-        require(_airdropAddress != address(0), "GovStorage: zero address");
-        airdropContract = _airdropAddress;
     }
 
     function updateGovernanceAddress(address _governanceAddress) external onlyExec {

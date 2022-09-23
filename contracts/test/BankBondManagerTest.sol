@@ -14,13 +14,24 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-/**
-* @dev to be called in staking contract vin order to transfer DBIT interests from Governance
-*/
+import "../utils/ExecutableOwnable.sol";
 
-interface ITransferDBIT {
-    function transferDBITInterests(
-        address _account,
-        uint256 _interest
-    ) external;
+contract BankBondManagerTest is ExecutableOwnable {
+
+    address oracleAddress;
+    address bankAddress;
+
+    constructor(
+        address _executableAddress
+    ) ExecutableOwnable(
+        _executableAddress
+    ) {}
+
+    function updateOracleAddress(address _oracleAddress) external onlyExecutable {
+        oracleAddress = _oracleAddress;
+    }
+
+    function updateBankAddress(address _bankAddress) external onlyExecutable {
+        bankAddress = _bankAddress;
+    }
 }

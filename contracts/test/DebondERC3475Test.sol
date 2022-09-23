@@ -14,33 +14,23 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-interface IUpdatable {
-    function updateExecutable(
-        address _executableAddress
-    ) external;
-}
+import "../utils/ExecutableOwnable.sol";
 
-contract OracleExecutable is IUpdatable {
-    address executable;
 
-    modifier onlyExec {
-        require(msg.sender == executable, "Oracle: only exec");
-        _;
+contract DebondERC3475Test is ExecutableOwnable {
+    address bankAddress;
+    address bankBondManagerAddress;
+
+    constructor(
+        address _excutableAddress
+    ) ExecutableOwnable(_excutableAddress) {}
+
+    function updateBankAddress(address _bankAddress) external onlyExecutable {
+        bankAddress = _bankAddress;
     }
 
-    function updateExecutable(
-        address _executableAddress
-    ) external onlyExec {
-        executable = _executableAddress;
-    }
-}
-
-contract Oracle is OracleExecutable {
-    constructor(address _executableAddress) {
-        executable = _executableAddress;
+    function updateBankBondManagerAddress(address _bankBondManagerAddress) external onlyExecutable {
+        bankBondManagerAddress = _bankBondManagerAddress;
     }
 
-    function getExecutableAddress() public view returns(address) {
-        return executable;
-    }
 }

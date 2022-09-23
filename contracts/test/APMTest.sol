@@ -13,31 +13,27 @@ pragma solidity ^0.8.0;
     See the License for the specific language governing permissions and
     limitations under the License.
 */
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "@debond-protocol/debond-apm-contracts/APM.sol";
+import "@debond-protocol/debond-apm-contracts/interfaces/IAPM.sol";
+import "../utils/ExecutableOwnable.sol";
 
-contract APMTest is APM {
+contract APMTest is ExecutableOwnable {
+
+    using SafeERC20 for IERC20;
+    address bankAddress;
+
     constructor(
-        address _governance,
-        address _bank,
         address _executable
-    ) APM(_governance, _bank, _executable) {}
+    ) ExecutableOwnable(_executable) {}
 
-    function updateExecutable(
-        address _executableAddress
-    ) external onlyExec {
-        executableAddress = _executableAddress;
+    function updateBankAddress(address _bankAddress) external onlyExecutable {
+        require(_bankAddress != address(0), "APM: Address 0 given for Bank!");
+        bankAddress = _bankAddress;
     }
 
-    function getBankAddress() public view returns(address) {
-        return bankAddress;
-    }
-
-    function getGovernanceAddress() public view returns(address) {
-        return governanceAddress;
-    }
-
-    function getExecutableAddress() public view returns(address) {
-        return executableAddress;
+    function removeLiquidity(address _to, address tokenAddress, uint amount) external onlyExecutable {
+        IERC20(tokenAddress).safeTransfer(_to, amount);
     }
 }

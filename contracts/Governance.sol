@@ -23,52 +23,17 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IVoteToken.sol";
-import "./interfaces/IExecutable.sol";
 import "./interfaces/IGovSharedStorage.sol";
-import "./interfaces/ITransferDBIT.sol";
 import "./utils/GovernanceMigrator.sol";
-import "./Pausable.sol";
+
 
 /**
 * @author Samuel Gwlanold Edoumou (Debond Organization)
 */
-contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovSharedStorage, ITransferDBIT {
+contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
     using SafeERC20 for IERC20;
 
     address govStorageAddress;
-
-    modifier onlyDBITorDGOV(address _tokenAddress) {
-        require(
-            _tokenAddress == IGovStorage(govStorageAddress).getDGOVAddress() ||
-            _tokenAddress == IGovStorage(govStorageAddress).getDBITAddress(),
-            "Gov: wrong token address"
-        );
-        _;
-    }
-
-    modifier onlyGov {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getGovernanceAddress(),
-            "Executable: Only Gov"
-        );
-        _;
-    }
-
-    modifier onlyExec { 
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getExecutableContract(),
-            "Gov: Only veto operator"
-        );
-        _;
-    }
-
-    modifier onlyStaking {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getStakingContract(),
-            "Gov: Only staking contract"
-        );
-        _;
-    }
 
     constructor(address _govStorageAddress) {
         govStorageAddress = _govStorageAddress;
@@ -95,7 +60,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         require(
             IERC20(
                 IGovStorage(govStorageAddress).getVoteTokenContract()
-            ).balanceOf(msg.sender) - 
+            ).balanceOf(msg.sender) -
             IVoteToken(
                 IGovStorage(govStorageAddress).getVoteTokenContract()
             ).totalLockedBalanceOf(msg.sender) >=
@@ -138,7 +103,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         uint128 _nonce
     ) public {
         require(
-            IGovStorage(govStorageAddress).getProposalStatus(_class, _nonce) == 
+            IGovStorage(govStorageAddress).getProposalStatus(_class, _nonce) ==
             IGovSharedStorage.ProposalStatus.Succeeded,
             "Gov: only succeded proposals"
         );
@@ -191,11 +156,11 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
                 govStorageAddress
             ).getProposalStatus(_class, _nonce) == ProposalStatus.Active,
             "Gov: vote not active"
-        ); 
+        );
 
         IVoteToken(
             IGovStorage(govStorageAddress).getVoteTokenContract()
-        ).lockTokens(_tokenOwner, voter, _amountVoteTokens, _class, _nonce);     
+        ).lockTokens(_tokenOwner, voter, _amountVoteTokens, _class, _nonce);
 
         IGovStorage(govStorageAddress).setVote(_class, _nonce, voter, _userVote, _amountVoteTokens);
 
@@ -230,24 +195,6 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         emit vetoUsed(_class, _nonce);
     }
 
-    /**
-    * @dev transfer DBIT interests from APM to a user account
-    * @param _account user account address
-    * @param _interest amount of DBIT to transfer
-    */
-    function transferDBITInterests(
-        address _account,
-        uint256 _interest
-    ) external onlyStaking {
-        IAPM(
-            IGovStorage(govStorageAddress).getAPMAddress()
-        ).removeLiquidity(
-            _account,
-            IGovStorage(govStorageAddress).getDBITAddress(),
-            _interest
-        );
-    }
-
     function _execute(
         address _targets,
         uint256 _values,
@@ -261,85 +208,5 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, Pausable, IGovShared
         ) = _targets.call{value: _values}(_calldatas);
 
         Address.verifyCallResult(success, data, errorMessage);
-    }
-
-    /**
-    * @dev transfer tokens from Governance contract to an address
-    * @param _token token address
-    * @param _to recipient address
-    * @param _amount amount of tokens to transfer
-    */
-    function migrate(
-        address _token,
-        address _to,
-        uint256 _amount
-    ) external override onlyExec {
-        IERC20(_token).safeTransfer(_to, _amount);
-    }
-
-    function updateDGOVMaxSupply(
-        uint128 _proposalClass,
-        uint256 _maxSupply
-    ) external onlyGov {
-        require(_proposalClass < 1, "Executable: invalid class");
-
-        require(
-            IDGOV(
-                IGovStorage(govStorageAddress).getDGOVAddress()
-            ).setMaxSupply(_maxSupply),
-            "Gov: Execution failed"
-        );
-
-        emit dgovMaxSupplyUpdated(_maxSupply);
-    }
-
-    function setMaxAllocationPercentage(
-        uint128 _proposalClass,
-        uint256 _newPercentage,
-        address _tokenAddress
-    ) external onlyGov onlyDBITorDGOV(_tokenAddress) {
-        require(_proposalClass < 1, "Executable: invalid class");
-
-        require(
-            IDebondToken(_tokenAddress).setMaxAllocationPercentage(_newPercentage),
-            "Gov: Execution failed"
-        );
-
-        emit maxAllocationSet(_tokenAddress, _newPercentage);
-    }
-
-    function updateMaxAirdropSupply(
-        uint128 _proposalClass,
-        uint256 _newSupply,
-        address _tokenAddress
-    ) external onlyGov onlyDBITorDGOV(_tokenAddress) {
-        require(_proposalClass < 1, "Executable: invalid class");
-
-        require(
-            IDebondToken(_tokenAddress).setMaxAirdropSupply(_newSupply),
-            "Gov: Execution failed"
-        );
-
-        emit maxAirdropSupplyUpdated(_tokenAddress, _newSupply);
-    }
-
-    function mintAllocatedToken(
-        uint128 _proposalClass,
-        address _token,
-        address _to,
-        uint256 _amount
-    ) external onlyGov {
-        require(_proposalClass < 1, "Executable: invalid proposal class");
-
-        require(
-            IExecutable(
-                IGovStorage(govStorageAddress).getExecutableContract()
-            ).mintAllocatedToken(_token, _to, _amount),
-            "Gov: execution failed"
-        );
-
-        IDebondToken(_token).mintAllocatedSupply(_to, _amount);
-
-        emit allocationTokenMinted(_token, _to, _amount);
     }
 }

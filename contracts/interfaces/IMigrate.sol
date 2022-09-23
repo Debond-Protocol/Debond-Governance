@@ -14,7 +14,7 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-interface IGovernanceAddressUpdatable {
+interface IMigrate {
 
-    function setGovernanceAddress(address _governanceAddress) external;
+    function migrate(address _token, address _to, uint256 _amount) external;
 }

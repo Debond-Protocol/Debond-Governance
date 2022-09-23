@@ -23,7 +23,6 @@ interface IGovStorage is IGovSharedStorage {
     function getExecutableContract() external view returns(address);
     function getStakingContract() external view returns(address);
     function getVoteTokenContract() external view returns(address);
-    function getAirdropContract() external view returns(address);
     function getNumberOfSecondInYear() external pure returns(uint256);
     function getGovernanceAddress() external view returns(address);
     function getExchangeAddress() external view returns(address);
@@ -35,8 +34,6 @@ interface IGovStorage is IGovSharedStorage {
     function getERC3475Address() external view returns(address);
     function getBankBondManagerAddress() external view returns(address);
     function getBankDataAddress() external view returns(address);
-    function getOracleAddress() external view returns(address);
-    function getGovernanceOwnableAddress() external view returns(address);
     function getDebondTeamAddress() external view returns(address);
     function getBenchmarkIR() external view returns(uint256);
     function getBudget() external view returns(uint256, uint256);
@@ -50,8 +47,6 @@ interface IGovStorage is IGovSharedStorage {
     function updateBankAddress(address _bankAddress) external;
     function updateExchangeAddress(address _exchangeAddress) external;
     function updateBankBondManagerAddress(address _bankBondManagerAddress) external;
-    function updateOracleAddress(address _oracleAddress) external;
-    function updateAirdropAddress(address _airdropAddress) external;
     function updateGovernanceAddress(address _governanceAddress) external;
 
     function setStakedData(

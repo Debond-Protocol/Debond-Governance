@@ -14,73 +14,15 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-exchange-contracts/ExchangeStorage.sol";
+import "../utils/ExecutableOwnable.sol";
 
-interface IUpdatable {
-    function updateGovernance(
-        address _governanceAddress
-    ) external;
+contract ExchangeStorageTest is ExecutableOwnable {
+    address exchangeAddress;
+    constructor(address _executable) ExecutableOwnable(_executable) {}
 
-    function updateExchange(
-        address _exchangeAddress
-    ) external;
-
-    function updateExecutable(
-        address _executableAddress
-    ) external;
-}
-
-contract ExchangeStorageExecutable is IUpdatable {
-    address governance;
-    address exchange;
-    address executable;
-    uint8 private _lock;
-
-    modifier onlyExec {
-        require(msg.sender == executable, "Exchange: only exec");
-        _;
+    function updateExchangeAddress(address _exchangeAddress) external onlyExecutable {
+        exchangeAddress = _exchangeAddress;
     }
 
-    function setExchange(address _exchangeAddress) public {
-        require(_lock == 0, "ExchangeStorage: goStorage address already set");
-        exchange = _exchangeAddress;
-        _lock == 1;
-    }
-    
-    function updateGovernance(
-        address _governanceAddress
-    ) external onlyExec {
-        governance = _governanceAddress;
-    }
-    
-    function updateExchange(
-        address _exchangeAddress
-    ) external onlyExec {
-        exchange = _exchangeAddress;
-    }
 
-    function updateExecutable(
-        address _executableAddress
-    ) external onlyExec {
-        executable = _executableAddress;
-    }
-}
-
-contract ExchangeStorageTest is ExchangeStorage, ExchangeStorageExecutable {
-    constructor(address _governance, address _executable) ExchangeStorage(_governance) {
-        governance = _governance;
-        executable = _executable;
-    }
-
-    function getGovernanceAddress() public view returns(address) {
-        return governance;
-    }
-
-    function getExchangeAddress() external view returns(address) {
-        return exchange;
-    }
-
-    function getExecutableAddress() public view returns(address) {
-        return executable;
-    }
 }

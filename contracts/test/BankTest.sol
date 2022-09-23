@@ -16,13 +16,21 @@ pragma solidity ^0.8.0;
 
 import "../utils/ExecutableOwnable.sol";
 
-contract ExchangeTest is ExecutableOwnable {
-    address exchangeStorageAddress;
+
+contract BankTest is ExecutableOwnable {
+
+    address bondManagerAddress;
+    address oracleAddress;
+
     constructor(
         address _executableAddress
     ) ExecutableOwnable(_executableAddress) {}
 
-    function updateExchangeStorageAddress(address _exchangeStorageAddress) external onlyExecutable {
-        exchangeStorageAddress = _exchangeStorageAddress;
+    function updateBondManagerAddress(address _bondManagerAddress) external onlyExecutable {
+        bondManagerAddress = _bondManagerAddress;
+    }
+
+    function updateOracleAddress(address _oracleAddress) external onlyExecutable {
+        oracleAddress = _oracleAddress;
     }
 }

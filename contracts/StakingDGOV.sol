@@ -21,7 +21,12 @@ import "./interfaces/IVoteToken.sol";
 import "./interfaces/IGovStorage.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IGovSharedStorage.sol";
-import "./interfaces/ITransferDBIT.sol";
+import "./interfaces/ILiquidityWithdrawer.sol";
+import "@debond-protocol/debond-apm-contracts/interfaces/IAPM.sol";
+import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
+
+
+
 
 contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -32,7 +37,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
     constructor (address _govStorageAddress) {
         govStorageAddress = _govStorageAddress;
     }
-    
+
     /**
     * @dev stack dGoV tokens
     * @param _amount the amount of dGoV tokens to stak
@@ -102,9 +107,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         ).safeTransfer(staker, amountDGOV);
 
         // transfer DBIT interests to the staker
-        ITransferDBIT(
-            IGovStorage(govStorageAddress).getGovernanceAddress()
-        ).transferDBITInterests(staker, interest);
+        _withdrawDBIT(staker, interest);
 
         emit dgovUnstaked(staker, duration, interest);
     }
@@ -113,10 +116,10 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         address staker = msg.sender;
 
         (
-            uint256 amount,
-            uint256 startTime,
-            uint256 duration,
-            uint256 lastWithdrawTime
+        uint256 amount,
+        uint256 startTime,
+        uint256 duration,
+        uint256 lastWithdrawTime
         ) = IGovStorage(govStorageAddress).getStakingData(staker, _stakingCounter);
 
         require(amount > 0, "Gov: no DGOV staked");
@@ -132,9 +135,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         IGovStorage(govStorageAddress).updateLastTimeInterestWithdraw(staker, _stakingCounter);
 
         // transfer DBIT interests to the staker
-        ITransferDBIT(
-            IGovStorage(govStorageAddress).getGovernanceAddress()
-        ).transferDBITInterests(staker, interestEarned);
+        _withdrawDBIT(staker, interestEarned);
 
         emit interestWithdrawn(_stakingCounter, interestEarned);
 
@@ -155,13 +156,13 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         );
 
         // proposer locks vote tokens by submiting the proposal, and may not have voted
-        if(tokenOwner != proposal.proposer) {
+        if (tokenOwner != proposal.proposer) {
             require(
                 IVoteToken(
                     IGovStorage(govStorageAddress).getVoteTokenContract()
                 ).lockedBalanceOf(tokenOwner, _class, _nonce) > 0,
                 "Staking: no DGOV staked or haven't voted"
-            );     
+            );
         }
 
         require(
@@ -179,9 +180,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         ).unlockVoteTokens(_class, _nonce, tokenOwner);
 
         // transfer DBIT reward to the voter
-        ITransferDBIT(
-            IGovStorage(govStorageAddress).getGovernanceAddress()
-        ).transferDBITInterests(tokenOwner, reward);
+        _withdrawDBIT(tokenOwner, reward);
 
         emit voteTokenUnlocked(_class, _nonce, tokenOwner);
     }
@@ -194,7 +193,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
     function _calculateInterestEarned(
         uint256 _amount,
         uint256 _stakingCounter
-    ) private view returns(uint256 interest, uint256 totalDuration) {
+    ) private view returns (uint256 interest, uint256 totalDuration) {
         address staker = msg.sender;
         StackedDGOV memory _staked = IGovStorage(
             govStorageAddress
@@ -202,7 +201,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
 
         uint256 duration = block.timestamp - _staked.lastInterestWithdrawTime;
         totalDuration = block.timestamp - _staked.startTime;
-        uint256 cdp = IGovStorage(govStorageAddress).cdpDGOVToDBIT();
+        uint256 cdp = _cdpDGOVToDBIT();
         uint256 benchmarkIR = IGovStorage(govStorageAddress).getBenchmarkIR();
         uint256 interestRate = stakingInterestRate(benchmarkIR, cdp);
 
@@ -218,8 +217,8 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
     function estimateInterestEarned(
         uint256 _amount,
         uint256 _duration
-    ) public view returns(uint256 interest) {
-        uint256 cdp = IGovStorage(govStorageAddress).cdpDGOVToDBIT();
+    ) public view returns (uint256 interest) {
+        uint256 cdp = _cdpDGOVToDBIT();
         uint256 benchmarkIR = IGovStorage(govStorageAddress).getBenchmarkIR();
         uint256 interestRate = stakingInterestRate(benchmarkIR, cdp);
 
@@ -230,15 +229,15 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
         uint128 _class,
         uint128 _nonce,
         address _tokenOwner
-    ) private view returns(uint256 reward) {
+    ) private view returns (uint256 reward) {
         uint256 benchmarkIR = IGovStorage(govStorageAddress).getBenchmarkIR();
-        uint256 cdp = IGovStorage(govStorageAddress).cdpDGOVToDBIT();
+        uint256 cdp = _cdpDGOVToDBIT();
         uint256 rewardRate = votingInterestRate(benchmarkIR, cdp);
         uint256 voteWeight = IGovStorage(govStorageAddress).getVoteWeight(_class, _nonce, _tokenOwner);
 
         uint256 _reward;
-        
-        for(uint256 i = 1; i <= IGovStorage(govStorageAddress).getNumberOfVotingDays(_class); i++) {
+
+        for (uint256 i = 1; i <= IGovStorage(govStorageAddress).getNumberOfVotingDays(_class); i++) {
             _reward += (1 ether * 1 ether) / IGovStorage(govStorageAddress).getTotalVoteTokenPerDay(_class, _nonce, i);
         }
 
@@ -253,7 +252,7 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
     function stakingInterestRate(
         uint256 _benchmarkIR,
         uint256 _cdp
-    ) public pure returns(uint256) {
+    ) public pure returns (uint256) {
         return _benchmarkIR * _cdp * 66 / (100 * 1 ether);
     }
 
@@ -265,7 +264,21 @@ contract StakingDGOV is IStaking, IGovSharedStorage, ReentrancyGuard {
     function votingInterestRate(
         uint256 _benchmarkIR,
         uint256 _cdp
-    ) public pure returns(uint256) {        
+    ) public pure returns (uint256) {
         return _benchmarkIR * _cdp * 34 / (100 * 1 ether);
+    }
+
+    function _withdrawDBIT(address _to, uint256 _amount) private {
+        IAPM(
+            IGovStorage(govStorageAddress).getAPMAddress()
+        ).removeLiquidity(_to, IGovStorage(govStorageAddress).getDBITAddress(), _amount);
+    }
+
+    function _cdpDGOVToDBIT() private view returns(uint256) {
+        uint256 dgovTotalSupply = IDebondToken(
+            IGovStorage(govStorageAddress).getDGOVAddress()
+        ).getTotalCollateralisedSupply();
+
+        return 100 ether + ((dgovTotalSupply / 33333)**2 / 1 ether);
     }
 }

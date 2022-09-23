@@ -14,15 +14,7 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "../utils/ExecutableOwnable.sol";
+interface IExecutableUpdatable {
 
-contract ExchangeTest is ExecutableOwnable {
-    address exchangeStorageAddress;
-    constructor(
-        address _executableAddress
-    ) ExecutableOwnable(_executableAddress) {}
-
-    function updateExchangeStorageAddress(address _exchangeStorageAddress) external onlyExecutable {
-        exchangeStorageAddress = _exchangeStorageAddress;
-    }
+    function updateExecutableAddress(address _newExecutableAddress) external;
 }
