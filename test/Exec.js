@@ -6,20 +6,11 @@ const expect = chai.expect;
 
 const DBIT = artifacts.require("DBITTest");
 const DGOV = artifacts.require("DGOVTest");
-const ERC3475 = artifacts.require("ERC3475");
-const Bank = artifacts.require("Bank");
-const APMTest = artifacts.require("APMTest");
-const VoteToken = artifacts.require("VoteToken");
 const StakingDGOV = artifacts.require("StakingDGOV");
 const Governance = artifacts.require("Governance");
 const Executable = artifacts.require("Executable");
 const GovStorage = artifacts.require("GovStorage");
-const GovernanceMigrator = artifacts.require("GovernanceMigrator");
-const Exchange = artifacts.require("ExchangeTest");
-const ExchangeStorage = artifacts.require("ExchangeStorageTest");
 const BankStorageTest = artifacts.require("BankStorageTest");
-const BankBondManager = artifacts.require("BankBondManager");
-const Oracle = artifacts.require("Oracle");
 const AdvanceBlockTimeStamp = artifacts.require("AdvanceBlockTimeStamp");
 
 contract("Executable: Governance", async (accounts) => {
@@ -41,7 +32,7 @@ contract("Executable: Governance", async (accounts) => {
     let dbit;
     let stakingContract;
     let nextTime;
-    const seconds = 4000;
+    const seconds = 8000;
 
     const [operator, debondTeam, user1, user2, user3, user4, user5] = accounts;
 
@@ -115,8 +106,6 @@ contract("Executable: Governance", async (accounts) => {
         await gov.veto(event.class, event.nonce, true,{ from: operator });
 
 
-        let benchmarkBefore = await storage.getBenchmarkIR();
-        let benchmarkBankBefore = await bankStorage.getBenchmarkIR();
         let status = await storage.getProposalStatus(event.class, event.nonce);
 
         await wait(seconds);

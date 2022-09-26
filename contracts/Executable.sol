@@ -269,7 +269,7 @@ contract Executable is IGovSharedStorage {
         // in Debond Bond
         IDebondBond(
             IGovStorage(govStorageAddress).getERC3475Address()
-        ).updateRedeemableAddress(_bankAddress);
+        ).updateBankAddress(_bankAddress);
 
         // in Bank Data
         IBankStorage(
