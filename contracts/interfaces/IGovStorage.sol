@@ -116,9 +116,9 @@ interface IGovStorage is IGovSharedStorage {
     function setProposal(
         uint128 _class,
         address _proposer,
-        address _targets,
-        uint256 _values,
-        bytes memory _calldatas,
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
         string memory _title,
         bytes32 _descriptionHash
     ) external returns(uint128 nonce);

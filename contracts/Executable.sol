@@ -29,9 +29,8 @@ import "./interfaces/IGovStorage.sol";
 import "./interfaces/IGovSharedStorage.sol";
 import "./interfaces/IExecutableUpdatable.sol";
 import "./interfaces/IMigrate.sol";
-import "./interfaces/ILiquidityWithdrawer.sol";
 
-contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
+contract Executable is IGovSharedStorage {
     using SafeERC20 for IERC20;
     address public govStorageAddress;
 
@@ -48,8 +47,11 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
     }
 
     function updateDGOVMaxSupply(
+        uint128 _proposalClass,
         uint256 _maxSupply
     ) external onlyGov {
+
+        require(_proposalClass < 1, "Executable: invalid class");
 
         require(
             IDGOV(
@@ -62,9 +64,12 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
     }
 
     function setMaxAllocationPercentage(
+        uint128 _proposalClass,
         uint256 _newPercentage,
         address _token
     ) external onlyGov {
+
+        require(_proposalClass < 1, "Executable: invalid class");
 
         require(
             IDebondToken(_token).setMaxAllocationPercentage(_newPercentage),
@@ -75,8 +80,10 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
     }
 
     function updateDGOVMaxAirdropSupply(
+        uint128 _proposalClass,
         uint256 _newSupply
     ) external onlyGov {
+        require(_proposalClass < 1, "Executable: invalid class");
         address _tokenAddress = IGovStorage(govStorageAddress).getDGOVAddress();
         require(
             IDebondToken(_tokenAddress).setMaxAirdropSupply(_newSupply),
@@ -91,8 +98,11 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
     * @param _newBenchmarkInterestRate new benchmark interest rate
     */
     function updateBenchmarkInterestRate(
+        uint128 _proposalClass,
         uint256 _newBenchmarkInterestRate
     ) external onlyGov returns (bool) {
+        require(_proposalClass < 1, "Executable: invalid class");
+
         IGovStorage(govStorageAddress).setBenchmarkIR(_newBenchmarkInterestRate);
 
         IBankStorage(
@@ -105,20 +115,25 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
     }
 
     function updateProposalThreshold(
+        uint128 _proposalClass,
         uint256 _newProposalThreshold
     ) external onlyGov returns (bool) {
+        require(_proposalClass < 1, "Executable: invalid class");
+
         IGovStorage(govStorageAddress).setProposalThreshold(_newProposalThreshold);
 
         return true;
     }
 
     function createNewBondClass(
+        uint128 _proposalClass,
         uint256 _classId,
         string memory _symbol,
         address _tokenAddress,
         Types.InterestRateType _interestRateType,
         uint256 _period
     ) external onlyGov returns (bool) {
+        require(_proposalClass <= 1, "Executable: invalid class");
 
         IBankBondManager(
             IGovStorage(govStorageAddress).getBankBondManagerAddress()
@@ -136,10 +151,12 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
     }
 
     function changeTeamAllocation(
+        uint128 _proposalClass,
         address _to,
         uint256 _newDBITPPM,
         uint256 _newDGOVPPM
     ) external onlyGov {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
         require(
             IGovStorage(
                 govStorageAddress
@@ -151,9 +168,11 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
     }
 
     function changeCommunityFundSize(
+        uint128 _proposalClass,
         uint256 _newDBITBudgetPPM,
         uint256 _newDGOVBudgetPPM
     ) external onlyGov {
+        require(_proposalClass <= 1, "Executable: invalid class");
         require(
             IGovStorage(govStorageAddress).setFundSize(_newDBITBudgetPPM, _newDGOVBudgetPPM)
         );
@@ -162,11 +181,13 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
     }
 
     function migrateToken(
+        uint128 _proposalClass,
         address _token,
         address _from,
         address _to,
         uint256 _amount
     ) external onlyGov returns (bool) {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
 
         IMigrate(_from).migrate(_token, _to, _amount);
 
@@ -176,8 +197,10 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
     }
 
     function updateExecutableAddress(
+        uint128 _proposalClass,
         address _executableAddress
     ) external onlyGov returns (bool) {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
         IGovStorage(govStorageAddress).updateExecutableAddress(_executableAddress);
 
         // in Bank
@@ -223,8 +246,11 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
     }
 
     function updateBankAddress(
+        uint128 _proposalClass,
         address _bankAddress
     ) external onlyGov returns (bool) {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+
         IGovStorage(govStorageAddress).updateBankAddress(_bankAddress);
 
         // in DBIT
@@ -261,8 +287,11 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
     }
 
     function updateExchangeAddress(
+        uint128 _proposalClass,
         address _exchangeAddress
     ) external onlyGov returns (bool) {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+
         IGovStorage(govStorageAddress).updateExchangeAddress(_exchangeAddress);
 
         IExchangeStorage(
@@ -275,8 +304,11 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
     }
 
     function updateBankBondManagerAddress(
+        uint128 _proposalClass,
         address _bankBondManagerAddress
     ) external onlyGov returns (bool) {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+
         IGovStorage(
             govStorageAddress
         ).updateBankBondManagerAddress(_bankBondManagerAddress);
@@ -296,8 +328,11 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
     }
 
     function updateOracleAddress(
+        uint128 _proposalClass,
         address _oracleAddress
     ) external onlyGov returns (bool) {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+
         // in Bank
         IBank(
             IGovStorage(govStorageAddress).getBankAddress()
@@ -312,25 +347,14 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
         return true;
     }
 
-    function withdrawDBIT(address _to, uint256 _amount) external {
-        require(
-            msg.sender == IGovStorage(govStorageAddress).getStakingContract(),
-            "Executable: Not Authorised"
-        );
-        IAPM(
-            IGovStorage(govStorageAddress).getAPMAddress()
-        ).removeLiquidity(
-            _to,
-            IGovStorage(govStorageAddress).getDBITAddress(),
-            _amount
-        );
-    }
-
     function mintAllocatedToken(
+        uint128 _proposalClass,
         address _token,
         address _to,
         uint256 _amount
-    ) external onlyGov returns(bool) {
+    ) external onlyGov returns (bool) {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+
         IGovStorage(
             govStorageAddress
         ).setAllocatedToken(_token, _to, _amount);
@@ -338,6 +362,6 @@ contract Executable is IGovSharedStorage, ILiquidityWithdrawer {
         IDebondToken(_token).mintAllocatedSupply(_to, _amount);
 
 
-    return true;
+        return true;
     }
 }

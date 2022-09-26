@@ -50,9 +50,9 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
     */
     function createProposal(
         uint128 _class,
-        address _targets,
-        uint256 _values,
-        bytes memory _calldatas,
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
         string memory _title,
         bytes32 _descriptionHash
     ) public {
@@ -112,7 +112,7 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
             govStorageAddress
         ).setProposalStatus(_class, _nonce, ProposalStatus.Executed);
 
-        _execute(proposal.targets, proposal.ethValue, proposal.calldatas);
+        _execute(proposal.targets, proposal.ethValues, proposal.calldatas);
 
         emit ProposalExecuted(_class, _nonce);
     }
@@ -184,10 +184,8 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
         );
         require(_class >= 0 && _nonce > 0, "Gov: invalid proposal");
         require(
-            IGovStorage(
-                govStorageAddress
-            ).getProposalStatus(_class, _nonce)  == ProposalStatus.Active,
-            "Gov: vote not active"
+            IGovStorage(govStorageAddress).getProposalStatus(_class, _nonce)  == ProposalStatus.Active,
+                "Gov: vote not active"
         );
 
         IGovStorage(govStorageAddress).setVeto(_class, _nonce, _veto);
@@ -196,17 +194,19 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
     }
 
     function _execute(
-        address _targets,
-        uint256 _values,
-        bytes memory _calldatas
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas
     ) private {
         string memory errorMessage = "Executable: execute proposal reverted";
 
-        (
+        for (uint256 i = 0; i < _targets.length; i++) {
+            (
             bool success,
             bytes memory data
-        ) = _targets.call{value: _values}(_calldatas);
+            ) = _targets[i].call{value: _values[i]}(_calldatas[i]);
 
-        Address.verifyCallResult(success, data, errorMessage);
+            Address.verifyCallResult(success, data, errorMessage);
+        }
     }
 }

@@ -131,7 +131,7 @@ contract GovStorage is IGovStorage {
         _proposalQuorum[2] = 50;
 
         // to define during deployment
-        _votingPeriod[0] = 4;
+        _votingPeriod[0] = 2;
         _votingPeriod[1] = 2;
         _votingPeriod[2] = 2;
 
@@ -370,7 +370,7 @@ contract GovStorage is IGovStorage {
             if(!quorumReached(_class, _nonce)) {
                 return ProposalStatus.Defeated;
             } else {
-                if(vetoed(_class, _nonce)) {
+                if(!vetoed(_class, _nonce)) {
                     return ProposalStatus.Defeated;
                 } else {
                     return ProposalStatus.Succeeded;
@@ -453,9 +453,9 @@ contract GovStorage is IGovStorage {
     function setProposal(
         uint128 _class,
         address _proposer,
-        address _targets,
-        uint256 _values,
-        bytes memory _calldatas,
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
         string memory _title,
         bytes32 _descriptionHash
     ) public onlyGov returns(uint128 nonce) {
@@ -471,7 +471,7 @@ contract GovStorage is IGovStorage {
         proposal[_class][nonce].proposer = _proposer;
         proposal[_class][nonce].approvalMode = approval;
         proposal[_class][nonce].targets = _targets;
-        proposal[_class][nonce].ethValue = _values;
+        proposal[_class][nonce].ethValues = _values;
         proposal[_class][nonce].calldatas = _calldatas;
         proposal[_class][nonce].title = _title;
         proposal[_class][nonce].descriptionHash = _descriptionHash;
@@ -530,7 +530,7 @@ contract GovStorage is IGovStorage {
         _staked.amountVote = 0;
     }
 
-    function getStakedDOVOf(address _account) public view returns(StackedDGOV[] memory) {
+    function getStakedDGOVOf(address _account) public view returns(StackedDGOV[] memory) {
         return _totalStackedDGOV[_account];
     }
 

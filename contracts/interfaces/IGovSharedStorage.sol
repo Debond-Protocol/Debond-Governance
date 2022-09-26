@@ -21,9 +21,9 @@ interface IGovSharedStorage {
         address proposer;
         ProposalStatus status;
         ProposalApproval approvalMode;
-        address targets;
-        uint256 ethValue;
-        bytes calldatas;
+        address[] targets;
+        uint256[] ethValues;
+        bytes[] calldatas;
         string title; 
         bytes32 descriptionHash;
     }

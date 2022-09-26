@@ -41,6 +41,7 @@ contract("Executable: Governance", async (accounts) => {
     let dbit;
     let stakingContract;
     let nextTime;
+    const seconds = 4000;
 
     const [operator, debondTeam, user1, user2, user3, user4, user5] = accounts;
 
@@ -86,14 +87,15 @@ contract("Executable: Governance", async (accounts) => {
         let _class = 0;
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
+            _class,
             '100000000000000000'
         ).encodeABI();
 
         let res = await gov.createProposal(
             _class,
-            exec.address,
-            0,
-            callData,
+            [exec.address],
+            [0],
+            [callData],
             title,
             web3.utils.soliditySha3(title),
             {from: operator}
@@ -110,12 +112,14 @@ contract("Executable: Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user2, 1, amountVote2, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountVote3, 1, { from: user3 });
         await gov.vote(event.class, event.nonce, user4, 0, amountVote4, 1, { from: user4 });
+        await gov.veto(event.class, event.nonce, true,{ from: operator });
+
 
         let benchmarkBefore = await storage.getBenchmarkIR();
         let benchmarkBankBefore = await bankStorage.getBenchmarkIR();
         let status = await storage.getProposalStatus(event.class, event.nonce);
 
-        await wait(4000);
+        await wait(seconds);
         await nextTime.increment();
 
         await gov.executeProposal(
@@ -145,19 +149,20 @@ contract("Executable: Governance", async (accounts) => {
         );
     });
 
-    it("cannot update a proposal if it's vetoed", async () => {
+    it("cannot update a proposal if it's not vetoed", async () => {
         // first proposal
         let _class = 0;
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.updateBenchmarkInterestRate(
+            _class,
             '100000000000000000'
         ).encodeABI();
 
         let res = await gov.createProposal(
             _class,
-            exec.address,
-            0,
-            callData,
+            [exec.address],
+            [0],
+            [callData],
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -175,9 +180,9 @@ contract("Executable: Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user3, 0, amountVote3, 1, { from: user3 });
         await gov.vote(event.class, event.nonce, user4, 0, amountVote4, 1, { from: user4 });
 
-        await gov.veto(event.class, event.nonce, true, { from: operator });
+        // await gov.veto(event.class, event.nonce, false, { from: operator });
 
-        await wait(3000);
+        await wait(seconds);
         await nextTime.increment();
 
         expect(gov.executeProposal(event.class, event.nonce, { from: operator }))
@@ -194,14 +199,15 @@ contract("Executable: Governance", async (accounts) => {
         let title = "Propsal-1: Update the proposal threshold";
 
         let callData = await exec.contract.methods.updateProposalThreshold(
+            _class,
             newTherehold
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            exec.address,
-            0,
-            callData,
+            [exec.address],
+            [0],
+            [callData],
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -218,10 +224,12 @@ contract("Executable: Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user2, 0, amountVote2, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountVote3, 1, { from: user3 });
         await gov.vote(event.class, event.nonce, user4, 0, amountVote4, 1, { from: user4 });
+        await gov.veto(event.class, event.nonce, true,{ from: operator });
+
 
         let thresholdBefore = await storage.getProposalThreshold();
 
-        await wait(3000);
+        await wait(seconds);
         await nextTime.increment();
 
         await gov.executeProposal(
@@ -242,15 +250,16 @@ contract("Executable: Governance", async (accounts) => {
         let _class = 0;
         let title = "Propsal-1: Update the budget part per million";
         let callData = await exec.contract.methods.changeCommunityFundSize(
+            _class,
             newDBITBudget,
             newDGOVBudget
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            exec.address,
-            0,
-            callData,
+            [exec.address],
+            [0],
+            [callData],
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -267,8 +276,10 @@ contract("Executable: Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user2, 0, amountVote2, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountVote3, 1, { from: user3 });
         await gov.vote(event.class, event.nonce, user4, 1, amountVote4, 1, { from: user4 });
+        await gov.veto(event.class, event.nonce, true,{ from: operator });
 
-        await wait(3000);
+
+        await wait(seconds);
         await nextTime.increment();
 
         let oldBudget = await web3.utils.toWei(web3.utils.toBN(100000), 'ether');
@@ -294,6 +305,7 @@ contract("Executable: Governance", async (accounts) => {
         let _class = 0;
         let title = "Propsal-1: Mint the team allocation token";
         let callData = await exec.contract.methods.mintAllocatedToken(
+            _class,
             dbit.address,
             debondTeam,
             amountDBIT
@@ -302,9 +314,9 @@ contract("Executable: Governance", async (accounts) => {
 
         let res = await gov.createProposal(
             _class,
-            exec.address,
-            0,
-            callData,
+            [exec.address],
+            [0],
+            [callData],
             title,
             web3.utils.soliditySha3(title),
             {from: operator}
@@ -321,8 +333,10 @@ contract("Executable: Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user2, 0, amountVote2, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountVote3, 1, { from: user3 });
         await gov.vote(event.class, event.nonce, user4, 1, amountVote4, 1, { from: user4 });
+        await gov.veto(event.class, event.nonce, true,{ from: operator });
 
-        await wait(3000);
+
+        await wait(seconds);
         await nextTime.increment();
 
         let allocMintedBefore = await storage.getAllocatedTokenMinted(debondTeam);
@@ -346,6 +360,7 @@ contract("Executable: Governance", async (accounts) => {
         let _class = 0;
         let title = "Propsal-1: Mint the team allocation token";
         let callData = await exec.contract.methods.mintAllocatedToken(
+            _class,
             dgov.address,
             debondTeam,
             amountDGOV
@@ -353,9 +368,9 @@ contract("Executable: Governance", async (accounts) => {
         
         let res = await gov.createProposal(
             _class,
-            exec.address,
-            0,
-            callData,
+            [exec.address],
+            [0],
+            [callData],
             title,
             web3.utils.soliditySha3(title),
             {from: operator}
@@ -372,8 +387,10 @@ contract("Executable: Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user2, 0, amountVote2, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountVote3, 1, { from: user3 });
         await gov.vote(event.class, event.nonce, user4, 1, amountVote4, 1, { from: user4 });
+        await gov.veto(event.class, event.nonce, true,{ from: operator });
 
-        await wait(3000);
+
+        await wait(seconds);
         await nextTime.increment();
 
         let allocMintedBefore = await storage.getAllocatedTokenMinted(debondTeam);
@@ -398,6 +415,7 @@ contract("Executable: Governance", async (accounts) => {
         let _class = 0;
         let title = "Propsal-1: Change the team allocation token amount";
         callData = await exec.contract.methods.changeTeamAllocation(
+            _class,
             debondTeam,
             newDBITAmount,
             newDGOVAmount
@@ -405,9 +423,9 @@ contract("Executable: Governance", async (accounts) => {
         
         let res = await gov.createProposal(
             _class,
-            exec.address,
-            0,
-            callData,
+            [exec.address],
+            [0],
+            [callData],
             title,
             web3.utils.soliditySha3(title),
             {from: operator}
@@ -424,8 +442,10 @@ contract("Executable: Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user2, 0, amountVote2, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountVote3, 1, { from: user3 });
         await gov.vote(event.class, event.nonce, user4, 1, amountVote4, 1, { from: user4 });
+        await gov.veto(event.class, event.nonce, true,{ from: operator });
 
-        await wait(3000);
+
+        await wait(seconds);
         await nextTime.increment();
 
         await gov.executeProposal(
@@ -447,14 +467,15 @@ contract("Executable: Governance", async (accounts) => {
         let _class = 0;
         let title = "Propsal-1: Update the DGOV max";
         let callData = await exec.contract.methods.updateDGOVMaxSupply(
+            _class,
             newMax
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            exec.address,
-            0,
-            callData,
+            [exec.address],
+            [0],
+            [callData],
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -471,8 +492,10 @@ contract("Executable: Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user2, 0, amountVote2, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountVote3, 1, { from: user3 });
         await gov.vote(event.class, event.nonce, user4, 1, amountVote4, 1, { from: user4 });
+        await gov.veto(event.class, event.nonce, true,{ from: operator });
 
-        await wait(3000);
+
+        await wait(seconds);
         await nextTime.increment();
 
         await gov.executeProposal(
@@ -490,15 +513,16 @@ contract("Executable: Governance", async (accounts) => {
         let _class = 0;
         let title = "Propsal-1: Update the benchMark interest rate";
         let callData = await exec.contract.methods.setMaxAllocationPercentage(
+            _class,
             "800",
             dgov.address
         ).encodeABI();
         
         let res = await gov.createProposal(
             _class,
-            exec.address,
-            0,
-            callData,
+            [exec.address],
+            [0],
+            [callData],
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -515,8 +539,10 @@ contract("Executable: Governance", async (accounts) => {
         await gov.vote(event.class, event.nonce, user2, 0, amountVote2, 1, { from: user2 });
         await gov.vote(event.class, event.nonce, user3, 0, amountVote3, 1, { from: user3 });
         await gov.vote(event.class, event.nonce, user4, 1, amountVote4, 1, { from: user4 });
+        await gov.veto(event.class, event.nonce, true,{ from: operator });
 
-        await wait(3000);
+
+        await wait(seconds);
         await nextTime.increment();
 
         await gov.executeProposal(

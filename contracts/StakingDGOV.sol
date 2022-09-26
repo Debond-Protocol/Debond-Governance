@@ -21,7 +21,6 @@ import "./interfaces/IVoteToken.sol";
 import "./interfaces/IGovStorage.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IGovSharedStorage.sol";
-import "./interfaces/ILiquidityWithdrawer.sol";
 import "@debond-protocol/debond-apm-contracts/interfaces/IAPM.sol";
 import "@debond-protocol/debond-token-contracts/interfaces/IDebondToken.sol";
 
