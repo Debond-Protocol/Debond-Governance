@@ -22,20 +22,21 @@ module.exports = async function (deployer, network, accounts) {
   const executable = await Executable.deployed()
 
 
-  await deployer.deploy(DGOV, executable.address)
-  await deployer.deploy(DBIT, executable.address)
-  await deployer.deploy(APM, executable.address)
-  await deployer.deploy(BankBondManager, executable.address)
-  await deployer.deploy(BankStorage, executable.address)
-  await deployer.deploy(Bank, executable.address)
-  await deployer.deploy(DebondERC3475, executable.address)
-  await deployer.deploy(ExchangeStorage, executable.address)
-  await deployer.deploy(Exchange, executable.address)
-  await deployer.deploy(AdvanceBlockTimeStamp)
+  await deployer.deploy(DGOV, executable.address);
+  await deployer.deploy(DBIT, executable.address);
+  await deployer.deploy(BankBondManager, executable.address);
+  await deployer.deploy(BankStorage, executable.address);
+  await deployer.deploy(Bank, executable.address);
+  await deployer.deploy(DebondERC3475, executable.address);
+  await deployer.deploy(ExchangeStorage, executable.address);
+  await deployer.deploy(Exchange, executable.address);
+  await deployer.deploy(AdvanceBlockTimeStamp);
 
   const governance = await Governance.deployed();
   const voteToken = await VoteToken.deployed();
   const stakingDGOV = await StakingDGOV.deployed();
+
+  await deployer.deploy(APM, executable.address, stakingDGOV.address);
 
   const dgov = await DGOV.deployed();
   const dbit = await DBIT.deployed();
@@ -67,8 +68,4 @@ module.exports = async function (deployer, network, accounts) {
       exchange.address,
       exchangeStorage.address
   )
-
-
-
-
 };

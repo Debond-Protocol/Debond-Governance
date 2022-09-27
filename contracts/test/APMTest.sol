@@ -23,17 +23,22 @@ contract APMTest is ExecutableOwnable {
 
     using SafeERC20 for IERC20;
     address bankAddress;
+    address stakingContract;
 
     constructor(
-        address _executable
-    ) ExecutableOwnable(_executable) {}
+        address _executable,
+        address _stakingContract
+    ) ExecutableOwnable(_executable) {
+        stakingContract = _stakingContract;
+    }
 
     function updateBankAddress(address _bankAddress) external onlyExecutable {
         require(_bankAddress != address(0), "APM: Address 0 given for Bank!");
         bankAddress = _bankAddress;
     }
 
-    function removeLiquidity(address _to, address tokenAddress, uint amount) external onlyExecutable {
+    function removeLiquidity(address _to, address tokenAddress, uint amount) external {
+        require(msg.sender == stakingContract, "APMTest: Only Staking contract");
         IERC20(tokenAddress).safeTransfer(_to, amount);
     }
 }

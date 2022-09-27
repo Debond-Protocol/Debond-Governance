@@ -6,43 +6,27 @@ const readline = require('readline');
 chai.use(chaiAsPromised);
 const expect = chai.expect;
 
-const DBIT = artifacts.require("DBITToken");
-const DGOV = artifacts.require("DGOVToken");
-const ERC3475 = artifacts.require("ERC3475");
-const Bank = artifacts.require("Bank");
+const DBIT = artifacts.require("DBITTest");
+const DGOV = artifacts.require("DGOVTest");
 const APMTest = artifacts.require("APMTest");
 const VoteToken = artifacts.require("VoteToken");
 const StakingDGOV = artifacts.require("StakingDGOV");
 const Governance = artifacts.require("Governance");
 const Executable = artifacts.require("Executable");
 const GovStorage = artifacts.require("GovStorage");
-const GovernanceMigrator = artifacts.require("GovernanceMigrator");
-const Exchange = artifacts.require("ExchangeTest");
-const ExchangeStorage = artifacts.require("ExchangeStorageTest");
-const BankData = artifacts.require("BankData");
-const BankBondManager = artifacts.require("BankBondManager");
-const Oracle = artifacts.require("Oracle");
 const AdvanceBlockTimeStamp = artifacts.require("AdvanceBlockTimeStamp");
 
 contract("Executable: Governance", async (accounts) => {
     let gov;
     let apm;
-    let bank;
     let dbit;
     let dgov;
     let stak;
     let vote;
     let exec;
-    let erc3475;
     let storage;
     let amountToMint;
     let amountToStake;
-    let migrator;
-    let exchange;
-    let exStorage;
-    let bankData;
-    let bondManager;
-    let oracle;
     let nextTime;
 
     let user1B;
@@ -81,73 +65,18 @@ contract("Executable: Governance", async (accounts) => {
     }
 
     beforeEach(async () => {
-        migrator = await GovernanceMigrator.new();
-        storage = await GovStorage.new(debondTeam, operator);
-        exec = await Executable.new(storage.address);
-        oracle = await Oracle.new(exec.address);
-        gov = await Governance.new(storage.address);
-        vote = await VoteToken.new("Debond Vote Token", "DVT", storage.address);
-        exStorage = await ExchangeStorage.new(gov.address, exec.address);
-        exchange = await Exchange.new(exStorage.address, gov.address, exec.address);
-        bondManager = await BankBondManager.new(gov.address, exec.address, oracle.address);
-        bank = await Bank.new(gov.address, exec.address, bondManager.address, oracle.address);
-        erc3475 = await ERC3475.new(gov.address, exec.address, bank.address, bondManager.address);
-        apm = await APMTest.new(gov.address, bank.address, exec.address);
-        bankData = await BankData.new(gov.address, bank.address, exec.address);
-        dbit = await DBIT.new(gov.address, bank.address, operator, exchange.address, exec.address);
-        dgov = await DGOV.new(gov.address, bank.address, operator, exchange.address, exec.address);
-        stak = await StakingDGOV.new(storage.address);
+        gov = await Governance.deployed();
+        exec = await Executable.deployed();
+        storage = await GovStorage.deployed();
+        dgov = await DGOV.deployed();
+        dbit = await DBIT.deployed();
+        stakingContract = await StakingDGOV.deployed();
+        apm = await APMTest.deployed();
+        vote = await VoteToken.deployed();
+        nextTime = await AdvanceBlockTimeStamp.deployed();
 
-        nextTime = await AdvanceBlockTimeStamp.new();
-
-        // initialize all contracts
-        await storage.setUpGoup1(
-            gov.address,
-            dgov.address,
-            dbit.address,
-            apm.address,
-            bondManager.address,
-            oracle.address,
-            stak.address,
-            vote.address,
-            {from: operator}
-        );
-
-        await storage.setUpGoup2(
-            exec.address,
-            bank.address,
-            bankData.address,
-            erc3475.address,
-            exchange.address,
-            exStorage.address,
-            operator,
-            operator,
-            {from: operator}
-        );
-
-        // set the apm address in Bank
-        await bank.setAPMAddress(apm.address);
-
-        //let amount = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
-        let amount = await web3.utils.toWei(web3.utils.toBN(20000), 'ether');
-        let amountToSend = await web3.utils.toWei(web3.utils.toBN(10000), 'ether');
-        await bank.mintCollateralisedSupply(dbit.address, debondTeam, amount, { from: operator });
-        await dbit.transfer(gov.address, amountToSend, { from: debondTeam });
-        await dbit.transfer(apm.address, amountToSend, { from: debondTeam });
-
-        await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToSend, { from: operator  });
-        await dgov.transfer(apm.address, amountToSend, { from: debondTeam });
- 
-        await bank.update(
-            amountToSend,
-            amountToSend,
-            dbit.address,
-            dgov.address,
-            { from: operator }
-        );
-
-        //amountToMint = await web3.utils.toWei(web3.utils.toBN(200), 'ether');
-        amountToMint = await web3.utils.toWei(web3.utils.toBN(2500), 'ether');
+        const amountToMint = await web3.utils.toWei(web3.utils.toBN(2500000), 'ether');
+        await dbit.mintCollateralisedSupply(apm.address, amountToMint);
 
         toStake1 = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
         toStake2 = await web3.utils.toWei(web3.utils.toBN(85), 'ether');
@@ -157,25 +86,27 @@ contract("Executable: Governance", async (accounts) => {
         toStake6 = await web3.utils.toWei(web3.utils.toBN(810), 'ether');
         opStake = await web3.utils.toWei(web3.utils.toBN(430), 'ether');
 
-        await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToMint, { from: operator });
-        await dgov.transfer(user1, toStake1, { from: debondTeam });
-        await dgov.transfer(user2, toStake2, { from: debondTeam });
-        await dgov.transfer(user3, toStake3, { from: debondTeam });
-        await dgov.transfer(user4, toStake4, { from: debondTeam });
-        await dgov.transfer(user5, toStake5, { from: debondTeam });
-        await dgov.transfer(operator, opStake, { from: debondTeam });
-        await dgov.approve(stak.address, toStake1, { from: user1 });
-        await dgov.approve(stak.address, toStake2, { from: user2 });
-        await dgov.approve(stak.address, toStake3, { from: user3 });
-        await dgov.approve(stak.address, toStake4, { from: user4});
-        await dgov.approve(stak.address, toStake5, { from: user5 });
-        await dgov.approve(stak.address, opStake, { from: operator });
-        await dgov.approve(user1, toStake1, { from: user1 });
-        await dgov.approve(user2, toStake2, { from: user2 });
-        await dgov.approve(user3, toStake3, { from: user3 });
-        await dgov.approve(user4, toStake4, { from: user4 });
-        await dgov.approve(user5, toStake5, { from: user5 });
-        await dgov.approve(operator, opStake, { from: operator });
+        await dgov.mint(operator, opStake);
+        await dgov.mint(user1, toStake1);
+        await dgov.mint(user2, toStake2);
+        await dgov.mint(user3, toStake3);
+        await dgov.mint(user4, toStake4);
+        await dgov.mint(user5, toStake5);
+        await dgov.mint(user6, toStake6);
+
+        await dgov.approve(stakingContract.address, opStake, { from: operator });
+        await dgov.approve(stakingContract.address, toStake1, { from: user1 });
+        await dgov.approve(stakingContract.address, toStake2, { from: user2 });
+        await dgov.approve(stakingContract.address, toStake3, { from: user3 });
+        await dgov.approve(stakingContract.address, toStake4, { from: user4});
+        await dgov.approve(stakingContract.address, toStake5, { from: user5});
+
+        await stakingContract.stakeDgovToken(opStake, 0, { from: operator });
+        await stakingContract.stakeDgovToken(toStake1, 0, { from: user1 });
+        await stakingContract.stakeDgovToken(toStake2, 0, { from: user2 });
+        await stakingContract.stakeDgovToken(toStake3, 0, { from: user3 });
+        await stakingContract.stakeDgovToken(toStake4, 0, { from: user4 });
+        await stakingContract.stakeDgovToken(toStake5, 0, { from: user5 });
 
         user1B = await dgov.balanceOf(user1);
         user2B = await dgov.balanceOf(user2);
@@ -183,16 +114,9 @@ contract("Executable: Governance", async (accounts) => {
         user4B = await dgov.balanceOf(user4);
         user5B = await dgov.balanceOf(user5);
         userOB = await dgov.balanceOf(operator);
-        contrB = await dgov.balanceOf(stak.address);
+        contrB = await dgov.balanceOf(stakingContract.address);
 
         await dgov.approve(user6, toStake1, { from: user1 });
-
-        await stak.stakeDgovToken(toStake1, 0, { from: user1 });
-        await stak.stakeDgovToken(toStake2, 0, { from: user2 });
-        await stak.stakeDgovToken(toStake3, 0, { from: user3 });
-        await stak.stakeDgovToken(toStake4, 0, { from: user4 });
-        await stak.stakeDgovToken(toStake5, 0, { from: user5 });
-        await stak.stakeDgovToken(opStake, 0, { from: operator });
     });
 
     it("check DBIT earned by staking DGOV", async () => {
@@ -201,7 +125,7 @@ contract("Executable: Governance", async (accounts) => {
         let balAPMBef = await dbit.balanceOf(apm.address);
         let balUserBef = await dbit.balanceOf(user1);
 
-        await stak.withdrawDbitInterest(1, { from: user1 });
+        await stakingContract.withdrawDbitInterest(1, { from: user1 });
 
         let balAPMAft = await dbit.balanceOf(apm.address);
         let balUserAft = await dbit.balanceOf(user1);
@@ -211,30 +135,32 @@ contract("Executable: Governance", async (accounts) => {
         expect(balUserAft.toString()).to.equal(balUserBef.add(diff).toString());
     });
 
-    it("Several inetrest withdraw before end of staking", async () => {
-        await wait(300);
+    // this test needs to be run alone since the 2 seconds set as the voting period
+    // is too short to allow multiple withdraw. To run it, change "it.skip" to "it.only"
+    it.skip("Several inetrest withdraw before end of staking", async () => {
+        await wait(150);
         await nextTime.increment();
         let balAPMBef = await dbit.balanceOf(apm.address);
         let balUserBef = await dbit.balanceOf(user1);
 
         // first withdraw
-        await stak.withdrawDbitInterest(1, { from: user1 });
+        await stakingContract.withdrawDbitInterest(1, { from: user1 });
         let bal1 = await dbit.balanceOf(apm.address);
         let dif1 = balAPMBef.sub(bal1);
 
-        await wait(300);
+        await wait(150);
         await nextTime.increment();
 
         // second withdraw
-        await stak.withdrawDbitInterest(1, { from: user1 });
+        await stakingContract.withdrawDbitInterest(1, { from: user1 });
         let bal2 = await dbit.balanceOf(apm.address);
         let dif2 = bal1.sub(bal2);
 
-        await wait(300);
+        await wait(150);
         await nextTime.increment();
 
         // third withdraw
-        await stak.withdrawDbitInterest(1, { from: user1 });
+        await stakingContract.withdrawDbitInterest(1, { from: user1 });
         let bal3 = await dbit.balanceOf(apm.address);
         let dif3 = bal2.sub(bal3);
 
@@ -258,9 +184,9 @@ contract("Executable: Governance", async (accounts) => {
 
         let res = await gov.createProposal(
             _class,
-            exec.address,
-            0,
-            callData,
+            [exec.address],
+            [0],
+            [callData],
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -285,12 +211,12 @@ contract("Executable: Governance", async (accounts) => {
         let balUser1Bef = await dbit.balanceOf(user1);
         let balUser2Bef = await dbit.balanceOf(user2);
 
-        await stak.unlockVotes(event.class, event.nonce, { from: user1 });
+        await stakingContract.unlockVotes(event.class, event.nonce, { from: user1 });
         let apmBalBef2 = await dbit.balanceOf(apm.address);
         let balUser1Aft = await dbit.balanceOf(user1);
         let dif1 = apmBalBef1.sub(apmBalBef2);
 
-        await stak.unlockVotes(event.class, event.nonce, { from: user2 });
+        await stakingContract.unlockVotes(event.class, event.nonce, { from: user2 });
         let apmBalBef3 = await dbit.balanceOf(apm.address);
         let balUser2Aft = await dbit.balanceOf(user2);
         let dif2 = apmBalBef2.sub(apmBalBef3);
@@ -306,15 +232,14 @@ contract("Executable: Governance", async (accounts) => {
         amount3 = await web3.utils.toWei(web3.utils.toBN(100), 'ether');
         amountToMint = await web3.utils.toWei(web3.utils.toBN(150), 'ether');
 
-        await bank.mintCollateralisedSupply(dgov.address, debondTeam, amountToMint, { from: operator });
-        await dgov.transfer(user7, amountToMint, { from: debondTeam });
-        await dgov.approve(stak.address, amountToMint, { from: user7 });
-        await dgov.approve(user7, amountToMint, { from: user7 });
+        await dgov.mint(user7, amountToMint);
+        await dgov.approve(stakingContract.address, amountToMint, { from: user7 });
+        //await dgov.approve(user7, amountToMint, { from: user7 });
 
         // staking
-        await stak.stakeDgovToken(amount1, 0, { from: user7 });
-        await stak.stakeDgovToken(amount2, 1, { from: user7 });
-        await stak.stakeDgovToken(amount3, 2, { from: user7 });
+        await stakingContract.stakeDgovToken(amount1, 0, { from: user7 });
+        await stakingContract.stakeDgovToken(amount2, 1, { from: user7 });
+        await stakingContract.stakeDgovToken(amount3, 2, { from: user7 });
 
         let amountVote1 = await storage.getAvailableVoteTokens(user7, 1);
         let amountVote2 = await storage.getAvailableVoteTokens(user7, 2);
@@ -331,9 +256,9 @@ contract("Executable: Governance", async (accounts) => {
 
         let res1 = await gov.createProposal(
             _class1,
-            exec.address,
-            0,
-            callData1,
+            [exec.address],
+            [0],
+            [callData1],
             title1,
             web3.utils.soliditySha3(title1),
             { from: operator }
@@ -351,9 +276,9 @@ contract("Executable: Governance", async (accounts) => {
         
         let res2 = await gov.createProposal(
             _class2,
-            exec.address,
-            0,
-            callData2,
+            [exec.address],
+            [0],
+            [callData2],
             title2,
             web3.utils.soliditySha3(title2),
             { from: operator }
@@ -367,16 +292,16 @@ contract("Executable: Governance", async (accounts) => {
         let newMax = maxSupplyBefore.add(toAdd);
         let _class3 = 0;
         let title3 = "Propsal-1: Update the DGOV max";
-        let callData3 = await gov.contract.methods.updateDGOVMaxSupply(
+        let callData3 = await exec.contract.methods.updateDGOVMaxSupply(
             _class3,
             newMax
         ).encodeABI();
         
         let res3 = await gov.createProposal(
             _class3,
-            gov.address,
-            0,
-            callData3,
+            [exec.address],
+            [0],
+            [callData3],
             title3,
             web3.utils.soliditySha3(title3),
             { from: operator }
@@ -394,17 +319,15 @@ contract("Executable: Governance", async (accounts) => {
         let apmBalBef1 = await dbit.balanceOf(apm.address);
         let balUser1 = await dbit.balanceOf(user7);
 
-        await stak.unlockVotes(e1.class, e1.nonce, { from: user7 }); 
+        await stakingContract.unlockVotes(e1.class, e1.nonce, { from: user7 }); 
         let apmBalBef2 = await dbit.balanceOf(apm.address);
-        let balUser2 = await dbit.balanceOf(user7);
         let dif1 = apmBalBef1.sub(apmBalBef2);
 
-        await stak.unlockVotes(e2.class, e2.nonce, { from: user7 }); 
+        await stakingContract.unlockVotes(e2.class, e2.nonce, { from: user7 }); 
         let apmBalBef3 = await dbit.balanceOf(apm.address);
-        let balUser3 = await dbit.balanceOf(user7);
         let dif2 = apmBalBef2.sub(apmBalBef3);
 
-        await stak.unlockVotes(e3.class, e3.nonce, { from: user7 }); 
+        await stakingContract.unlockVotes(e3.class, e3.nonce, { from: user7 }); 
         let apmBalBef4 = await dbit.balanceOf(apm.address);
         let balUser4 = await dbit.balanceOf(user7);
         let dif3 = apmBalBef3.sub(apmBalBef4);
@@ -423,9 +346,9 @@ contract("Executable: Governance", async (accounts) => {
         
         let res = await gov.createProposal(
             _class,
-            exec.address,
-            0,
-            callData,
+            [exec.address],
+            [0],
+            [callData],
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -444,7 +367,7 @@ contract("Executable: Governance", async (accounts) => {
         let balUser1Bef = await dbit.balanceOf(user1);
         let balUser6Bef = await dbit.balanceOf(user6);
 
-        await stak.unlockVotes(event.class, event.nonce, { from: user1 });
+        await stakingContract.unlockVotes(event.class, event.nonce, { from: user1 });
 
         let apmBalAft = await dbit.balanceOf(apm.address);
         let balUser1Aft = await dbit.balanceOf(user1);
@@ -466,9 +389,9 @@ contract("Executable: Governance", async (accounts) => {
         
         let res = await gov.createProposal(
             _class,
-            exec.address,
-            0,
-            callData,
+            [exec.address],
+            [0],
+            [callData],
             title,
             web3.utils.soliditySha3(title),
             { from: operator }
@@ -483,7 +406,7 @@ contract("Executable: Governance", async (accounts) => {
         await wait(17000);
         await nextTime.increment();
 
-        expect(stak.unlockVotes(event.class, event.nonce, { from: user6 }))
+        expect(stakingContract.unlockVotes(event.class, event.nonce, { from: user6 }))
         .to.rejectedWith(
             Error,
             "VM Exception while processing transaction: revert Staking: no DGOV staked or haven't voted -- Reason given: Staking: no DGOV staked or haven't voted"
