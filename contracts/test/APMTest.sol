@@ -41,4 +41,8 @@ contract APMTest is ExecutableOwnable {
         require(msg.sender == stakingContract, "APMTest: Only Staking contract");
         IERC20(tokenAddress).safeTransfer(_to, amount);
     }
+
+    function getBankAddress() external view returns(address) {
+        return bankAddress;
+    }
 }

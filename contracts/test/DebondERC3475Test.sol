@@ -29,8 +29,15 @@ contract DebondERC3475Test is ExecutableOwnable {
         bankAddress = _bankAddress;
     }
 
-    function updateBankBondManagerAddress(address _bankBondManagerAddress) external onlyExecutable {
+    function updateBondManagerAddress(address _bankBondManagerAddress) external onlyExecutable {
         bankBondManagerAddress = _bankBondManagerAddress;
     }
 
+    function getBankAddress() external view returns(address) {
+        return bankAddress;
+    }
+
+    function getBankBondManager() external view returns(address) {
+        return bankBondManagerAddress;
+    }
 }

@@ -48,7 +48,7 @@ contract GovStorage is IGovStorage {
     address public stakingContract;
     address public erc3475Contract;
     address public exchangeContract;
-    address public bankDataContract;
+    address public bankStorageContract;
     address public voteTokenContract;
     address public governanceMigrator;
     address public exchangeStorageContract;
@@ -196,7 +196,7 @@ contract GovStorage is IGovStorage {
     function setUpGroup2(
         address _executable,
         address _bankContract,
-        address _bankDataContract,
+        address _bankStorageContract,
         address _erc3475Contract,
         address _exchangeContract,
         address _exchangeStorageContract
@@ -205,7 +205,7 @@ contract GovStorage is IGovStorage {
 
         executable = _executable;
         bankContract = _bankContract;
-        bankDataContract = _bankDataContract;
+        bankStorageContract = _bankStorageContract;
         erc3475Contract = _erc3475Contract;
         exchangeContract = _exchangeContract;
         exchangeStorageContract = _exchangeStorageContract;
@@ -286,8 +286,8 @@ contract GovStorage is IGovStorage {
         return bankBondManagerContract;
     }
 
-    function getBankDataAddress() public view returns(address) {
-        return bankDataContract;
+    function getBankStorageAddress() public view returns(address) {
+        return bankStorageContract;
     }
 
     function getDebondTeamAddress() public view returns(address) {

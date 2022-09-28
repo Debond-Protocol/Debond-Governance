@@ -33,7 +33,7 @@ interface IGovStorage is IGovSharedStorage {
     function getAPMAddress() external view returns(address);
     function getERC3475Address() external view returns(address);
     function getBankBondManagerAddress() external view returns(address);
-    function getBankDataAddress() external view returns(address);
+    function getBankStorageAddress() external view returns(address);
     function getDebondTeamAddress() external view returns(address);
     function getBenchmarkIR() external view returns(uint256);
     function getBudget() external view returns(uint256, uint256);

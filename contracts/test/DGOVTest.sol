@@ -19,12 +19,10 @@ import "../utils/ExecutableOwnable.sol";
 
 
 contract DGOVTest is ERC20, ExecutableOwnable {
-
     address bankAddress;
     mapping(address => uint256) allocatedBalance;
     uint maxSupply = 1000000 ether;
     uint256 maxAllocationPercentage;
-
 
     constructor(
         address _executableAddress
@@ -69,5 +67,7 @@ contract DGOVTest is ERC20, ExecutableOwnable {
         return maxAllocationPercentage;
     }
 
-
+    function getBankAddress() external view returns(address) {
+        return bankAddress;
+    }
 }

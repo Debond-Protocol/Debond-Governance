@@ -19,7 +19,6 @@ import "../utils/ExecutableOwnable.sol";
 
 
 contract DBITTest is ERC20, ExecutableOwnable {
-
     address bankAddress;
     mapping(address => uint256) allocatedBalance;
     uint256 maxAllocationPercentage;
@@ -58,4 +57,7 @@ contract DBITTest is ERC20, ExecutableOwnable {
         return maxAllocationPercentage;
     }
 
+    function getBankAddress() external view returns(address) {
+        return bankAddress;
+    }
 }

@@ -34,4 +34,12 @@ contract BankBondManagerTest is ExecutableOwnable {
     function updateBankAddress(address _bankAddress) external onlyExecutable {
         bankAddress = _bankAddress;
     }
+
+    function getBankAddress() external view returns(address) {
+        return bankAddress;
+    }
+
+    function getOracleAddress() external view returns(address) {
+        return oracleAddress;
+    }
 }

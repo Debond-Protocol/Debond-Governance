@@ -16,9 +16,7 @@ pragma solidity ^0.8.0;
 
 import "../utils/ExecutableOwnable.sol";
 
-
 contract BankStorageTest is ExecutableOwnable {
-
     address bankAddress;
     uint256 benchmarkIR;
 
@@ -38,5 +36,9 @@ contract BankStorageTest is ExecutableOwnable {
 
     function getBenchmarkIR() external view returns (uint256) {
         return benchmarkIR;
+    }
+
+    function getBankAddress() external view returns(address) {
+        return bankAddress;
     }
 }

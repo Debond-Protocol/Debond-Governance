@@ -16,7 +16,7 @@ const Executable = artifacts.require("Executable");
 const GovStorage = artifacts.require("GovStorage");
 const AdvanceBlockTimeStamp = artifacts.require("AdvanceBlockTimeStamp");
 
-contract("Executable: Governance", async (accounts) => {
+contract("Interests and Rewards: Governance", async (accounts) => {
     let gov;
     let apm;
     let dbit;
@@ -54,6 +54,7 @@ contract("Executable: Governance", async (accounts) => {
     let user5 = accounts[6];
     let user6 = accounts[7];
     let user7 = accounts[8];
+    let user8 = accounts[9];
 
     let ProposalStatus = {
         Active: '0',
@@ -135,16 +136,20 @@ contract("Executable: Governance", async (accounts) => {
         expect(balUserAft.toString()).to.equal(balUserBef.add(diff).toString());
     });
 
-    // this test needs to be run alone since the 2 seconds set as the voting period
-    // is too short to allow multiple withdraw. To run it, change "it.skip" to "it.only"
-    it.skip("Several inetrest withdraw before end of staking", async () => {
+    it("Several inetrest withdraw before end of staking", async () => {
+        await dgov.mint(user8, toStake1);
+        await dgov.approve(stakingContract.address, toStake1, { from: user8});
+
+        await stakingContract.stakeDgovToken(toStake1, 0, { from: user8 });
+
+
         await wait(150);
         await nextTime.increment();
         let balAPMBef = await dbit.balanceOf(apm.address);
-        let balUserBef = await dbit.balanceOf(user1);
+        let balUserBef = await dbit.balanceOf(user8);
 
         // first withdraw
-        await stakingContract.withdrawDbitInterest(1, { from: user1 });
+        await stakingContract.withdrawDbitInterest(1, { from: user8 });
         let bal1 = await dbit.balanceOf(apm.address);
         let dif1 = balAPMBef.sub(bal1);
 
@@ -152,7 +157,7 @@ contract("Executable: Governance", async (accounts) => {
         await nextTime.increment();
 
         // second withdraw
-        await stakingContract.withdrawDbitInterest(1, { from: user1 });
+        await stakingContract.withdrawDbitInterest(1, { from: user8 });
         let bal2 = await dbit.balanceOf(apm.address);
         let dif2 = bal1.sub(bal2);
 
@@ -160,12 +165,12 @@ contract("Executable: Governance", async (accounts) => {
         await nextTime.increment();
 
         // third withdraw
-        await stakingContract.withdrawDbitInterest(1, { from: user1 });
+        await stakingContract.withdrawDbitInterest(1, { from: user8 });
         let bal3 = await dbit.balanceOf(apm.address);
         let dif3 = bal2.sub(bal3);
 
         let balAPMAft = await dbit.balanceOf(apm.address);
-        let balUserAft = await dbit.balanceOf(user1);
+        let balUserAft = await dbit.balanceOf(user8);
 
         let dif = balAPMBef.sub(balAPMAft);
         let del = dif1.add(dif2.add(dif3));
@@ -234,7 +239,6 @@ contract("Executable: Governance", async (accounts) => {
 
         await dgov.mint(user7, amountToMint);
         await dgov.approve(stakingContract.address, amountToMint, { from: user7 });
-        //await dgov.approve(user7, amountToMint, { from: user7 });
 
         // staking
         await stakingContract.stakeDgovToken(amount1, 0, { from: user7 });

@@ -50,9 +50,7 @@ contract Executable is IGovSharedStorage {
         uint128 _proposalClass,
         uint256 _maxSupply
     ) external onlyGov {
-
         require(_proposalClass < 1, "Executable: invalid class");
-
         require(
             IDGOV(
                 IGovStorage(govStorageAddress).getDGOVAddress()
@@ -68,9 +66,7 @@ contract Executable is IGovSharedStorage {
         uint256 _newPercentage,
         address _token
     ) external onlyGov {
-
         require(_proposalClass < 1, "Executable: invalid class");
-
         require(
             IDebondToken(_token).setMaxAllocationPercentage(_newPercentage),
             "Gov: Execution failed"
@@ -106,7 +102,7 @@ contract Executable is IGovSharedStorage {
         IGovStorage(govStorageAddress).setBenchmarkIR(_newBenchmarkInterestRate);
 
         IBankStorage(
-            IGovStorage(govStorageAddress).getBankDataAddress()
+            IGovStorage(govStorageAddress).getBankStorageAddress()
         ).updateBenchmarkInterest(_newBenchmarkInterestRate);
 
         emit benchmarkUpdated(_newBenchmarkInterestRate);
@@ -196,6 +192,17 @@ contract Executable is IGovSharedStorage {
         return true;
     }
 
+    function updateGovernanceAddress(
+        uint128 _proposalClass,
+        address _governanceAddress
+    ) external onlyGov returns(bool) {
+        require(_proposalClass <= 1, "Executable: invalid proposal class");
+
+        IGovStorage(govStorageAddress).updateGovernanceAddress(_governanceAddress);
+
+        return true;
+    }
+
     function updateExecutableAddress(
         uint128 _proposalClass,
         address _executableAddress
@@ -206,14 +213,6 @@ contract Executable is IGovSharedStorage {
         // in Bank
         IExecutableUpdatable(
             IGovStorage(govStorageAddress).getBankAddress()
-        ).updateExecutableAddress(_executableAddress);
-        // in Bank data
-        IExecutableUpdatable(IGovStorage(
-            govStorageAddress).getBankDataAddress()
-        ).updateExecutableAddress(_executableAddress);
-        // in Bank data
-        IExecutableUpdatable(IGovStorage(
-            govStorageAddress).getBankBondManagerAddress()
         ).updateExecutableAddress(_executableAddress);
         // in DBIT
         IExecutableUpdatable(
@@ -227,18 +226,27 @@ contract Executable is IGovSharedStorage {
         IExecutableUpdatable(
             IGovStorage(govStorageAddress).getAPMAddress()
         ).updateExecutableAddress(_executableAddress);
-        // in Debond Bond
-        IExecutableUpdatable(
-            IGovStorage(govStorageAddress).getERC3475Address()
-        ).updateExecutableAddress(_executableAddress);
         // in Exchange
         IExecutableUpdatable(
             IGovStorage(govStorageAddress).getExchangeAddress()
         ).updateExecutableAddress(_executableAddress);
-        // in Staking contract
+        // in Exchange storage
         IExecutableUpdatable(
-            IGovStorage(govStorageAddress).getStakingContract()
+            IGovStorage(govStorageAddress).getExchangeStorageAddress()
         ).updateExecutableAddress(_executableAddress);
+        // in Debond Bond
+        IExecutableUpdatable(
+            IGovStorage(govStorageAddress).getERC3475Address()
+        ).updateExecutableAddress(_executableAddress);
+        // in Bank bond manager
+         IExecutableUpdatable(IGovStorage(
+            govStorageAddress).getBankBondManagerAddress()
+        ).updateExecutableAddress(_executableAddress);
+       // in Bank Storage
+        IExecutableUpdatable(
+            IGovStorage(govStorageAddress).getBankStorageAddress()
+        ).updateExecutableAddress(_executableAddress);
+        
 
         emit executableContractUpdated(_executableAddress);
 
@@ -273,7 +281,7 @@ contract Executable is IGovSharedStorage {
 
         // in Bank Data
         IBankStorage(
-            IGovStorage(govStorageAddress).getBankDataAddress()
+            IGovStorage(govStorageAddress).getBankStorageAddress()
         ).updateBankAddress(_bankAddress);
 
         // in Bank Bond Manager
@@ -289,7 +297,7 @@ contract Executable is IGovSharedStorage {
     function updateExchangeAddress(
         uint128 _proposalClass,
         address _exchangeAddress
-    ) external onlyGov returns (bool) {
+    ) external onlyGov returns(bool) {
         require(_proposalClass <= 1, "Executable: invalid proposal class");
 
         IGovStorage(govStorageAddress).updateExchangeAddress(_exchangeAddress);
@@ -306,17 +314,16 @@ contract Executable is IGovSharedStorage {
     function updateBankBondManagerAddress(
         uint128 _proposalClass,
         address _bankBondManagerAddress
-    ) external onlyGov returns (bool) {
+    ) external onlyGov returns(bool) {
         require(_proposalClass <= 1, "Executable: invalid proposal class");
 
-        IGovStorage(
-            govStorageAddress
-        ).updateBankBondManagerAddress(_bankBondManagerAddress);
+        IGovStorage(govStorageAddress).updateBankBondManagerAddress(_bankBondManagerAddress);
 
         // in Bank
         IBank(
             IGovStorage(govStorageAddress).getBankAddress()
         ).updateBondManagerAddress(_bankBondManagerAddress);
+
         // in Debond Bond
         IDebondBond(
             IGovStorage(govStorageAddress).getERC3475Address()
@@ -338,6 +345,7 @@ contract Executable is IGovSharedStorage {
             IGovStorage(govStorageAddress).getBankAddress()
         ).updateOracleAddress(_oracleAddress);
 
+        // in Bank bond manager
         IBankBondManager(
             IGovStorage(govStorageAddress).getBankBondManagerAddress()
         ).updateOracleAddress(_oracleAddress);

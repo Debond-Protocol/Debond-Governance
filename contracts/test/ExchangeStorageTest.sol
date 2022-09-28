@@ -20,9 +20,11 @@ contract ExchangeStorageTest is ExecutableOwnable {
     address exchangeAddress;
     constructor(address _executable) ExecutableOwnable(_executable) {}
 
-    function updateExchangeAddress(address _exchangeAddress) external onlyExecutable {
+    function setExchangeAddress(address _exchangeAddress) external onlyExecutable {
         exchangeAddress = _exchangeAddress;
     }
 
-
+    function getExchangeAddress() public view returns(address) {
+        return exchangeAddress;
+    }
 }
