@@ -104,7 +104,7 @@ contract("Staking: Governance", async (accounts) => {
         await stakingContract.stakeDgovToken(opStake, 0, { from: debondTeam });
     });
 
-    it.only("Cannot unstake DGOV before staking ends", async () => {
+    it("Cannot unstake DGOV before staking ends", async () => {
         expect(stakingContract.unstakeDgovToken(1, { from: debondTeam }))
         .to.rejectedWith(
             Error,
@@ -112,7 +112,7 @@ contract("Staking: Governance", async (accounts) => {
         );
     });
 
-    it.only("Check DGOV have been staked", async () => {
+    it("Check DGOV have been staked", async () => {
         // A -> After staking
         let user5A = await dgov.balanceOf(user5);
         let user6A = await dgov.balanceOf(user6);
@@ -133,7 +133,7 @@ contract("Staking: Governance", async (accounts) => {
         ).toString());
     });
 
-    it.only("Several inetrest withdraw before end of staking", async () => {
+    it("Several inetrest withdraw before end of staking", async () => {
         toStake3 = await web3.utils.toWei(web3.utils.toBN(1200), 'ether');
         await dgov.mint(user3, toStake3);
         await dgov.approve(stakingContract.address, toStake3, { from: user3 });
@@ -179,7 +179,7 @@ contract("Staking: Governance", async (accounts) => {
         expect(balUserAft.toString()).to.equal(balUserBef.add(dif).toString());
     });
 
-    it.only("Withdraw staking DGOV interest before end of staking", async () => {
+    it("Withdraw staking DGOV interest before end of staking", async () => {
         toStake4 = await web3.utils.toWei(web3.utils.toBN(50), 'ether');
 
         await dgov.mint(user4, toStake4);
@@ -199,7 +199,7 @@ contract("Staking: Governance", async (accounts) => {
         expect(balUserAft.toString()).to.equal(balUserBef.add(diff).toString());
     });
 
-    it.only("Unstake DGOV tokens", async () => {
+    it("Unstake DGOV tokens", async () => {
         let balContractBefore = await dgov.balanceOf(stakingContract.address);
 
         await wait(5000);
@@ -225,7 +225,7 @@ contract("Staking: Governance", async (accounts) => {
         );
     });
 
-    it.only("stake DGOV several times", async () => {
+    it("stake DGOV several times", async () => {
         amount1 = await web3.utils.toWei(web3.utils.toBN(30), 'ether');
         amount2 = await web3.utils.toWei(web3.utils.toBN(20), 'ether');
         amount3 = await web3.utils.toWei(web3.utils.toBN(100), 'ether');

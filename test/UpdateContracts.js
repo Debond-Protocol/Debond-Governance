@@ -22,7 +22,7 @@ const BankStorage = artifacts.require("BankStorageTest");
 const BankBondManager = artifacts.require("BankBondManagerTest");
 const AdvanceBlockTimeStamp = artifacts.require("AdvanceBlockTimeStamp");
 
-contract("Executable: Governance", async (accounts) => {
+contract("Update contracts: Governance", async (accounts) => {
     let gov;
     let apm;
     let bank;
@@ -88,11 +88,11 @@ contract("Executable: Governance", async (accounts) => {
     });
 
     /**
-    * Execute tests one by one using "it.only", since when a contract is updated it is replaced
+    * Execute tests one by one using "it.skip", since when a contract is updated it is replaced
     * by an address which is not a contract, all the logic of setting and getting data
     * contained in the previous contract cannot be used anymore
     */
-    it.only("update the bank contract", async () => {
+    it("update the bank contract", async () => {
         await dgov.mint(user1, amountDGOV);
         await dgov.approve(stakingContract.address, amountDGOV, { from: user1 });
         await stakingContract.stakeDgovToken(amountDGOV, 0, { from: user1 });
@@ -151,7 +151,7 @@ contract("Executable: Governance", async (accounts) => {
         .not.to.equal(bankBefore);
     });
 
-    it("update the exchange address", async () => {
+    it.skip("update the exchange address", async () => {
         await dgov.mint(user5, amountDGOV);
         await dgov.approve(stakingContract.address, amountDGOV, { from: user5 });
         await stakingContract.stakeDgovToken(amountDGOV, 0, { from: user5 });
@@ -200,7 +200,7 @@ contract("Executable: Governance", async (accounts) => {
         .not.to.equal(exchangeBefore);
     });
 
-    it("update the bank bond manager contract", async () => {
+    it.skip("update the bank bond manager contract", async () => {
         await dgov.mint(user6, amountDGOV);
         await dgov.approve(stakingContract.address, amountDGOV, { from: user6 });
         await stakingContract.stakeDgovToken(amountDGOV, 0, { from: user6 });
@@ -250,7 +250,7 @@ contract("Executable: Governance", async (accounts) => {
         .not.to.equal(bankBondManagerBefore);
     });
 
-    it("update the oracle contract", async () => {
+    it.skip("update the oracle contract", async () => {
         await dgov.mint(user7, amountDGOV);
         await dgov.approve(stakingContract.address, amountDGOV, { from: user7 });
         await stakingContract.stakeDgovToken(amountDGOV, 0, { from: user7 });
@@ -294,7 +294,7 @@ contract("Executable: Governance", async (accounts) => {
         expect(inBankAfter).to.equal(inBondManagerAfter);
     });
 
-    it("update the Governance contract", async () => {
+    it.skip("update the Governance contract", async () => {
         await dgov.mint(user2, amountDGOV);
         await dgov.approve(stakingContract.address, amountDGOV, { from: user2 });
         await stakingContract.stakeDgovToken(amountDGOV, 0, { from: user2 });
@@ -341,7 +341,7 @@ contract("Executable: Governance", async (accounts) => {
         .not.to.equal(governanceBefore);
     });
 
-    it("check that the old Governance is out of use after update", async () => {
+    it.skip("check that the old Governance is out of use after update", async () => {
         await dgov.mint(user3, amountDGOV);
         await dgov.approve(stakingContract.address, amountDGOV, { from: user3 });
         await stakingContract.stakeDgovToken(amountDGOV, 0, { from: user3 });
@@ -395,7 +395,7 @@ contract("Executable: Governance", async (accounts) => {
         );
     });
 
-    it("update the executable contract", async () => {
+    it.skip("update the executable contract", async () => {
         await dgov.mint(user4, amountDGOV);
         await dgov.approve(stakingContract.address, amountDGOV, { from: user4 });
         await stakingContract.stakeDgovToken(amountDGOV, 0, { from: user4 });

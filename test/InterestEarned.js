@@ -16,7 +16,7 @@ const Executable = artifacts.require("Executable");
 const GovStorage = artifacts.require("GovStorage");
 const AdvanceBlockTimeStamp = artifacts.require("AdvanceBlockTimeStamp");
 
-contract("Interests and Rewards: Governance", async (accounts) => {
+contract("Executable: Governance", async (accounts) => {
     let gov;
     let apm;
     let dbit;
@@ -26,16 +26,7 @@ contract("Interests and Rewards: Governance", async (accounts) => {
     let exec;
     let storage;
     let amountToMint;
-    let amountToStake;
     let nextTime;
-
-    let user1B;
-    let user2B;
-    let user3B;
-    let user4B;
-    let user5B;
-    let userOB;
-    let contrB;
 
     let toStake1;
     let toStake2;
@@ -108,14 +99,6 @@ contract("Interests and Rewards: Governance", async (accounts) => {
         await stakingContract.stakeDgovToken(toStake3, 0, { from: user3 });
         await stakingContract.stakeDgovToken(toStake4, 0, { from: user4 });
         await stakingContract.stakeDgovToken(toStake5, 0, { from: user5 });
-
-        user1B = await dgov.balanceOf(user1);
-        user2B = await dgov.balanceOf(user2);
-        user3B = await dgov.balanceOf(user3);
-        user4B = await dgov.balanceOf(user4);
-        user5B = await dgov.balanceOf(user5);
-        userOB = await dgov.balanceOf(operator);
-        contrB = await dgov.balanceOf(stakingContract.address);
 
         await dgov.approve(user6, toStake1, { from: user1 });
     });
