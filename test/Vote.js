@@ -251,7 +251,7 @@ contract("Vote: Governance", async (accounts) => {
         let e1 = res1.logs[0].args;
 
         // second proposal
-        let _class2 = 1;
+        let _class2 = 0;
         let title2 = "Propsal-1: Update the bank contract";
         let callData2 = await exec.contract.methods.updateBankAddress(
             _class2,

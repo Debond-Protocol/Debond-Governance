@@ -16,7 +16,7 @@ const Executable = artifacts.require("Executable");
 const GovStorage = artifacts.require("GovStorage");
 const AdvanceBlockTimeStamp = artifacts.require("AdvanceBlockTimeStamp");
 
-contract("Executable: Governance", async (accounts) => {
+contract("Interest and Rewards: Governance", async (accounts) => {
     let gov;
     let apm;
     let dbit;
@@ -125,9 +125,8 @@ contract("Executable: Governance", async (accounts) => {
 
         await stakingContract.stakeDgovToken(toStake1, 0, { from: user8 });
 
-
-        await wait(150);
-        await nextTime.increment();
+        //await wait(150);
+        //await nextTime.increment();
         let balAPMBef = await dbit.balanceOf(apm.address);
         let balUserBef = await dbit.balanceOf(user8);
 

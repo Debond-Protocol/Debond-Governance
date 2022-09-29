@@ -60,7 +60,6 @@ contract GovStorage is IGovStorage {
     uint256 public dgovBudgetPPM;
     uint256 private _proposalThreshold;
     uint256 public benchmarkInterestRate;
-    uint256 public minimumStakingDuration;
     uint256 public dbitAllocationDistibutedPPM;
     uint256 public dgovAllocationDistibutedPPM;
     uint256 public dbitTotalAllocationDistributed;
@@ -130,19 +129,17 @@ contract GovStorage is IGovStorage {
         _proposalQuorum[1] = 60;
         _proposalQuorum[2] = 50;
 
-        // to define during deployment
+        // to be defined during deployment
         _votingPeriod[0] = 2;
         _votingPeriod[1] = 2;
         _votingPeriod[2] = 2;
 
-        // voting rewards by class
+        // to be defined during deployment
         numberOfVotingDays[0] = 1;
         numberOfVotingDays[1] = 1;
         numberOfVotingDays[2] = 1;
-        minimumStakingDuration = 10;
 
-        // Staking
-        // for tests only
+        // for tests only - during deployment uncomment that with 4 weeks bellow
         voteTokenAllocation[0].duration = 4;
         voteTokenAllocation[0].allocation = 10000000000000000;
 
@@ -228,10 +225,6 @@ contract GovStorage is IGovStorage {
 
     function getProposalThreshold() public view returns(uint256) {
         return _proposalThreshold;
-    }
-
-    function getMinimumStakingDuration() public view returns(uint256) {
-        return minimumStakingDuration;
     }
 
     function getVetoOperator() public view returns(address) {
@@ -773,6 +766,24 @@ contract GovStorage is IGovStorage {
 
     function setProposalThreshold(uint256 _newProposalThreshold) external onlyExec {
         _proposalThreshold = _newProposalThreshold;
+    }
+
+    function setVotingPeriod(uint256[] memory _newVotingThreshold) external onlyExec {
+        for (uint128 i = 0; i < 3; i++) {
+            _votingPeriod[i] = _newVotingThreshold[i];
+        }
+    }
+
+    function setProposalQuorum(uint256[] memory _newProposalQuorum) external onlyExec {
+        for (uint128 i = 0; i < 3; i++) {
+            _proposalQuorum[i] = _newProposalQuorum[i];
+        }
+    }
+
+    function setNumberOfVotingDays(uint256[] memory _numberOfVotingDays) external onlyExec {
+        for (uint128 i = 0; i < 3; i++) {
+            numberOfVotingDays[i] = _numberOfVotingDays[i];
+        }
     }
 
     function updateExecutableAddress(address _executableAddress) external onlyExec {

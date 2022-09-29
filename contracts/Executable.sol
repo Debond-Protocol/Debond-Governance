@@ -121,6 +121,39 @@ contract Executable is IGovSharedStorage {
         return true;
     }
 
+    function updateVotingPeriod(
+        uint128 _proposalClass,
+        uint256[] memory _newVotingThreshold
+    ) external onlyGov returns(bool) {
+        require(_proposalClass < 1, "Executable: invalid class");
+
+        IGovStorage(govStorageAddress).setVotingPeriod(_newVotingThreshold);
+
+        return true;
+    }
+
+    function updateProposalQuorum(
+        uint128 _proposalClass,
+        uint256[] memory _newProposalQuorum
+    ) external onlyGov returns(bool) {
+        require(_proposalClass < 1, "Executable: invalid class");
+
+        IGovStorage(govStorageAddress).setProposalQuorum(_newProposalQuorum);
+
+        return true;
+    }
+
+    function updateNumberOfVotingDays(
+        uint128 _proposalClass,
+        uint256[] memory _newNumberOfVotingDays
+    ) external onlyGov returns(bool) {
+        require(_proposalClass < 1, "Executable: invalid class");
+
+        IGovStorage(govStorageAddress).setNumberOfVotingDays(_newNumberOfVotingDays);
+
+        return true;
+    }
+
     function createNewBondClass(
         uint128 _proposalClass,
         uint256 _classId,

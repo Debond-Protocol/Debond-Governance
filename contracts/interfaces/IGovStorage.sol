@@ -41,7 +41,6 @@ interface IGovStorage is IGovSharedStorage {
     function getTotalAllocationDistributed() external view returns(uint256, uint256);
     function getAllocatedToken(address _account) external view returns(uint256, uint256);
     function getAllocatedTokenMinted(address _account) external view returns(uint256, uint256);
-    function getMinimumStakingDuration() external view returns(uint256);
     function cdpDGOVToDBIT() external view returns(uint256);
 
     function updateBankAddress(address _bankAddress) external;
@@ -183,6 +182,18 @@ interface IGovStorage is IGovSharedStorage {
 
     function setProposalThreshold(
         uint256 _newProposalThreshold
+    ) external;
+
+    function setVotingPeriod(
+        uint256[] memory _newVotingThreshold
+    ) external;
+
+    function setProposalQuorum(
+        uint256[] memory _newProposalQuorum
+    ) external;
+
+    function setNumberOfVotingDays(
+        uint256[] memory _numberOfVotingDays
     ) external;
 
     function setFundSize(

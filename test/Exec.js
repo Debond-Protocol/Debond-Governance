@@ -233,6 +233,159 @@ contract("Executable: Governance", async (accounts) => {
         expect(thresholdAfter.toString()).to.equal(newTherehold.toString());
     });
 
+    it("update the voting threshold", async () => {
+        let votiPeriod = ['2', '5', '10'];
+        let _class = 0;
+        let title = "Propsal-1: Update the proposal threshold";
+
+        let callData = await exec.contract.methods.updateVotingPeriod(
+            _class,
+            votiPeriod
+        ).encodeABI();
+        
+        let res = await gov.createProposal(
+            _class,
+            [exec.address],
+            [0],
+            [callData],
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
+        );
+
+        let event = res.logs[0].args;
+
+        let amountVote1 = web3.utils.toWei(web3.utils.toBN(10), 'ether')
+        let amountVote2 = web3.utils.toWei(web3.utils.toBN(10), 'ether')
+        let amountVote3 = web3.utils.toWei(web3.utils.toBN(10), 'ether')
+        let amountVote4 = web3.utils.toWei(web3.utils.toBN(10), 'ether')
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountVote1, 1, { from: user1 });
+        await gov.vote(event.class, event.nonce, user2, 0, amountVote2, 1, { from: user2 });
+        await gov.vote(event.class, event.nonce, user3, 0, amountVote3, 1, { from: user3 });
+        await gov.vote(event.class, event.nonce, user4, 0, amountVote4, 1, { from: user4 });
+        await gov.veto(event.class, event.nonce, true,{ from: operator });
+
+        await wait(seconds);
+        await nextTime.increment();
+
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            { from: operator }
+        );
+
+        let period1 = await storage.getVotingPeriod(0);
+        let period2 = await storage.getVotingPeriod(1);
+        let period3 = await storage.getVotingPeriod(2);
+
+        expect(period1.toString()).to.equal(votiPeriod[0]);
+        expect(period2.toString()).to.equal(votiPeriod[1]);
+        expect(period3.toString()).to.equal(votiPeriod[2]);
+    });
+
+    it("update the proposal threshold", async () => {
+        let quorum = ['70', '65', '52'];
+        let _class = 0;
+        let title = "Propsal-1: Update the proposal threshold";
+
+        let callData = await exec.contract.methods.updateProposalQuorum(
+            _class,
+            quorum
+        ).encodeABI();
+        
+        let res = await gov.createProposal(
+            _class,
+            [exec.address],
+            [0],
+            [callData],
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
+        );
+
+        let event = res.logs[0].args;
+
+        let amountVote1 = web3.utils.toWei(web3.utils.toBN(10), 'ether')
+        let amountVote2 = web3.utils.toWei(web3.utils.toBN(10), 'ether')
+        let amountVote3 = web3.utils.toWei(web3.utils.toBN(10), 'ether')
+        let amountVote4 = web3.utils.toWei(web3.utils.toBN(10), 'ether')
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountVote1, 1, { from: user1 });
+        await gov.vote(event.class, event.nonce, user2, 0, amountVote2, 1, { from: user2 });
+        await gov.vote(event.class, event.nonce, user3, 0, amountVote3, 1, { from: user3 });
+        await gov.vote(event.class, event.nonce, user4, 0, amountVote4, 1, { from: user4 });
+        await gov.veto(event.class, event.nonce, true,{ from: operator });
+
+        await wait(seconds);
+        await nextTime.increment();
+
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            { from: operator }
+        );
+
+        let threshold1 = await storage.getClassQuorum(0);
+        let threshold2 = await storage.getClassQuorum(1);
+        let threshold3 = await storage.getClassQuorum(2);
+
+        expect(threshold1.toString()).to.equal(quorum[0]);
+        expect(threshold2.toString()).to.equal(quorum[1]);
+        expect(threshold3.toString()).to.equal(quorum[2]);
+    });
+
+    it("update the number of voting days", async () => {
+        let numberOfVotingDays = ['1', '7', '10'];
+        let _class = 0;
+        let title = "Propsal-1: Update the proposal threshold";
+
+        let callData = await exec.contract.methods.updateNumberOfVotingDays(
+            _class,
+            numberOfVotingDays
+        ).encodeABI();
+        
+        let res = await gov.createProposal(
+            _class,
+            [exec.address],
+            [0],
+            [callData],
+            title,
+            web3.utils.soliditySha3(title),
+            { from: operator }
+        );
+
+        let event = res.logs[0].args;
+
+        let amountVote1 = web3.utils.toWei(web3.utils.toBN(10), 'ether')
+        let amountVote2 = web3.utils.toWei(web3.utils.toBN(10), 'ether')
+        let amountVote3 = web3.utils.toWei(web3.utils.toBN(10), 'ether')
+        let amountVote4 = web3.utils.toWei(web3.utils.toBN(10), 'ether')
+
+        await gov.vote(event.class, event.nonce, user1, 0, amountVote1, 1, { from: user1 });
+        await gov.vote(event.class, event.nonce, user2, 0, amountVote2, 1, { from: user2 });
+        await gov.vote(event.class, event.nonce, user3, 0, amountVote3, 1, { from: user3 });
+        await gov.vote(event.class, event.nonce, user4, 0, amountVote4, 1, { from: user4 });
+        await gov.veto(event.class, event.nonce, true,{ from: operator });
+
+        await wait(seconds);
+        await nextTime.increment();
+
+        await gov.executeProposal(
+            event.class,
+            event.nonce,
+            { from: operator }
+        );
+
+        let day1 = await storage.getNumberOfVotingDays(0);
+        let day2 = await storage.getNumberOfVotingDays(1);
+        let day3 = await storage.getNumberOfVotingDays(2);
+
+        expect(day1.toString()).to.equal(numberOfVotingDays[0]);
+        expect(day2.toString()).to.equal(numberOfVotingDays[1]);
+        expect(day3.toString()).to.equal(numberOfVotingDays[2]);
+    });
+
     it("change the budget in Part Per Million", async () => {
         let newDBITBudget = await web3.utils.toWei(web3.utils.toBN(5000000), 'ether');
         let newDGOVBudget = await web3.utils.toWei(web3.utils.toBN(7000000), 'ether');
