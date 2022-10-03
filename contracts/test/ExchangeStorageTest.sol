@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 // SPDX-License-Identifier: apache 2.0
 /*
-    Copyright 2020 Sigmoid Foundation <info@dGOV.finance>
+    Copyright 2022 Debond Protocol <info@debond.org>
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
@@ -14,9 +14,17 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-interface IGovSettings {
-    function votingDelay() external view returns(uint256);
-    function votingPeriod() external view returns(uint256);
-    function setVotingDelay(uint256 _newDelay) external;
-    function setVotingPeriod(uint256 _newPeriod) external;
+import "../utils/ExecutableOwnable.sol";
+
+contract ExchangeStorageTest is ExecutableOwnable {
+    address exchangeAddress;
+    constructor(address _executable) ExecutableOwnable(_executable) {}
+
+    function setExchangeAddress(address _exchangeAddress) external onlyExecutable {
+        exchangeAddress = _exchangeAddress;
+    }
+
+    function getExchangeAddress() public view returns(address) {
+        return exchangeAddress;
+    }
 }

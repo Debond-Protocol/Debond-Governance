@@ -14,8 +14,7 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-interface IActivable {
+interface IMigrate {
 
-    function setIsActive(bool _isActive) external;
-    function contractIsActive() external view returns(bool);
+    function migrate(address _token, address _to, uint256 _amount) external;
 }

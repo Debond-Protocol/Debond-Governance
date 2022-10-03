@@ -14,7 +14,7 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-interface IGovernanceAddressUpdatable {
+interface ILiquidityWithdrawer {
 
-    function setGovernanceAddress(address _governanceAddress) external;
+    function withdrawDBIT(address _to, uint256 _amount) external;
 }

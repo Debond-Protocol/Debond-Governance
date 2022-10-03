@@ -1,6 +1,6 @@
 {
   "name": "@debond-protocol/debond-governance-contracts",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Debond Governance Contracts",
   "main": "index.js",
   "directories": {

@@ -14,13 +14,15 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-token-contracts/DBIT.sol";
+import "../utils/ExecutableOwnable.sol";
 
-contract DBITToken is DBIT {
+contract ExchangeTest is ExecutableOwnable {
+    address exchangeStorageAddress;
     constructor(
-        address _governace,
-        address _bank,
-        address _airdrop,
-        address _exchange
-    ) DBIT(_governace, _bank, _airdrop, _exchange) {}
+        address _executableAddress
+    ) ExecutableOwnable(_executableAddress) {}
+
+    function updateExchangeStorageAddress(address _exchangeStorageAddress) external onlyExecutable {
+        exchangeStorageAddress = _exchangeStorageAddress;
+    }
 }

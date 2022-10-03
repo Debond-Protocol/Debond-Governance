@@ -5,7 +5,7 @@ const Web3 = require("web3");
 const web3 = new Web3();
 
 module.exports = {
-  plugins: ['truffle-plugin-verify'],
+  plugins: ['truffle-plugin-verify', "truffle-contract-size"],
   api_keys: {
     etherscan: process.env.ETHERSCAN_API_KEY,
   },
@@ -13,8 +13,7 @@ module.exports = {
     development: {
       host: "127.0.0.1",
       port: 7545,
-      network_id: "*",
-      //gas: 3500000
+      network_id: "*"
     },
     rinkeby: {
       provider: function() {
@@ -34,7 +33,7 @@ module.exports = {
     }
   },
   mocha: {
-    // reporter: 'eth-gas-reporter'
+    //reporter: 'eth-gas-reporter'
   },
   compilers: {
     solc: {

@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 // SPDX-License-Identifier: apache 2.0
 /*
-    Copyright 2020 Sigmoid Foundation <info@dGOV.finance>
+    Copyright 2022 Debond Protocol <info@debond.org>
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
@@ -14,22 +14,7 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-interface IStaking {
-    function stakeDgovToken(
-        uint256 _amount,
-        uint256 _durationIndex
-    ) external;
+interface IExecutableUpdatable {
 
-    function unstakeDgovToken(
-        uint256 _stakingCounter
-    ) external;
-
-    function withdrawDbitInterest(
-        uint256 _stakingCounter
-    ) external;
-
-    function estimateInterestEarned(
-        uint256 _amount,
-        uint256 _duration
-    ) external view returns(uint256 interest);
+    function updateExecutableAddress(address _newExecutableAddress) external;
 }

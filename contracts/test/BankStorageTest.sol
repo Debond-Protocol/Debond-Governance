@@ -14,13 +14,31 @@ pragma solidity ^0.8.0;
     limitations under the License.
 */
 
-import "@debond-protocol/debond-token-contracts/DGOV.sol";
+import "../utils/ExecutableOwnable.sol";
 
-contract DGOVToken is DGOV {
+contract BankStorageTest is ExecutableOwnable {
+    address bankAddress;
+    uint256 benchmarkIR;
+
     constructor(
-        address _governace,
-        address _bank,
-        address _airdrop,
-        address _exchange
-    ) DGOV(_governace, _bank, _airdrop, _exchange) {}
+        address _executableAddress
+    ) ExecutableOwnable(
+        _executableAddress
+    ) {}
+
+    function updateBankAddress(address _bankAddress) external onlyExecutable {
+        bankAddress = _bankAddress;
+    }
+
+    function updateBenchmarkInterest(uint256 _benchmarkIR) external onlyExecutable {
+        benchmarkIR = _benchmarkIR;
+    }
+
+    function getBenchmarkIR() external view returns (uint256) {
+        return benchmarkIR;
+    }
+
+    function getBankAddress() external view returns(address) {
+        return bankAddress;
+    }
 }

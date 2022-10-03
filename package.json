@@ -12,10 +12,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@debond-protocol/debond-governance-contracts": "^0.0.1",
-    "@debond-protocol/debond-token-contracts": "^0.0.2",
+    "@debond-protocol/debond-apm-contracts": "^0.0.5",
+    "@debond-protocol/debond-bank-contracts": "^0.0.3",
+    "@debond-protocol/debond-erc3475-contracts": "^0.0.6",
+    "@debond-protocol/debond-exchange-contracts": "^0.0.1",
+    "@debond-protocol/debond-token-contracts": "^0.0.4",
     "@openzeppelin/contracts": "^4.5.0",
+    "chai": "^4.3.6",
     "dotenv": "^16.0.0",
+    "erc3475": "^0.0.2",
     "prb-math": "^2.4.3"
   },
   "devDependencies": {
@@ -24,8 +29,9 @@
     "@types/chai": "^4.2.22",
     "@types/mocha": "^9.0.0",
     "@types/node": "^16.11.2",
+    "buidler-gas-reporter": "^0.1.4",
     "chai-as-promised": "^7.1.1",
-    "eth-gas-reporter": "^0.2.23",
+    "eth-gas-reporter": "^0.2.25",
     "prettier": "^2.6.2",
     "prettier-plugin-solidity": "^1.0.0-beta.19",
     "truffle": "^5.5.6",
