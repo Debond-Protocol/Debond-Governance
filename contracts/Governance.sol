@@ -56,6 +56,10 @@ contract Governance is GovernanceMigrator, ReentrancyGuard, IGovSharedStorage {
         string memory _title,
         bytes32 _descriptionHash
     ) public {
+        require(
+            _targets.length == _values.length && _targets.length == _calldatas.length,
+            "Gov: invalid proposal, check input data lengths"
+        );
         // proposer must have a required minimum amount of vote tokens available -to be locked-
         require(
             IERC20(
